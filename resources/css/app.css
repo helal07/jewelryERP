@@ -1,0 +1,141 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-sans antialiased text-gray-900 bg-[#FEF9E7];
+  }
+}
+
+@layer utilities {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+
+  /* Glassmorphism Utilities */
+  .glass {
+    @apply bg-white/70 backdrop-blur-md border border-white/40 shadow-sm;
+  }
+  
+  .glass-dark {
+    @apply bg-slate-900/80 backdrop-blur-xl border border-amber-500/20 shadow-2xl shadow-black/40 text-slate-100;
+  }
+
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-lg border border-white/50 shadow-sm transition-all duration-300;
+  }
+
+  .glass-card:hover {
+    @apply shadow-md bg-white/90;
+  }
+
+  .glass-dark-card {
+    @apply bg-slate-900/70 backdrop-blur-xl border border-slate-800 shadow-xl shadow-black/50 transition-all duration-300 hover:border-amber-500/40 hover:shadow-amber-500/10;
+  }
+
+  /* Royal Gold Gradients & Text */
+  .gold-gradient-text {
+    @apply bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 bg-clip-text text-transparent;
+  }
+
+  .silver-gradient-text {
+    @apply bg-gradient-to-r from-slate-100 via-gray-300 to-slate-400 bg-clip-text text-transparent;
+  }
+
+  .emerald-gradient-text {
+    @apply bg-gradient-to-r from-emerald-300 via-teal-400 to-emerald-500 bg-clip-text text-transparent;
+  }
+
+  .metallic-gold-card {
+    @apply bg-gradient-to-br from-amber-950/80 via-slate-900 to-amber-900/40 border border-amber-500/40 shadow-xl shadow-amber-950/30;
+  }
+
+  .metallic-silver-card {
+    @apply bg-gradient-to-br from-slate-900 via-slate-800/90 to-slate-800/80 border border-slate-700/60 shadow-xl shadow-slate-950/30;
+  }
+
+  /* Text Gradients */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r;
+  }
+}
+
+/* Print Styles for Crystal Clear Business Reports */
+@media print {
+  @page {
+    margin: 10mm 10mm;
+    size: auto;
+  }
+  
+  html, body, #app, .h-screen, main {
+    height: auto !important;
+    min-height: 100% !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .print\:hidden, header, nav, aside, [role="navigation"] {
+    display: none !important;
+  }
+
+  .print\:block {
+    display: block !important;
+  }
+
+  .print\:overflow-visible {
+    overflow: visible !important;
+  }
+
+  .overflow-x-auto, .overflow-y-auto {
+    overflow: visible !important;
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 11px !important;
+  }
+
+  th, td {
+    border: 1px solid #e5e7eb !important;
+    color: #111827 !important;
+    padding: 6px 8px !important;
+  }
+
+  th {
+    background-color: #f9fafb !important;
+    font-weight: 700 !important;
+  }
+
+  tr {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .shadow-sm, .shadow-md, .shadow-xl, .shadow-2xl, .shadow-2xs {
+    box-shadow: none !important;
+  }
+
+  .rounded-2xl, .rounded-3xl, .rounded-xl {
+    border-radius: 6px !important;
+  }
+}
+
+

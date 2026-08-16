@@ -1,0 +1,160 @@
+>                 <nav className="space-y-1">
+                      <SidebarItem 
+                          icon={LayoutDashboard} 
+                          label={t('dashboard')} 
+                          href={route('dashboard')} 
+                          active={isActive('dashboard')}
+                          isOpen={false}
+                          onToggle={() => setOpenGroup(null)}
+                      />
+  
+                      <SidebarItem 
+                          icon={ShoppingCart} 
+                          label={t('sales')} 
+                          active={isGroupActive('sales')}
+                          isOpen={openGroup === 'sales'}
+                          onToggle={() => toggleGroup('sales')}
+                      >
+                          <SidebarSubItem label={t('addSale')} href="#" active={isActive('sales.create')} />
+                          <SidebarSubItem label={t('saleList')} href="#" active={isActive('sales.index')} />
+                          <SidebarSubItem label={t('saleReturns')} href="#" active={isActive('sales.returns')} />
+                          <SidebarSubItem label={t('salePayments')} href="#" active={isActive('sales.payments')} />
+                      </SidebarItem>
+  
+                      <SidebarItem 
+                          icon={Truck} 
+                          label={t('purchase')} 
+                          active={isGroupActive('purchases')}
+                          isOpen={openGroup === 'purchases'}
+                          onToggle={() => toggleGroup('purchases')}
+                      >
+                          <SidebarSubItem label={t('addPurchase')} href="#" active={isActive('purchases.create')} />
+                          <SidebarSubItem label={t('purchaseList')} href="#" active={isActive('purchases.index')} />
+                          <SidebarSubItem label={t('purchaseReturns')} href="#" active={isActive('purchases.returns')} />
+                          <SidebarSubItem label={t('purchasePayments')} href="#" active={isActive('purchases.payments')} />
+                      </SidebarItem>
+  
+                      <SidebarItem 
+                          icon={Hammer} 
+                          label={t('customOrders')} 
+                          active={isGroupActive('orders')}
+                          isOpen={openGroup === 'orders'}
+                          onToggle={() => toggleGroup('orders')}
+                      >
+                          <SidebarSubItem label={t('newOrder')} href="#" active={isActive('orders.create')} />
+                          <SidebarSubItem label={t('orderList')} href="#" active={isActive('orders.index')} />
+                          <SidebarSubItem label={t('workAssignments')} href="#" active={isActive('orders.assignments')} />
+                          <SidebarSubItem label={t('productions')} href="#" active={isActive('productions.index')} />
+                          <SidebarSubItem label={t('artisanPayments')} href="#" active={isActive('artisan.payments')} />
+                      </SidebarItem>
+  
+                      <SidebarItem 
+                          icon={BadgePercent} 
+                          label={t('mortgage')} 
+                          active={isGroupActive('mortgages')}
+                          isOpen={openGroup === 'mortgages'}
+                          onToggle={() => toggleGroup('mortgages')}
+                      >
+                          <SidebarSubItem label={t('addMortgage')} href="#" active={isActive('mortgages.create')} />
+                          <SidebarSubItem label={t('mortgageList')} href="#" active={isActive('mortgages.index')} />
+                          <SidebarSubItem label={t('mortgagePayments')} href="#" active={isActive('mortgages.payments')} />
+                      </SidebarItem>
+  
+                      <SidebarItem 
+                          icon={PackageSearch} 
+                          label={t('inventory')} 
+                          active={isGroupActive('inventory')}
+                          isOpen={openGroup === 'inventory'}
+                          onToggle={() => toggleGroup('inventory')}
+                      >
+                          <SidebarSubItem label={t('openingStock')} href="#" active={isActive('inventory.opening')} />
+                          <SidebarSubItem label={t('stockLedger')} href="#" active={isActive('inventory.ledger')} />
+                          <SidebarSubItem label={t('stockAdjustments')} href="#" active={isActive('inventory.adjustments')} />
+                          <SidebarSubItem label={t('artisanStock')} href="#" active={isActive('inventory.artisan')} />
+                      </SidebarItem>
+  
+                      <SidebarItem 
+                          icon={Gem} 
+                          label={t('products')} 
+                          active={isGroupActive('products') || isGroupActive('product-categories')}
+                          isOpen={openGroup === 'products'}
+                          onToggle={() => toggleGroup('products')}
+                      >
+                          <SidebarSubItem label={t('addProduct')} href={route('products.create')} active={isActive('products.create')} />
+                          <SidebarSubItem label={t('productList')} href={route('products.index')} active={isActive('products.index')} />
+                          <SidebarSubItem label={t('productCategories')} href={route('product-categories.index')} active={isActive('product-categories.*')} />
+                          <SidebarSubItem label={t('printLabels')} href={route('products.print-labels')} active={isActive('products.print-labels')} />
+                      </SidebarItem>
+  
+                      <SidebarItem 
+                          icon={Users} 
+                          label={t('contacts')} 
+                          active={isGroupActive('customers') || isGroupActive('suppliers') || isGroupActive('artisans') || isGroupActive('mortgage-customers')}
+                          isOpen={openGroup === 'contacts'}
+                          onToggle={() => toggleGroup('contacts')}
+                      >
+                          <SidebarSubItem label={t('customers')} href={route('customers.index')} active={isActive('customers.*')} />
+                          <SidebarSubItem label={t('suppliers')} href={route('suppliers.index')} active={isActive('suppliers.*')} />
+                          <SidebarSubItem label={t('artisans')} href={route('artisans.index')} active={isActive('artisans.*')} />
+                          <SidebarSubItem label={t('mortgageCustomers')} href={route('mortgage-customers.index')} active={isActive('mortgage-customers.*')} />
+                      </SidebarItem>
+  
+                      <SidebarItem 
+                          icon={UserCheck} 
+                          label={t('hrm')} 
+                          active={isGroupActive('hrm')}
+                          isOpen={openGroup === 'hrm'}
+                          onToggle={() => toggleGroup('hrm')}
+                      >
+                          <SidebarSubItem label={t('staff')} href="#" active={isActive('hrm.staff')} />
+                          <SidebarSubItem label={t('attendance')} href="#" active={isActive('hrm.attendance')} />
+                          <SidebarSubItem label={t('payroll')} href="#" active={isActive('hrm.payroll')} />
+                          <SidebarSubItem label={t('salaryPayments')} href="#" active={isActive('hrm.salary')} />
+                      </SidebarItem>
+  
+                      <SidebarItem 
+                          icon={BookOpen} 
+                          label={t('accounts')} 
+                          active={isGroupActive('accounts')}
+                          isOpen={openGroup === 'accounts'}
+                          onToggle={() => toggleGroup('accounts')}
+                      >
+                          <SidebarSubItem label={t('chartOfAccounts')} href="#" active={isActive('accounts.chart')} />
+                          <SidebarSubItem label={t('contraEntries')} href="#" active={isActive('accounts.contra')} />
+                          <SidebarSubItem label={t('otherIncomes')} href="#" active={isActive('accounts.incomes')} />
+                          <SidebarSubItem label={t('otherExpenses')} href="#" active={isActive('accounts.expenses')} />
+                          <SidebarSubItem label={t('cheques')} href="#" active={isActive('accounts.cheques')} />
+                      </SidebarItem>
+  
+                      <SidebarItem 
+                          icon={BarChart3} 
+                          label={t('reports')} 
+                          active={isGroupActive('reports')}
+                          isOpen={openGroup === 'reports'}
+                          onToggle={() => toggleGroup('reports')}
+                      >
+                          <SidebarSubItem label={t('accountsReport')} href="#" active={isActive('reports.accounts')} />
+                          <SidebarSubItem label={t('salesReport')} href="#" active={isActive('reports.sales')} />
+                          <SidebarSubItem label={t('purchaseReport')} href="#" active={isActive('reports.purchase')} />
+                          <SidebarSubItem label={t('inventoryReport')} href="#" active={isActive('reports.inventory')} />
+                      </SidebarItem>
+  
+                      <SidebarItem 
+                          icon={Settings} 
+                          label={t('settings')} 
+                          active={isGroupActive('settings') || isGroupActive('branches') || isGroupActive('users')}
+                          isOpen={openGroup === 'settings'}
+                          onToggle={() => toggleGroup('settings')}
+                      >
+                          <SidebarSubItem label={t('branches')} href={route('branches.index')} active={isActive('branches.index')} />
+                          <SidebarSubItem label={t('users')} href={route('users.index')} active={isActive('users.index')} />
+                          <SidebarSubItem label={t('rolesPermissions')} href="#" active={isActive('settings.roles')} />
+                          <SidebarSubItem label={t('metalPrices')} href="#" active={isActive('settings.metal-prices')} />
+                          <SidebarSubItem label={t('purities')} href="#" active={isActive('settings.purities')} />
+                          <SidebarSubItem label={t('systemSettings')} href="#" active={isActive('settings.system')} />
+                      </SidebarItem>
+                  </nav>
+              </div>
+          </div>
+      );
+  }
