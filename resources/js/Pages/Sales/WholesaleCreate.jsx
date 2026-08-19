@@ -11,7 +11,7 @@ import Modal from '@/Components/Modal';
 const fmtBDT = (val) =>
     Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-export default function WholesaleCreate({ customers = [], products = [], branches = [], autoInvoiceNo }) {
+export default function WholesaleCreate({ customers = [], products = [], branches = [], autoInvoiceNo, latestMetalPrices = {} }) {
     const [customerList, setCustomerList] = useState(customers);
     const [productList, setProductList] = useState(products);
 
@@ -58,35 +58,53 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                 stone_weight: '0',
                 net_weight: '',
                 rate_per_gram: '',
+                making_charge_type: 'fixed',
                 making_charge: '0',
+                stone_charge: '0',
+                hallmark_charge: '0',
                 quantity: 1,
                 total_amount: 0
             }
         ],
         subtotal: 0,
         discount: 0,
+        vat_type: 'percent',
+        vat_rate: 5,
         tax: 0,
+        total_making_charge: 0,
+        total_stone_charge: 0,
+        total_hallmark_charge: 0,
         grand_total: 0,
         paid_amount: 0,
         notes: ''
     });
 
-    const recalculateAll = (itemsList, discountVal = data.discount, taxVal = data.tax) => {
+    const recalculateAll = (itemsList, discountVal = data.discount, vatType = data.vat_type, vatRate = data.vat_rate) => {
         let newSubtotal = 0;
+        let totalMk = 0;
+        let totalStone = 0;
+        let totalHm = 0;
+        let totalNetWeight = 0;
 
         const updatedItems = itemsList.map(item => {
             const gross = parseFloat(item.gross_weight) || 0;
             const stone = parseFloat(item.stone_weight) || 0;
             const net = Math.max(0, gross - stone);
             const rate = parseFloat(item.rate_per_gram) || 0;
-            const making = parseFloat(item.making_charge) || 0;
+            const makingRate = parseFloat(item.making_charge) || 0;
+            const makingType = item.making_charge_type || 'fixed';
+            const making = makingType === 'per_gram' ? (makingRate * gross) : makingRate;
+            const stoneChg = parseFloat(item.stone_charge) || 0;
+            const hallmarkChg = parseFloat(item.hallmark_charge) || 0;
             const qty = parseInt(item.quantity) || 1;
 
-            const itemMetalCost = net * rate * qty;
-            const itemMakingCost = making * qty;
-            const itemTotal = itemMetalCost + itemMakingCost;
+            const itemTotal = ((net * rate) + making + stoneChg + hallmarkChg) * qty;
 
             newSubtotal += itemTotal;
+            totalMk += (making * qty);
+            totalStone += (stoneChg * qty);
+            totalHm += (hallmarkChg * qty);
+            totalNetWeight += (net * qty);
 
             return {
                 ...item,
@@ -96,14 +114,60 @@ export default function WholesaleCreate({ customers = [], products = [], branche
         });
 
         const disc = parseFloat(discountVal) || 0;
-        const tax = parseFloat(taxVal) || 0;
-        const finalGrandTotal = Math.max(0, newSubtotal - disc + tax);
+        const vType = vatType || 'percent';
+        const vRate = parseFloat(vatRate) || 0;
+        const metalPrice = Math.max(0, newSubtotal - totalMk - totalStone - totalHm);
+
+        let taxVal = 0;
+        if (vType === 'percent') {
+            taxVal = Math.max(0, (metalPrice - disc) * (vRate / 100));
+        } else {
+            const totalVori = totalNetWeight / 11.664;
+            taxVal = totalVori * vRate;
+        }
+
+        const finalGrandTotal = Math.max(0, newSubtotal - disc + taxVal);
 
         return {
             items: updatedItems,
             subtotal: newSubtotal,
+            total_making_charge: totalMk,
+            total_stone_charge: totalStone,
+            total_hallmark_charge: totalHm,
+            tax: taxVal,
             grand_total: finalGrandTotal
         };
+    };
+
+    const handleVARPChange = (index, field, value) => {
+        const newItems = [...data.items];
+        newItems[index] = {
+            ...newItems[index],
+            [field]: value
+        };
+        
+        const vori = parseFloat(newItems[index].weight_vori) || 0;
+        const ana = parseFloat(newItems[index].weight_ana) || 0;
+        const roti = parseFloat(newItems[index].weight_roti) || 0;
+        const point = parseFloat(newItems[index].weight_point) || 0;
+
+        const totalVori = vori + (ana / 16) + (roti / 96) + (point / 960);
+        const grams = totalVori * 11.664;
+        
+        newItems[index].gross_weight = grams > 0 ? grams.toFixed(3) : '';
+
+        const calc = recalculateAll(newItems, data.discount, data.vat_type, data.vat_rate);
+        setData(prev => ({
+            ...prev,
+            items: calc.items,
+            subtotal: calc.subtotal,
+            total_making_charge: calc.total_making_charge,
+            total_stone_charge: calc.total_stone_charge,
+            total_hallmark_charge: calc.total_hallmark_charge,
+            tax: calc.tax,
+            grand_total: calc.grand_total,
+            paid_amount: calc.grand_total
+        }));
     };
 
     const handleItemChange = (index, field, value) => {
@@ -113,43 +177,71 @@ export default function WholesaleCreate({ customers = [], products = [], branche
             [field]: value
         };
 
+        if (field === 'gross_weight') {
+            newItems[index].weight_vori = '';
+            newItems[index].weight_ana = '';
+            newItems[index].weight_roti = '';
+            newItems[index].weight_point = '';
+        }
+
+        if (field === 'rate_per_vori') {
+            newItems[index].rate_per_gram = Number(value) / 11.664;
+        }
+
         if (field === 'product_id') {
             const selectedProduct = productList.find(p => p.id == value);
             if (selectedProduct) {
+                let ratePerGram = 0;
+                if (selectedProduct.purity_id && latestMetalPrices[selectedProduct.purity_id]) {
+                    ratePerGram = Number(latestMetalPrices[selectedProduct.purity_id]);
+                } else if (selectedProduct.rate_per_vori) {
+                    ratePerGram = Number(selectedProduct.rate_per_vori) / 11.664;
+                }
+                const ratePerVori = ratePerGram * 11.664;
+
                 newItems[index].gross_weight = selectedProduct.gross_weight || '';
                 newItems[index].stone_weight = selectedProduct.stone_weight || '0';
-                newItems[index].rate_per_gram = selectedProduct.selling_price || '';
+                newItems[index].rate_per_vori = ratePerVori > 0 ? ratePerVori.toFixed(2) : '';
+                newItems[index].rate_per_gram = ratePerGram;
                 newItems[index].making_charge = selectedProduct.making_charge || '0';
+                newItems[index].stone_charge = selectedProduct.stone_charge || '0';
             }
         }
 
-        const calc = recalculateAll(newItems, data.discount, data.tax);
+        const calc = recalculateAll(newItems, data.discount, data.vat_type, data.vat_rate);
         setData(prev => ({
             ...prev,
             items: calc.items,
             subtotal: calc.subtotal,
+            total_making_charge: calc.total_making_charge,
+            total_stone_charge: calc.total_stone_charge,
+            total_hallmark_charge: calc.total_hallmark_charge,
+            tax: calc.tax,
             grand_total: calc.grand_total,
             paid_amount: calc.grand_total
         }));
     };
 
     const handleDiscountChange = (val) => {
-        const calc = recalculateAll(data.items, val, data.tax);
+        const calc = recalculateAll(data.items, val, data.vat_type, data.vat_rate);
         setData(prev => ({
             ...prev,
             discount: val,
             subtotal: calc.subtotal,
+            tax: calc.tax,
             grand_total: calc.grand_total,
             paid_amount: calc.grand_total
         }));
     };
 
-    const handleTaxChange = (val) => {
-        const calc = recalculateAll(data.items, data.discount, val);
+    const handleVatChange = (field, val) => {
+        const vatType = field === 'vat_type' ? val : data.vat_type;
+        const vatRate = field === 'vat_rate' ? val : data.vat_rate;
+        const calc = recalculateAll(data.items, data.discount, vatType, vatRate);
         setData(prev => ({
             ...prev,
-            tax: val,
-            subtotal: calc.subtotal,
+            [field]: val,
+            tax: calc.tax,
             grand_total: calc.grand_total,
             paid_amount: calc.grand_total
         }));
@@ -164,16 +256,23 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                 stone_weight: '0',
                 net_weight: '',
                 rate_per_gram: '',
+                making_charge_type: 'fixed',
                 making_charge: '0',
+                stone_charge: '0',
+                hallmark_charge: '0',
                 quantity: 1,
                 total_amount: 0
             }
         ];
-        const calc = recalculateAll(newItems, data.discount, data.tax);
+        const calc = recalculateAll(newItems, data.discount, data.vat_type, data.vat_rate);
         setData(prev => ({
             ...prev,
             items: calc.items,
             subtotal: calc.subtotal,
+            total_making_charge: calc.total_making_charge,
+            total_stone_charge: calc.total_stone_charge,
+            total_hallmark_charge: calc.total_hallmark_charge,
+            tax: calc.tax,
             grand_total: calc.grand_total,
             paid_amount: calc.grand_total
         }));
@@ -182,11 +281,15 @@ export default function WholesaleCreate({ customers = [], products = [], branche
     const removeItemRow = (index) => {
         if (data.items.length === 1) return;
         const newItems = data.items.filter((_, i) => i !== index);
-        const calc = recalculateAll(newItems, data.discount, data.tax);
+        const calc = recalculateAll(newItems, data.discount, data.vat_type, data.vat_rate);
         setData(prev => ({
             ...prev,
             items: calc.items,
             subtotal: calc.subtotal,
+            total_making_charge: calc.total_making_charge,
+            total_stone_charge: calc.total_stone_charge,
+            total_hallmark_charge: calc.total_hallmark_charge,
+            tax: calc.tax,
             grand_total: calc.grand_total,
             paid_amount: calc.grand_total
         }));
@@ -429,7 +532,7 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                     <div className="space-y-3 border-t border-b border-gray-100 py-5">
                         {data.items.map((item, idx) => (
                             <div key={idx} className="p-3.5 bg-gray-50/80 rounded-xl border border-gray-200 grid grid-cols-1 sm:grid-cols-12 gap-3 items-end text-xs font-semibold">
-                                <div className="sm:col-span-4">
+                                <div className="sm:col-span-3">
                                     <div className="flex items-center justify-between mb-1">
                                         <label className="block text-gray-700 font-bold">Product *</label>
                                         <button
@@ -444,80 +547,113 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                                     <select
                                         value={item.product_id}
                                         onChange={(e) => handleItemChange(idx, 'product_id', e.target.value)}
-                                        className="w-full rounded-xl border-gray-300 py-1.5 font-bold"
+                                        className="w-full rounded-xl border-gray-300 py-1.5 font-bold text-[10px] xl:text-xs"
                                         required
                                     >
                                         <option value="">Select Product...</option>
                                         {productList.map(p => (
                                             <option key={p.id} value={p.id}>
-                                                {p.name} ({p.purity?.name || '22K'}) - {p.gross_weight}g
+                                                {p.name} ({p.purity?.name || '22K'})
                                             </option>
                                         ))}
                                     </select>
                                 </div>
 
-                                <div className="sm:col-span-2">
-                                    <label className="block text-gray-700 mb-1">Gross Wt (g) *</label>
-                                    <input
-                                        type="number"
-                                        step="0.001"
-                                        value={item.gross_weight}
-                                        onChange={(e) => handleItemChange(idx, 'gross_weight', e.target.value)}
-                                        placeholder="11.664"
-                                        className="w-full rounded-xl border-gray-300 py-1.5 text-right font-bold"
-                                        required
-                                    />
+                                <div className="sm:col-span-3">
+                                    <label className="block text-gray-700 mb-1 text-[10px] uppercase">
+                                        <span className="flex justify-between">
+                                            <span>Wt (V-A-R-P)</span>
+                                            <span className="text-amber-700">Gross | Net</span>
+                                        </span>
+                                    </label>
+                                    <div className="flex gap-0.5">
+                                        <input type="number" step="1" value={item.weight_vori||''} onChange={(e)=>handleVARPChange(idx,'weight_vori',e.target.value)} placeholder="V" className="w-[14%] rounded border-gray-300 py-1.5 text-center font-bold text-[10px] px-0.5" />
+                                        <input type="number" step="1" value={item.weight_ana||''} onChange={(e)=>handleVARPChange(idx,'weight_ana',e.target.value)} placeholder="A" className="w-[14%] rounded border-gray-300 py-1.5 text-center font-bold text-[10px] px-0.5" />
+                                        <input type="number" step="1" value={item.weight_roti||''} onChange={(e)=>handleVARPChange(idx,'weight_roti',e.target.value)} placeholder="R" className="w-[14%] rounded border-gray-300 py-1.5 text-center font-bold text-[10px] px-0.5" />
+                                        <input type="number" step="1" value={item.weight_point||''} onChange={(e)=>handleVARPChange(idx,'weight_point',e.target.value)} placeholder="P" className="w-[14%] rounded border-gray-300 py-1.5 text-center font-bold text-[10px] px-0.5" />
+                                        
+                                        <input type="number" step="0.001" value={item.gross_weight} onChange={(e)=>handleItemChange(idx,'gross_weight',e.target.value)} placeholder="Gross" className="w-[22%] rounded border-amber-300 bg-amber-50 py-1.5 text-center font-black text-[10px] px-0.5" required />
+                                        
+                                        <input type="number" value={item.net_weight} readOnly placeholder="Net" className="w-[22%] rounded border-gray-200 bg-gray-100 py-1.5 text-center font-bold text-[10px] px-0.5" />
+                                    </div>
                                 </div>
 
-                                <div className="sm:col-span-2">
-                                    <label className="block text-gray-700 mb-1">Rate / Gram (৳) *</label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        value={item.rate_per_gram}
-                                        onChange={(e) => handleItemChange(idx, 'rate_per_gram', e.target.value)}
-                                        placeholder="11500"
-                                        className="w-full rounded-xl border-gray-300 py-1.5 text-right font-bold"
-                                        required
-                                    />
-                                </div>
-
-                                <div className="sm:col-span-2">
-                                    <label className="block text-gray-700 mb-1">Making (৳)</label>
+                                <div className="sm:col-span-1">
+                                    <label className="block text-gray-700 mb-1 text-[10px] uppercase">Rate/Vori (৳)</label>
                                     <input
                                         type="number"
                                         step="0.01"
-                                        value={item.making_charge}
-                                        onChange={(e) => handleItemChange(idx, 'making_charge', e.target.value)}
-                                        placeholder="2000"
-                                        className="w-full rounded-xl border-gray-300 py-1.5 text-right font-bold"
-                                    />
-                                </div>
-
-                                <div className="sm:col-span-1 text-center">
-                                    <label className="block text-gray-700 mb-1">Qty *</label>
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        value={item.quantity}
-                                        onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
-                                        className="w-full rounded-xl border-gray-300 py-1.5 text-center font-bold"
+                                        value={item.rate_per_vori}
+                                        onChange={(e) => handleItemChange(idx, 'rate_per_vori', e.target.value)}
+                                        className="w-full rounded-xl border-gray-300 py-1.5 text-right font-bold text-[10px] px-1"
                                         required
                                     />
                                 </div>
 
-                                <div className="sm:col-span-1 flex items-center justify-between sm:justify-end gap-2">
-                                    <span className="sm:hidden text-gray-500">Total:</span>
-                                    <span className="font-mono font-black text-amber-900">৳ {fmtBDT(item.total_amount)}</span>
-                                    {data.items.length > 1 && (
-                                        <button
-                                            type="button"
-                                            onClick={() => removeItemRow(idx)}
-                                            className="text-rose-600 hover:text-rose-800 p-1"
+                                <div className="sm:col-span-2">
+                                    <label className="block text-gray-700 mb-1 text-[10px] uppercase">Mk Type & Charge (৳)</label>
+                                    <div className="flex gap-1">
+                                        <select
+                                            value={item.making_charge_type}
+                                            onChange={(e) => handleItemChange(idx, 'making_charge_type', e.target.value)}
+                                            className="w-1/2 rounded-xl border-gray-300 py-1.5 text-[10px] px-1"
                                         >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    )}
+                                            <option value="fixed">Fixed</option>
+                                            <option value="per_gram">Per/g</option>
+                                        </select>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={item.making_charge}
+                                            onChange={(e) => handleItemChange(idx, 'making_charge', e.target.value)}
+                                            className="w-1/2 rounded-xl border-gray-300 py-1.5 text-right font-bold text-[10px] px-1"
+                                        />
+                                    </div>
+                                </div>
+                                
+                                <div className="sm:col-span-1">
+                                    <label className="block text-gray-700 mb-1 text-[10px] uppercase">Stone</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={item.stone_charge}
+                                        onChange={(e) => handleItemChange(idx, 'stone_charge', e.target.value)}
+                                        className="w-full rounded-xl border-gray-300 py-1.5 text-right font-bold text-[10px] px-1"
+                                    />
+                                </div>
+
+                                <div className="sm:col-span-1">
+                                    <label className="block text-gray-700 mb-1 text-[10px] uppercase">Hallmark</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={item.hallmark_charge}
+                                        onChange={(e) => handleItemChange(idx, 'hallmark_charge', e.target.value)}
+                                        className="w-full rounded-xl border-gray-300 py-1.5 text-right font-bold text-[10px] px-1"
+                                    />
+                                </div>
+
+                                <div className="sm:col-span-1 flex flex-col items-center justify-between h-full">
+                                    <label className="block text-gray-700 mb-1 text-[10px] uppercase text-center w-full">Qty</label>
+                                    <div className="flex items-center gap-1 w-full justify-center">
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            value={item.quantity}
+                                            onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
+                                            className="w-full rounded-xl border-gray-300 py-1.5 text-center font-bold text-[10px] px-1"
+                                            required
+                                        />
+                                        {data.items.length > 1 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => removeItemRow(idx)}
+                                                className="text-rose-600 hover:text-rose-800 p-1 flex-shrink-0"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -548,11 +684,51 @@ export default function WholesaleCreate({ customers = [], products = [], branche
 
                         <div className="sm:col-span-6 bg-amber-50/60 p-4 rounded-xl border border-amber-200 space-y-2.5">
                             <div className="flex justify-between text-gray-700">
-                                <span>Subtotal:</span>
-                                <span className="font-bold text-gray-900">৳ {fmtBDT(data.subtotal)}</span>
+                                <span>Total Metal Price:</span>
+                                <span className="font-bold text-gray-900">৳ {fmtBDT(Math.max(0, data.subtotal - data.total_making_charge - data.total_stone_charge - data.total_hallmark_charge))}</span>
                             </div>
 
-                            <div className="flex justify-between items-center">
+                            <div className="flex justify-between items-center text-xs">
+                                <div className="flex flex-col gap-1 w-1/2">
+                                    <span className="text-gray-700 font-bold">VAT On Metal:</span>
+                                    <div className="flex items-center gap-1">
+                                        <select 
+                                            value={data.vat_type} 
+                                            onChange={(e) => handleVatChange('vat_type', e.target.value)}
+                                            className="w-20 rounded-md border-gray-300 text-[10px] py-1 px-1"
+                                        >
+                                            <option value="percent">%</option>
+                                            <option value="fixed_per_vori">Fixed/Vori</option>
+                                        </select>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={data.vat_rate}
+                                            onChange={(e) => handleVatChange('vat_rate', e.target.value)}
+                                            className="w-16 rounded-md border-gray-300 text-xs font-bold text-right py-1 px-1"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="text-right w-1/2">
+                                    <span className="font-bold text-gray-900">৳ {fmtBDT(data.tax)}</span>
+                                </div>
+                            </div>
+                            
+                            <div className="flex justify-between text-gray-700 text-xs">
+                                <span>Stone:</span>
+                                <span className="font-bold text-gray-900">৳ {fmtBDT(data.total_stone_charge)}</span>
+                            </div>
+                            <div className="flex justify-between text-gray-700 text-xs">
+                                <span>Mk. Charge:</span>
+                                <span className="font-bold text-gray-900">৳ {fmtBDT(data.total_making_charge)}</span>
+                            </div>
+                            <div className="flex justify-between text-gray-700 text-xs">
+                                <span>Hallmark:</span>
+                                <span className="font-bold text-gray-900">৳ {fmtBDT(data.total_hallmark_charge)}</span>
+                            </div>
+
+                            <div className="flex justify-between items-center pt-2">
                                 <span className="text-gray-700 font-bold">Discount (৳):</span>
                                 <input
                                     type="number"
@@ -563,19 +739,8 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                                 />
                             </div>
 
-                            <div className="flex justify-between items-center">
-                                <span className="text-gray-700 font-bold">VAT / Tax (৳):</span>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    value={data.tax}
-                                    onChange={(e) => handleTaxChange(e.target.value)}
-                                    className="w-32 rounded-lg border-gray-300 text-xs font-bold text-right py-1"
-                                />
-                            </div>
-
                             <div className="flex justify-between text-sm font-black text-amber-900 border-t border-b border-amber-300 py-1.5">
-                                <span>Grand Total:</span>
+                                <span>Receivable Amount:</span>
                                 <span>৳ {fmtBDT(data.grand_total)}</span>
                             </div>
 

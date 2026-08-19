@@ -68,11 +68,20 @@ class ProductController extends Controller
         $categories = ProductCategory::orderBy('name')->get(['id', 'name', 'metal_type']);
         $purities = Purity::where('is_active', true)->orderBy('name')->get(['id', 'name', 'metal_type', 'percentage']);
         $suppliers = Supplier::orderBy('name')->get(['id', 'name']);
+        
+        $latestMetalPrices = \App\Models\MetalPrice::orderBy('effective_date', 'desc')
+            ->orderBy('id', 'desc')
+            ->get()
+            ->unique('purity_id')
+            ->mapWithKeys(function ($item) {
+                return [$item->purity_id => $item->price_per_gram];
+            });
 
         return Inertia::render('Products/Create', [
             'categories' => $categories,
             'purities' => $purities,
             'suppliers' => $suppliers,
+            'latestMetalPrices' => $latestMetalPrices,
         ]);
     }
 
@@ -121,11 +130,22 @@ class ProductController extends Controller
         $product->load(['category', 'purity', 'images']);
         $categories = ProductCategory::orderBy('name')->get(['id', 'name', 'metal_type']);
         $purities = Purity::where('is_active', true)->orderBy('name')->get(['id', 'name', 'metal_type', 'percentage']);
+        $suppliers = Supplier::orderBy('name')->get(['id', 'name']);
+        
+        $latestMetalPrices = \App\Models\MetalPrice::orderBy('effective_date', 'desc')
+            ->orderBy('id', 'desc')
+            ->get()
+            ->unique('purity_id')
+            ->mapWithKeys(function ($item) {
+                return [$item->purity_id => $item->price_per_gram];
+            });
 
-        return Inertia::render('Products/Edit', [
-            'product' => $product,
+        return Inertia::render('Products/Create', [
+            'editProduct' => $product,
             'categories' => $categories,
             'purities' => $purities,
+            'suppliers' => $suppliers,
+            'latestMetalPrices' => $latestMetalPrices,
         ]);
     }
 

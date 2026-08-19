@@ -9,6 +9,8 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
+Route::get('/verify-invoice/{token}', [App\Http\Controllers\Sales\SaleController::class, 'verifyInvoice'])->name('public.invoice.verify');
+
 use App\Http\Controllers\DashboardController;
 
 Route::get('/dashboard', DashboardController::class)->middleware(['auth', 'verified'])->name('dashboard');
@@ -121,6 +123,7 @@ Route::middleware('auth')->group(function () {
         Route::get('payments', [App\Http\Controllers\Sales\SalePaymentController::class, 'index'])->name('payments.index');
         Route::post('payments', [App\Http\Controllers\Sales\SalePaymentController::class, 'store'])->name('payments.store');
         Route::delete('payments/{payment}', [App\Http\Controllers\Sales\SalePaymentController::class, 'destroy'])->name('payments.destroy');
+        Route::get('{sale}/print', [App\Http\Controllers\Sales\SaleController::class, 'print'])->name('print');
     });
     Route::resource('sales', App\Http\Controllers\Sales\SaleController::class);
 
@@ -157,6 +160,9 @@ Route::middleware('auth')->group(function () {
 
         Route::get('account-config', [App\Http\Controllers\Settings\AccountConfigurationController::class, 'index'])->name('account-config.index');
         Route::post('account-config', [App\Http\Controllers\Settings\AccountConfigurationController::class, 'update'])->name('account-config.update');
+
+        Route::get('invoice-settings', [App\Http\Controllers\Settings\InvoiceSettingController::class, 'index'])->name('invoice-settings.index');
+        Route::post('invoice-settings', [App\Http\Controllers\Settings\InvoiceSettingController::class, 'store'])->name('invoice-settings.store');
     });
 });
 

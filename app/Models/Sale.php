@@ -5,12 +5,23 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Sale extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected static function booted()
+    {
+        static::creating(function ($sale) {
+            if (empty($sale->secure_token)) {
+                $sale->secure_token = (string) Str::uuid();
+            }
+        });
+    }
+
     protected $fillable = [
+        'secure_token',
         'branch_id',
         'customer_id',
         'invoice_no',

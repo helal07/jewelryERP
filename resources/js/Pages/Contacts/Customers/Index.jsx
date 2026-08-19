@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { useLanguage } from '@/Context/LanguageContext';
@@ -7,7 +8,7 @@ import { ChevronDown, Eye, Edit, Trash2 } from 'lucide-react';
 
 export default function Index({ customers, filters = {} }) {
     const { t } = useLanguage();
-    const [search, setSearch] = React.useState(filters.search || '');
+    const [search, setSearch] = useState(filters.search || '');
 
     useFilter(route('customers.index'), { search });
 

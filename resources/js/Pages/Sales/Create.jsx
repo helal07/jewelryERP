@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import Modal from '@/Components/Modal';
 
-export default function Create({ customers = [], products = [], branches = [], autoInvoiceNo, defaultVatRate = 5 }) {
+export default function Create({ customers = [], products = [], branches = [], autoInvoiceNo, defaultVatRate = 5, latestMetalPrices = {} }) {
     // Local state for dynamic customer & product lists (allowing inline pop-up additions)
     const [customerList, setCustomerList] = useState(customers);
     const [productList, setProductList] = useState(products);
@@ -60,16 +60,22 @@ export default function Create({ customers = [], products = [], branches = [], a
                 stone_weight: 0,
                 net_weight: '',
                 rate_per_gram: '',
+                making_charge_type: 'fixed',
                 making_charge: 0,
                 stone_charge: 0,
+                hallmark_charge: 0,
                 quantity: 1,
                 total_amount: 0,
             }
         ],
         subtotal: 0,
         discount: 0,
-        vat_percent: defaultVatRate,
+        vat_type: 'percent',
+        vat_rate: defaultVatRate,
         tax: 0,
+        total_making_charge: 0,
+        total_stone_charge: 0,
+        total_hallmark_charge: 0,
         old_gold_exchange_value: 0,
         grand_total: 0,
         paid_amount: 0,
@@ -84,8 +90,10 @@ export default function Create({ customers = [], products = [], branches = [], a
                 stone_weight: 0,
                 net_weight: '',
                 rate_per_gram: '',
+                making_charge_type: 'fixed',
                 making_charge: 0,
                 stone_charge: 0,
+                hallmark_charge: 0,
                 quantity: 1,
                 total_amount: 0,
             }
@@ -106,8 +114,10 @@ export default function Create({ customers = [], products = [], branches = [], a
             stone_weight: stone,
             net_weight: net,
             rate_per_gram: rate,
+            making_charge_type: 'fixed',
             making_charge: making,
             stone_charge: Number(prod.stone_charge || 0),
+            hallmark_charge: 0,
             quantity: 1,
             total_amount: total,
         };
@@ -127,8 +137,10 @@ export default function Create({ customers = [], products = [], branches = [], a
                 stone_weight: 0,
                 net_weight: '',
                 rate_per_gram: '',
+                making_charge_type: 'fixed',
                 making_charge: 0,
                 stone_charge: 0,
+                hallmark_charge: 0,
                 quantity: 1,
                 total_amount: 0,
             }]);
@@ -146,19 +158,35 @@ export default function Create({ customers = [], products = [], branches = [], a
             const gross = Number(prod.gross_weight || prod.weight || 0);
             const stone = Number(prod.stone_weight || 0);
             const net = Math.max(0, gross - stone);
-            const rate = Number(prod.selling_price || 0);
-            const making = Number(prod.making_charge || 0);
-            const total = (net * rate) + making;
+            
+            let ratePerGram = 0;
+            if (prod.purity_id && latestMetalPrices[prod.purity_id]) {
+                ratePerGram = Number(latestMetalPrices[prod.purity_id]);
+            } else if (prod.rate_per_vori) {
+                ratePerGram = Number(prod.rate_per_vori) / 11.664;
+            }
+            const ratePerVori = ratePerGram * 11.664;
+            
+            const makingType = prod.making_charge_type || 'fixed';
+            const making = Number(prod.making_charge_value || prod.making_charge || 0);
+            const calculatedMaking = makingType === 'per_gram' ? (making * gross) : making;
+            const stoneChg = Number(prod.stone_charge || 0);
+            const hallmarkChg = Number(prod.hallmark_charge || 0); // Assuming product might have it
+            
+            const total = (net * ratePerGram) + calculatedMaking + stoneChg + hallmarkChg;
 
             newItems[index] = {
                 ...newItems[index],
                 product_id: prod.id,
-                gross_weight: gross,
-                stone_weight: stone,
-                net_weight: net,
-                rate_per_gram: rate,
+                gross_weight: gross > 0 ? gross : '',
+                stone_weight: stone > 0 ? stone : '',
+                net_weight: net > 0 ? net : '',
+                rate_per_vori: ratePerVori > 0 ? ratePerVori.toFixed(2) : '',
+                rate_per_gram: ratePerGram,
+                making_charge_type: makingType,
                 making_charge: making,
-                stone_charge: prod.stone_charge || 0,
+                stone_charge: stoneChg,
+                hallmark_charge: hallmarkChg,
                 quantity: 1,
                 total_amount: total,
             };
@@ -169,9 +197,53 @@ export default function Create({ customers = [], products = [], branches = [], a
         setData('items', newItems);
     };
 
+    const handleVARPChange = (index, field, value) => {
+        const newItems = [...data.items];
+        newItems[index][field] = value;
+
+        const vori = parseFloat(newItems[index].weight_vori) || 0;
+        const ana = parseFloat(newItems[index].weight_ana) || 0;
+        const roti = parseFloat(newItems[index].weight_roti) || 0;
+        const point = parseFloat(newItems[index].weight_point) || 0;
+
+        const totalVori = vori + (ana / 16) + (roti / 96) + (point / 960);
+        const grams = totalVori * 11.664;
+        
+        newItems[index].gross_weight = grams > 0 ? grams.toFixed(3) : '';
+
+        // Recalculate net and total
+        const gross = Number(newItems[index].gross_weight || 0);
+        const stone = Number(newItems[index].stone_weight || 0);
+        const net = Math.max(0, gross - stone);
+        newItems[index].net_weight = net;
+
+        const rate = Number(newItems[index].rate_per_gram || 0);
+        const makingType = newItems[index].making_charge_type || 'fixed';
+        const makingRate = Number(newItems[index].making_charge || 0);
+        const making = makingType === 'per_gram' ? (makingRate * gross) : makingRate;
+        const stoneChg = Number(newItems[index].stone_charge || 0);
+        const hallmarkChg = Number(newItems[index].hallmark_charge || 0);
+        const qty = Number(newItems[index].quantity || 1);
+
+        newItems[index].total_amount = ((net * rate) + making + stoneChg + hallmarkChg) * qty;
+
+        setData('items', newItems);
+    };
+
     const handleItemChange = (index, field, value) => {
         const newItems = [...data.items];
         newItems[index][field] = value;
+
+        if (field === 'gross_weight') {
+            newItems[index].weight_vori = '';
+            newItems[index].weight_ana = '';
+            newItems[index].weight_roti = '';
+            newItems[index].weight_point = '';
+        }
+
+        if (field === 'rate_per_vori') {
+            newItems[index].rate_per_gram = Number(value) / 11.664;
+        }
 
         const gross = Number(newItems[index].gross_weight || 0);
         const stone = Number(newItems[index].stone_weight || 0);
@@ -179,33 +251,62 @@ export default function Create({ customers = [], products = [], branches = [], a
         newItems[index].net_weight = net;
 
         const rate = Number(newItems[index].rate_per_gram || 0);
-        const making = Number(newItems[index].making_charge || 0);
+        const makingType = newItems[index].making_charge_type || 'fixed';
+        const makingRate = Number(newItems[index].making_charge || 0);
+        const making = makingType === 'per_gram' ? (makingRate * gross) : makingRate;
         const stoneChg = Number(newItems[index].stone_charge || 0);
+        const hallmarkChg = Number(newItems[index].hallmark_charge || 0);
         const qty = Number(newItems[index].quantity || 1);
 
-        newItems[index].total_amount = ((net * rate) + making + stoneChg) * qty;
+        newItems[index].total_amount = ((net * rate) + making + stoneChg + hallmarkChg) * qty;
 
         setData('items', newItems);
     };
 
-    // Calculate subtotal, VAT Amount (from vat_percent), and grand total
+    // Calculate subtotal, VAT Amount (from vat_type and vat_rate), and grand total
     useEffect(() => {
         const sub = data.items.reduce((acc, item) => acc + Number(item.total_amount || 0), 0);
+        
+        const totalMk = data.items.reduce((acc, item) => {
+            const makingType = item.making_charge_type || 'fixed';
+            const makingRate = Number(item.making_charge || 0);
+            const qty = Number(item.quantity || 1);
+            const val = makingType === 'per_gram' ? (makingRate * Number(item.gross_weight || 0)) : makingRate;
+            return acc + (val * qty);
+        }, 0);
+        
+        const totalStone = data.items.reduce((acc, item) => acc + (Number(item.stone_charge || 0) * Number(item.quantity || 1)), 0);
+        const totalHm = data.items.reduce((acc, item) => acc + (Number(item.hallmark_charge || 0) * Number(item.quantity || 1)), 0);
+        const totalNetWeight = data.items.reduce((acc, item) => acc + (Number(item.net_weight || 0) * Number(item.quantity || 1)), 0);
+        
         const disc = Number(data.discount || 0);
-        const vatPct = Number(data.vat_percent || 0);
+        const vatType = data.vat_type || 'percent';
+        const vatRate = Number(data.vat_rate || 0);
         const oldGold = Number(data.old_gold_exchange_value || 0);
         
-        const taxVal = Math.max(0, (sub - disc) * (vatPct / 100));
+        const metalPrice = Math.max(0, sub - totalMk - totalStone - totalHm);
+        
+        let taxVal = 0;
+        if (vatType === 'percent') {
+            taxVal = Math.max(0, (metalPrice - disc) * (vatRate / 100));
+        } else {
+            const totalVori = totalNetWeight / 11.664;
+            taxVal = totalVori * vatRate;
+        }
+
         const grand = Math.max(0, sub - disc + taxVal - oldGold);
 
         setData(prev => ({
             ...prev,
             subtotal: sub,
+            total_making_charge: totalMk,
+            total_stone_charge: totalStone,
+            total_hallmark_charge: totalHm,
             tax: taxVal,
             grand_total: grand,
             paid_amount: prev.paid_amount || grand,
         }));
-    }, [JSON.stringify(data.items), data.discount, data.vat_percent, data.old_gold_exchange_value]);
+    }, [JSON.stringify(data.items), data.discount, data.vat_type, data.vat_rate, data.old_gold_exchange_value]);
 
     // Handle Quick Add Customer Submit
     const handleAddCustomerSubmit = (e) => {
@@ -503,48 +604,31 @@ export default function Create({ customers = [], products = [], branches = [], a
                                                 </button>
                                             </div>
 
-                                            {/* ROW 2: Item Metrics (Gross, Net, Rate, Making, Qty, Total) in 6 Columns */}
-                                            <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 text-xs bg-white p-2.5 rounded-lg border border-gray-200/80">
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-0.5">Gross (g) *</label>
-                                                    <input
-                                                        type="number"
-                                                        step="0.001"
-                                                        value={item.gross_weight}
-                                                        onChange={(e) => handleItemChange(idx, 'gross_weight', e.target.value)}
-                                                        className="w-full rounded-md border-gray-300 focus:border-amber-500 text-xs font-semibold py-1 text-center"
-                                                        required
-                                                    />
+                                            {/* ROW 2: Primary Metrics (Gross, Net, Rate, Qty, Total) */}
+                                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs bg-white p-2.5 rounded-lg border border-gray-200/80">
+                                                <div className="col-span-2 sm:col-span-2">
+                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-0.5 flex justify-between">
+                                                        <span>Wt(V-A-R-P)</span>
+                                                        <span className="text-amber-700">Gross | Net(g)</span>
+                                                    </label>
+                                                    <div className="flex gap-0.5">
+                                                        <input type="number" step="1" value={item.weight_vori||''} onChange={(e)=>handleVARPChange(idx,'weight_vori',e.target.value)} placeholder="V" className="w-[14%] rounded border-gray-300 py-1 text-center font-bold text-[10px] px-0.5" />
+                                                        <input type="number" step="1" value={item.weight_ana||''} onChange={(e)=>handleVARPChange(idx,'weight_ana',e.target.value)} placeholder="A" className="w-[14%] rounded border-gray-300 py-1 text-center font-bold text-[10px] px-0.5" />
+                                                        <input type="number" step="1" value={item.weight_roti||''} onChange={(e)=>handleVARPChange(idx,'weight_roti',e.target.value)} placeholder="R" className="w-[14%] rounded border-gray-300 py-1 text-center font-bold text-[10px] px-0.5" />
+                                                        <input type="number" step="1" value={item.weight_point||''} onChange={(e)=>handleVARPChange(idx,'weight_point',e.target.value)} placeholder="P" className="w-[14%] rounded border-gray-300 py-1 text-center font-bold text-[10px] px-0.5" />
+                                                        <input type="number" step="0.001" value={item.gross_weight} onChange={(e)=>handleItemChange(idx,'gross_weight',e.target.value)} placeholder="Gross" className="w-[22%] rounded border-amber-300 bg-amber-50 py-1 text-center font-black text-[10px] px-0.5" required />
+                                                        <input type="number" value={item.net_weight} readOnly placeholder="Net" className="w-[22%] rounded border-gray-200 bg-gray-50 text-gray-800 py-1 text-center font-bold text-[10px] px-0.5" />
+                                                    </div>
                                                 </div>
                                                 <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-0.5">Net (g)</label>
-                                                    <input
-                                                        type="number"
-                                                        step="0.001"
-                                                        value={item.net_weight}
-                                                        readOnly
-                                                        className="w-full rounded-md border-gray-200 bg-gray-50 text-xs font-bold text-gray-800 py-1 text-center"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-0.5">Rate/g *</label>
+                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-0.5">Rate/Vori *</label>
                                                     <input
                                                         type="number"
                                                         step="0.01"
-                                                        value={item.rate_per_gram}
-                                                        onChange={(e) => handleItemChange(idx, 'rate_per_gram', e.target.value)}
+                                                        value={item.rate_per_vori}
+                                                        onChange={(e) => handleItemChange(idx, 'rate_per_vori', e.target.value)}
                                                         className="w-full rounded-md border-gray-300 focus:border-amber-500 text-xs font-bold py-1 text-right"
                                                         required
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-0.5">Making (BDT)</label>
-                                                    <input
-                                                        type="number"
-                                                        step="0.01"
-                                                        value={item.making_charge}
-                                                        onChange={(e) => handleItemChange(idx, 'making_charge', e.target.value)}
-                                                        className="w-full rounded-md border-gray-300 focus:border-amber-500 text-xs py-1 text-right"
                                                     />
                                                 </div>
                                                 <div>
@@ -563,6 +647,51 @@ export default function Create({ customers = [], products = [], branches = [], a
                                                     <div className="py-1 px-2 bg-amber-50 rounded-md border border-amber-200 text-right font-black text-gray-900 text-xs truncate">
                                                         ৳ {Number(item.total_amount || 0).toLocaleString('en-US', {minimumFractionDigits: 0})}
                                                     </div>
+                                                </div>
+                                            </div>
+
+                                            {/* ROW 3: Extra Charges (Mk Type, Making, Stone, Hallmark) */}
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-white p-2.5 rounded-lg border border-gray-200/80">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-0.5">Mk. Type</label>
+                                                    <select
+                                                        value={item.making_charge_type}
+                                                        onChange={(e) => handleItemChange(idx, 'making_charge_type', e.target.value)}
+                                                        className="w-full rounded-md border-gray-300 focus:border-amber-500 text-xs py-1"
+                                                    >
+                                                        <option value="fixed">Fixed</option>
+                                                        <option value="per_gram">Per Gram</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-0.5">Making (BDT)</label>
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={item.making_charge}
+                                                        onChange={(e) => handleItemChange(idx, 'making_charge', e.target.value)}
+                                                        className="w-full rounded-md border-gray-300 focus:border-amber-500 text-xs py-1 text-right"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-0.5">Stone (BDT)</label>
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={item.stone_charge}
+                                                        onChange={(e) => handleItemChange(idx, 'stone_charge', e.target.value)}
+                                                        className="w-full rounded-md border-gray-300 focus:border-amber-500 text-xs py-1 text-right"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-0.5">Hallmark (BDT)</label>
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={item.hallmark_charge}
+                                                        onChange={(e) => handleItemChange(idx, 'hallmark_charge', e.target.value)}
+                                                        className="w-full rounded-md border-gray-300 focus:border-amber-500 text-xs py-1 text-right"
+                                                    />
                                                 </div>
                                             </div>
 
@@ -600,29 +729,50 @@ export default function Create({ customers = [], products = [], branches = [], a
 
                                     <div className="bg-[#FEF9E7] p-3.5 rounded-xl border border-amber-200/90 space-y-2.5">
                                         <div className="flex justify-between text-xs">
-                                            <span className="text-gray-600 font-semibold">Subtotal:</span>
-                                            <span className="font-bold text-gray-900">BDT {Number(data.subtotal).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                                            <span className="text-gray-600 font-semibold">Total Metal Price:</span>
+                                            <span className="font-bold text-gray-900">BDT {Number(Math.max(0, data.subtotal - data.total_making_charge - data.total_stone_charge - data.total_hallmark_charge)).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
                                         </div>
                                         <div className="flex justify-between items-center text-xs">
-                                            <span className="text-gray-700 font-bold">VAT (%):</span>
-                                            <div className="flex items-center gap-1">
-                                                <input
-                                                    type="number"
-                                                    step="0.1"
-                                                    min="0"
-                                                    max="100"
-                                                    value={data.vat_percent}
-                                                    onChange={(e) => setData('vat_percent', e.target.value)}
-                                                    className="w-16 rounded-lg border-amber-300 focus:border-amber-500 text-xs font-bold text-right py-1"
-                                                />
-                                                <span className="font-bold text-gray-700">%</span>
-                                                <span className="text-[11px] font-bold text-gray-900 ml-1">
-                                                    (BDT {Number(data.tax).toLocaleString('en-US', {minimumFractionDigits: 2})})
-                                                </span>
+                                            <div className="flex flex-col gap-1 w-1/2">
+                                                <span className="text-gray-700 font-bold">VAT On Metal:</span>
+                                                <div className="flex items-center gap-1">
+                                                    <select 
+                                                        value={data.vat_type} 
+                                                        onChange={(e) => setData('vat_type', e.target.value)}
+                                                        className="w-20 rounded-md border-amber-300 text-[10px] py-0.5 px-1"
+                                                    >
+                                                        <option value="percent">%</option>
+                                                        <option value="fixed_per_vori">Fixed/Vori</option>
+                                                    </select>
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        min="0"
+                                                        value={data.vat_rate}
+                                                        onChange={(e) => setData('vat_rate', e.target.value)}
+                                                        className="w-16 rounded-md border-amber-300 focus:border-amber-500 text-xs font-bold text-right py-0.5 px-1"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="text-right w-1/2">
+                                                <span className="font-bold text-gray-900">BDT {Number(data.tax).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
                                             </div>
                                         </div>
+                                        <div className="flex justify-between text-xs">
+                                            <span className="text-gray-600 font-semibold">Stone:</span>
+                                            <span className="font-bold text-gray-900">BDT {Number(data.total_stone_charge).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                                        </div>
+                                        <div className="flex justify-between text-xs">
+                                            <span className="text-gray-600 font-semibold">Mk. Charge:</span>
+                                            <span className="font-bold text-gray-900">BDT {Number(data.total_making_charge).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                                        </div>
+                                        <div className="flex justify-between text-xs">
+                                            <span className="text-gray-600 font-semibold">Hallmark:</span>
+                                            <span className="font-bold text-gray-900">BDT {Number(data.total_hallmark_charge).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                                        </div>
+                                        
                                         <div className="flex justify-between border-t border-amber-200 pt-2 text-sm font-black text-amber-900">
-                                            <span>Grand Total:</span>
+                                            <span>Receivable Amount:</span>
                                             <span>BDT {Number(data.grand_total).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
                                         </div>
                                         <div className="flex justify-between items-center pt-1">

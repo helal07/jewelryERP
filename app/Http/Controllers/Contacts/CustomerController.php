@@ -70,4 +70,56 @@ class CustomerController extends Controller
             'customer' => $customer
         ]);
     }
+
+    public function edit(Customer $customer)
+    {
+        return Inertia::render('Contacts/Customers/Edit', [
+            'customer' => $customer
+        ]);
+    }
+
+    public function update(Request $request, Customer $customer)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:255|unique:customers,phone,' . $customer->id,
+            'address' => 'nullable|string',
+            'email' => 'nullable|email|max:255',
+            'nid_number' => 'nullable|string|max:255',
+            'opening_balance' => 'nullable|numeric|min:0',
+            'credit_limit' => 'nullable|numeric|min:0',
+            'status' => 'nullable|in:active,inactive',
+            'photo' => 'nullable|image|max:2048',
+            'attachment' => 'nullable|file|max:5120',
+        ]);
+
+        if ($request->hasFile('photo')) {
+            if ($customer->photo) \Storage::disk('public')->delete($customer->photo);
+            $validated['photo'] = $request->file('photo')->store('customers/photos', 'public');
+        }
+
+        if ($request->hasFile('attachment')) {
+            if ($customer->attachment) \Storage::disk('public')->delete($customer->attachment);
+            $validated['attachment'] = $request->file('attachment')->store('customers/attachments', 'public');
+        }
+
+        // Keep existing opening balance as base if needed, or allow update if business logic permits
+        if (isset($validated['opening_balance']) && $validated['opening_balance'] !== '') {
+            $diff = $validated['opening_balance'] - $customer->opening_balance;
+            $validated['due_balance'] = $customer->due_balance + $diff;
+        }
+
+        $customer->update($validated);
+
+        return redirect()->route('customers.index')->with('success', 'Customer updated successfully.');
+    }
+
+    public function destroy(Customer $customer)
+    {
+        if ($customer->photo) \Storage::disk('public')->delete($customer->photo);
+        if ($customer->attachment) \Storage::disk('public')->delete($customer->attachment);
+        
+        $customer->delete();
+        return redirect()->route('customers.index')->with('success', 'Customer deleted successfully.');
+    }
 }

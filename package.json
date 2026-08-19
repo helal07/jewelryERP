@@ -24,6 +24,7 @@
     },
     "dependencies": {
         "lucide-react": "^1.30.0",
+        "qrcode.react": "^4.2.0",
         "react-barcode": "^1.6.1"
     }
 }

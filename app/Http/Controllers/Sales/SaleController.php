@@ -11,6 +11,7 @@ use App\Models\SaleItem;
 use App\Models\SystemSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class SaleController extends Controller
@@ -121,12 +122,21 @@ class SaleController extends Controller
         $todayDateStr = date('Ymd');
         $todaysCount = Sale::whereDate('created_at', date('Y-m-d'))->count() + 1;
         $autoInvoiceNo = 'WS-' . $todayDateStr . '-' . str_pad($todaysCount, 4, '0', STR_PAD_LEFT);
+        
+        $latestMetalPrices = \App\Models\MetalPrice::orderBy('effective_date', 'desc')
+            ->orderBy('id', 'desc')
+            ->get()
+            ->unique('purity_id')
+            ->mapWithKeys(function ($item) {
+                return [$item->purity_id => $item->price_per_gram];
+            });
 
         return Inertia::render('Sales/WholesaleCreate', [
             'customers' => $customers,
             'products' => $products,
             'branches' => $branches,
             'autoInvoiceNo' => $autoInvoiceNo,
+            'latestMetalPrices' => $latestMetalPrices,
         ]);
     }
 
@@ -143,10 +153,18 @@ class SaleController extends Controller
             'items.*.stone_weight' => 'nullable|numeric|min:0',
             'items.*.net_weight' => 'required|numeric|min:0',
             'items.*.rate_per_gram' => 'required|numeric|min:0',
+            'items.*.making_charge_type' => 'required|in:fixed,per_gram',
             'items.*.making_charge' => 'nullable|numeric|min:0',
+            'items.*.stone_charge' => 'nullable|numeric|min:0',
+            'items.*.hallmark_charge' => 'nullable|numeric|min:0',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.total_amount' => 'required|numeric|min:0',
             'subtotal' => 'required|numeric|min:0',
+            'vat_type' => 'required|in:percent,fixed_per_vori',
+            'vat_rate' => 'required|numeric|min:0',
+            'total_stone_charge' => 'required|numeric|min:0',
+            'total_making_charge' => 'required|numeric|min:0',
+            'total_hallmark_charge' => 'required|numeric|min:0',
             'discount' => 'nullable|numeric|min:0',
             'tax' => 'nullable|numeric|min:0',
             'old_gold_exchange_value' => 'nullable|numeric|min:0',
@@ -166,6 +184,11 @@ class SaleController extends Controller
                 'sale_date' => $validated['sale_date'],
                 'sale_type' => 'wholesale',
                 'subtotal' => $validated['subtotal'],
+                'vat_type' => $validated['vat_type'],
+                'vat_rate' => $validated['vat_rate'],
+                'total_stone_charge' => $validated['total_stone_charge'],
+                'total_making_charge' => $validated['total_making_charge'],
+                'total_hallmark_charge' => $validated['total_hallmark_charge'],
                 'discount' => $validated['discount'] ?? 0,
                 'tax' => $validated['tax'] ?? 0,
                 'old_gold_exchange_value' => $validated['old_gold_exchange_value'] ?? 0,
@@ -174,6 +197,7 @@ class SaleController extends Controller
                 'due_amount' => $dueAmount,
                 'status' => $status,
                 'notes' => $validated['notes'] ?? null,
+                'secure_token' => Str::random(32),
                 'created_by' => auth()->id(),
             ]);
 
@@ -185,7 +209,10 @@ class SaleController extends Controller
                     'stone_weight' => $item['stone_weight'] ?? 0,
                     'net_weight' => $item['net_weight'],
                     'rate_per_gram' => $item['rate_per_gram'],
+                    'making_charge_type' => $item['making_charge_type'] ?? 'fixed',
                     'making_charge' => $item['making_charge'] ?? 0,
+                    'stone_charge' => $item['stone_charge'] ?? 0,
+                    'hallmark_charge' => $item['hallmark_charge'] ?? 0,
                     'quantity' => $item['quantity'],
                     'total_amount' => $item['total_amount'],
                 ]);
@@ -210,12 +237,21 @@ class SaleController extends Controller
         $invoicePrefix = SystemSetting::getByKey('invoice_prefix', 'INV-');
         $nextInvoice = $invoicePrefix . date('Ymd') . '-' . str_pad((Sale::count() + 1), 4, '0', STR_PAD_LEFT);
 
+        $latestMetalPrices = \App\Models\MetalPrice::orderBy('effective_date', 'desc')
+            ->orderBy('id', 'desc')
+            ->get()
+            ->unique('purity_id')
+            ->mapWithKeys(function ($item) {
+                return [$item->purity_id => $item->price_per_gram];
+            });
+
         return Inertia::render('Sales/Create', [
             'customers' => $customers,
             'products' => $products,
             'branches' => $branches,
             'autoInvoiceNo' => $nextInvoice,
             'defaultVatRate' => (float) SystemSetting::getByKey('default_vat_rate', '5.00'),
+            'latestMetalPrices' => $latestMetalPrices,
         ]);
     }
 
@@ -233,11 +269,18 @@ class SaleController extends Controller
             'items.*.stone_weight' => 'nullable|numeric|min:0',
             'items.*.net_weight' => 'required|numeric|min:0.001',
             'items.*.rate_per_gram' => 'required|numeric|min:0',
+            'items.*.making_charge_type' => 'required|in:fixed,per_gram',
             'items.*.making_charge' => 'nullable|numeric|min:0',
             'items.*.stone_charge' => 'nullable|numeric|min:0',
+            'items.*.hallmark_charge' => 'nullable|numeric|min:0',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.total_amount' => 'required|numeric|min:0',
             'subtotal' => 'required|numeric|min:0',
+            'vat_type' => 'required|in:percent,fixed_per_vori',
+            'vat_rate' => 'required|numeric|min:0',
+            'total_stone_charge' => 'required|numeric|min:0',
+            'total_making_charge' => 'required|numeric|min:0',
+            'total_hallmark_charge' => 'required|numeric|min:0',
             'discount' => 'nullable|numeric|min:0',
             'tax' => 'nullable|numeric|min:0',
             'old_gold_exchange_value' => 'nullable|numeric|min:0',
@@ -258,6 +301,11 @@ class SaleController extends Controller
                 'sale_date' => $validated['sale_date'],
                 'sale_type' => $validated['sale_type'],
                 'subtotal' => $validated['subtotal'],
+                'vat_type' => $validated['vat_type'],
+                'vat_rate' => $validated['vat_rate'],
+                'total_stone_charge' => $validated['total_stone_charge'],
+                'total_making_charge' => $validated['total_making_charge'],
+                'total_hallmark_charge' => $validated['total_hallmark_charge'],
                 'discount' => $validated['discount'] ?? 0,
                 'tax' => $validated['tax'] ?? 0,
                 'old_gold_exchange_value' => $validated['old_gold_exchange_value'] ?? 0,
@@ -265,6 +313,7 @@ class SaleController extends Controller
                 'paid_amount' => $paidAmount,
                 'due_amount' => $dueAmount,
                 'status' => $status,
+                'secure_token' => Str::random(32),
                 'created_by' => auth()->id(),
             ]);
 
@@ -276,8 +325,10 @@ class SaleController extends Controller
                     'stone_weight' => $item['stone_weight'] ?? 0,
                     'net_weight' => $item['net_weight'],
                     'rate_per_gram' => $item['rate_per_gram'],
+                    'making_charge_type' => $item['making_charge_type'] ?? 'fixed',
                     'making_charge' => $item['making_charge'] ?? 0,
                     'stone_charge' => $item['stone_charge'] ?? 0,
+                    'hallmark_charge' => $item['hallmark_charge'] ?? 0,
                     'quantity' => $item['quantity'],
                     'total_amount' => $item['total_amount'],
                 ]);
@@ -293,9 +344,11 @@ class SaleController extends Controller
     public function show(Sale $sale)
     {
         $sale->load(['customer', 'branch', 'creator', 'items.product.category', 'items.product.purity']);
+        $settings = SystemSetting::where('group', 'invoice')->pluck('value', 'key')->toArray();
 
         return Inertia::render('Sales/Show', [
             'sale' => $sale,
+            'settings' => $settings,
         ]);
     }
 
@@ -329,11 +382,18 @@ class SaleController extends Controller
             'items.*.stone_weight' => 'nullable|numeric|min:0',
             'items.*.net_weight' => 'required|numeric|min:0.001',
             'items.*.rate_per_gram' => 'required|numeric|min:0',
+            'items.*.making_charge_type' => 'required|in:fixed,per_gram',
             'items.*.making_charge' => 'nullable|numeric|min:0',
             'items.*.stone_charge' => 'nullable|numeric|min:0',
+            'items.*.hallmark_charge' => 'nullable|numeric|min:0',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.total_amount' => 'required|numeric|min:0',
             'subtotal' => 'required|numeric|min:0',
+            'vat_type' => 'required|in:percent,fixed_per_vori',
+            'vat_rate' => 'required|numeric|min:0',
+            'total_stone_charge' => 'required|numeric|min:0',
+            'total_making_charge' => 'required|numeric|min:0',
+            'total_hallmark_charge' => 'required|numeric|min:0',
             'discount' => 'nullable|numeric|min:0',
             'tax' => 'nullable|numeric|min:0',
             'old_gold_exchange_value' => 'nullable|numeric|min:0',
@@ -353,6 +413,11 @@ class SaleController extends Controller
                 'sale_date' => $validated['sale_date'],
                 'sale_type' => $validated['sale_type'],
                 'subtotal' => $validated['subtotal'],
+                'vat_type' => $validated['vat_type'],
+                'vat_rate' => $validated['vat_rate'],
+                'total_stone_charge' => $validated['total_stone_charge'],
+                'total_making_charge' => $validated['total_making_charge'],
+                'total_hallmark_charge' => $validated['total_hallmark_charge'],
                 'discount' => $validated['discount'] ?? 0,
                 'tax' => $validated['tax'] ?? 0,
                 'old_gold_exchange_value' => $validated['old_gold_exchange_value'] ?? 0,
@@ -373,8 +438,10 @@ class SaleController extends Controller
                     'stone_weight' => $item['stone_weight'] ?? 0,
                     'net_weight' => $item['net_weight'],
                     'rate_per_gram' => $item['rate_per_gram'],
+                    'making_charge_type' => $item['making_charge_type'] ?? 'fixed',
                     'making_charge' => $item['making_charge'] ?? 0,
                     'stone_charge' => $item['stone_charge'] ?? 0,
+                    'hallmark_charge' => $item['hallmark_charge'] ?? 0,
                     'quantity' => $item['quantity'],
                     'total_amount' => $item['total_amount'],
                 ]);
@@ -408,5 +475,30 @@ class SaleController extends Controller
 
         return redirect()->back()
             ->with('success', "Sale Invoice #{$invoiceNo} deleted successfully.");
+    }
+
+    public function print(Sale $sale)
+    {
+        $sale->load(['customer', 'branch', 'creator', 'items.product.category', 'items.product.purity']);
+        $settings = SystemSetting::where('group', 'invoice')->pluck('value', 'key')->toArray();
+
+        return Inertia::render('Sales/PrintA4', [
+            'sale' => $sale,
+            'settings' => $settings
+        ]);
+    }
+
+    public function verifyInvoice($token)
+    {
+        $sale = Sale::with(['customer', 'branch', 'items.product.category', 'items.product.purity'])
+            ->where('secure_token', $token)
+            ->firstOrFail();
+
+        $settings = SystemSetting::where('group', 'invoice')->pluck('value', 'key')->toArray();
+
+        return Inertia::render('Public/VerifyInvoice', [
+            'sale' => $sale,
+            'settings' => $settings
+        ]);
     }
 }

@@ -354,6 +354,7 @@ export default function Sidebar({ className = '' }) {
                         <SidebarSubItem label={t('notificationSettings')} href={route('settings.notifications.index')} active={isActive('settings.notifications.*')} />
                         <SidebarSubItem label={t('openingAccounts')} href={route('settings.opening-accounts.index')} active={isActive('settings.opening-accounts.*')} />
                         <SidebarSubItem label={t('accountConfig')} href={route('settings.account-config.index')} active={isActive('settings.account-config.*')} />
+                        <SidebarSubItem label={t('invoiceSettings') || 'Invoice Settings'} href={route('settings.invoice-settings.index')} active={isActive('settings.invoice-settings.*')} />
                     </SidebarItem>
                 </nav>
             </div>

@@ -9,8 +9,9 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 
-export default function Create({ categories, purities, suppliers: initialSuppliers }) {
+export default function Create({ categories, purities, suppliers: initialSuppliers, editProduct, latestMetalPrices }) {
     const { t } = useLanguage();
+    const isEdit = !!editProduct;
     const [suppliers, setSuppliers] = useState(initialSuppliers);
     
     // Modal State
@@ -48,8 +49,22 @@ export default function Create({ categories, purities, suppliers: initialSupplie
         status: 'active',
     });
 
+    const getInitialProduct = () => {
+        if (isEdit) {
+            return {
+                ...editProduct,
+                vori: '', ana: '', roti: '', point: '',
+                rate_per_vori: editProduct.rate_per_vori || '',
+                supplier_id: editProduct.supplier_id || '',
+                barcode: editProduct.barcode || '',
+                image: null,
+            };
+        }
+        return getEmptyProduct();
+    };
+
     const { data, setData, post, processing, errors } = useForm({
-        products: [getEmptyProduct()],
+        products: [getInitialProduct()],
     });
 
     const addRow = () => {
@@ -67,6 +82,14 @@ export default function Create({ categories, purities, suppliers: initialSupplie
     const updateProduct = (index, field, value) => {
         const newProducts = [...data.products];
         newProducts[index][field] = value;
+        
+        if (field === 'purity_id' && latestMetalPrices) {
+            const pricePerGram = latestMetalPrices[value];
+            if (pricePerGram) {
+                newProducts[index].rate_per_vori = (pricePerGram * 11.664).toFixed(2);
+            }
+        }
+        
         setData('products', newProducts);
     };
 
@@ -115,7 +138,14 @@ export default function Create({ categories, purities, suppliers: initialSupplie
 
     const submit = (e) => {
         e.preventDefault();
-        post(route('products.store'));
+        if (isEdit) {
+            router.post(route('products.update', editProduct.id), {
+                _method: 'PUT',
+                ...data.products[0]
+            });
+        } else {
+            post(route('products.store'));
+        }
     };
 
     const submitAndStay = (e) => {
@@ -132,7 +162,7 @@ export default function Create({ categories, purities, suppliers: initialSupplie
             header={
                 <div className="flex justify-between items-center">
                     <h2 className="font-bold text-2xl text-gray-800 tracking-tight">
-                        Add Product
+                        {isEdit ? 'Edit Product' : 'Add Product'}
                     </h2>
                     <Link
                         href={route('products.index')}
@@ -241,9 +271,21 @@ export default function Create({ categories, purities, suppliers: initialSupplie
                                             <option value="diamond">Diamond</option>
                                         </select>
                                     </div>
-
-
-                                    
+                                    {/* 6. Purity */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Purity <span className="text-red-500">*</span></label>
+                                        <select
+                                            value={product.purity_id}
+                                            onChange={e => updateProduct(index, 'purity_id', e.target.value)}
+                                            className={`block w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 text-sm shadow-sm ${errors[`products.${index}.purity_id`] ? 'border-red-500' : ''}`}
+                                            required
+                                        >
+                                            <option value="">Select Purity</option>
+                                            {purities.filter(p => !product.metal_type || p.metal_type === product.metal_type).map(p => (
+                                                <option key={p.id} value={p.id}>{p.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                     {/* 7. Date */}
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
@@ -419,7 +461,7 @@ export default function Create({ categories, purities, suppliers: initialSupplie
                             className="w-full sm:w-auto flex items-center justify-center px-10 py-3.5 text-base font-bold text-white bg-gradient-to-r from-amber-500 to-yellow-600 rounded-2xl hover:from-amber-600 hover:to-yellow-700 transition-all shadow-lg shadow-amber-500/30 focus:ring-4 focus:ring-amber-500/30 disabled:opacity-50 transform hover:-translate-y-0.5"
                         >
                             <Save className="w-5 h-5 mr-2" />
-                            {processing ? 'Saving...' : 'Add Product'}
+                            {processing ? 'Saving...' : (isEdit ? 'Update Product' : 'Add Product')}
                         </button>
                     </div>
                 </form>
