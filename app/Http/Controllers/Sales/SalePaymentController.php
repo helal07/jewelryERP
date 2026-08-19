@@ -25,9 +25,14 @@ class SalePaymentController extends Controller
                   })
                   ->orWhereHas('customer', function ($cq) use ($search) {
                       $cq->where('name', 'like', "%{$search}%")
-                        ->orWhere('phone', 'like', "%{$search}%");
+                        ->orWhere('phone', 'like', "%{$search}%")
+                        ->orWhere('address', 'like', "%{$search}%");
                   });
             });
+        }
+
+        if ($request->filled('date')) {
+            $query->whereDate('payment_date', $request->input('date'));
         }
 
         $payments = $query->orderBy('payment_date', 'desc')
@@ -53,7 +58,7 @@ class SalePaymentController extends Controller
                 'outstanding_due' => $totalOutstandingDue,
                 'due_customers_count' => $dueCustomersCount,
             ],
-            'filters' => $request->only(['search']),
+            'filters' => $request->only(['search', 'date']),
         ]);
     }
 

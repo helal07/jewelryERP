@@ -43,6 +43,15 @@ class HandleInertiaRequests extends Middleware
 
         $isMainBranch = $user ? $user->isMainBranch() : true;
 
+        $latestMetalPrices = \App\Models\MetalPrice::with('purity')
+            ->orderBy('effective_date', 'desc')
+            ->orderBy('id', 'desc')
+            ->get()
+            ->unique(function ($item) {
+                return $item->metal_type . '_' . $item->purity_id;
+            })
+            ->values();
+
         return [
             ...parent::share($request),
             'auth' => [
@@ -55,6 +64,7 @@ class HandleInertiaRequests extends Middleware
                 'error' => $request->session()->get('error'),
                 'warning' => $request->session()->get('warning'),
             ],
+            'metal_prices' => $latestMetalPrices,
         ];
     }
 }

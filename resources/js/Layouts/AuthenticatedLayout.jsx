@@ -5,13 +5,61 @@ import Sidebar from '@/Components/Sidebar';
 import { Menu, X, Search, Globe, User, Building2 } from 'lucide-react';
 import { LanguageProvider, useLanguage } from '@/Context/LanguageContext';
 
+function MetalPriceTicker({ metalPrices }) {
+    if (!metalPrices || metalPrices.length === 0) return null;
+
+    return (
+        <div className="bg-amber-50/50 backdrop-blur-sm border-b border-amber-200/60 overflow-hidden flex items-center shadow-sm py-1.5 z-20 relative print:hidden w-full">
+            <style>{`
+                @keyframes smoothMarquee {
+                    0% { transform: translateX(0); }
+                    100% { transform: translateX(-50%); }
+                }
+                .scrolling-ticker {
+                    display: flex;
+                    width: max-content;
+                    animation: smoothMarquee 7s linear infinite;
+                }
+                .scrolling-ticker:hover {
+                    animation-play-state: paused;
+                }
+            `}</style>
+
+            <div className="w-full overflow-hidden relative flex items-center">
+                <div className="scrolling-ticker text-[11px] font-bold text-gray-600">
+                    {/* First Set */}
+                    <div className="flex items-center gap-8 px-4 shrink-0">
+                        {metalPrices.map((mp, idx) => (
+                            <div key={`orig-${idx}`} className="flex items-center gap-1.5 whitespace-nowrap">
+                                <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_5px_rgba(251,191,36,0.6)] animate-pulse"></div>
+                                <span className="capitalize">{mp.metal_type} {mp.purity?.name} / Per gm</span>
+                                <span className="text-gray-900 ml-0.5">tk.{Number(mp.price_per_gram).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                            </div>
+                        ))}
+                    </div>
+                    {/* Second Set (Duplicate for seamless loop) */}
+                    <div className="flex items-center gap-8 px-4 shrink-0">
+                        {metalPrices.map((mp, idx) => (
+                            <div key={`dup-${idx}`} className="flex items-center gap-1.5 whitespace-nowrap">
+                                <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_5px_rgba(251,191,36,0.6)] animate-pulse"></div>
+                                <span className="capitalize">{mp.metal_type} {mp.purity?.name} / Per gm</span>
+                                <span className="text-gray-900 ml-0.5">tk.{Number(mp.price_per_gram).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function HeaderContent({ sidebarOpen, setSidebarOpen, user }) {
     const { lang, setLang, t } = useLanguage();
     const { active_branch } = usePage().props.auth || {};
     const branch = active_branch || user?.branch;
 
     return (
-        <header className="glass flex h-16 flex-shrink-0 items-center justify-between px-4 sm:px-6 lg:px-8 z-30 m-4 rounded-2xl print:hidden">
+        <header className="bg-white/95 backdrop-blur-md flex h-16 flex-shrink-0 items-center justify-between px-4 sm:px-6 lg:px-8 z-30 border-b border-gray-200/60 print:hidden w-full">
             <div className="flex items-center flex-1 gap-3">
                 <button
                     type="button"
@@ -21,13 +69,13 @@ function HeaderContent({ sidebarOpen, setSidebarOpen, user }) {
                     <span className="sr-only">Open sidebar</span>
                     <Menu className="h-6 w-6" />
                 </button>
-                
+
                 {/* Search Bar */}
                 <div className="hidden sm:flex items-center bg-gray-100/50 border border-gray-200 rounded-full px-4 py-1.5 focus-within:ring-2 focus-within:ring-brand-500/20 focus-within:border-brand-300 transition-all">
                     <Search className="h-4 w-4 text-gray-400 mr-2" />
-                    <input 
-                        type="text" 
-                        placeholder={t('searchPlaceholder')} 
+                    <input
+                        type="text"
+                        placeholder={t('searchPlaceholder')}
                         className="bg-transparent border-none focus:ring-0 text-sm w-56 text-gray-700 placeholder-gray-400 py-1"
                     />
                 </div>
@@ -49,26 +97,24 @@ function HeaderContent({ sidebarOpen, setSidebarOpen, user }) {
             <div className="flex items-center space-x-4">
                 {/* Language Switcher Button */}
                 <div className="flex items-center bg-gray-100/80 p-1 rounded-full border border-gray-200/80 shadow-inner">
-                    <button 
+                    <button
                         type="button"
                         onClick={() => setLang('en')}
-                        className={`px-3 py-1 text-xs font-bold rounded-full transition-all duration-200 cursor-pointer ${
-                            lang === 'en' 
-                                ? 'text-white shadow-md scale-105' 
-                                : 'text-gray-600 hover:text-gray-900'
-                        }`}
+                        className={`px-3 py-1 text-xs font-bold rounded-full transition-all duration-200 cursor-pointer ${lang === 'en'
+                            ? 'text-white shadow-md scale-105'
+                            : 'text-gray-600 hover:text-gray-900'
+                            }`}
                         style={lang === 'en' ? { backgroundColor: 'rgb(177,118,51)' } : {}}
                     >
                         English
                     </button>
-                    <button 
+                    <button
                         type="button"
                         onClick={() => setLang('bn')}
-                        className={`px-3 py-1 text-xs font-bold rounded-full transition-all duration-200 cursor-pointer ${
-                            lang === 'bn' 
-                                ? 'text-white shadow-md scale-105' 
-                                : 'text-gray-600 hover:text-gray-900'
-                        }`}
+                        className={`px-3 py-1 text-xs font-bold rounded-full transition-all duration-200 cursor-pointer ${lang === 'bn'
+                            ? 'text-white shadow-md scale-105'
+                            : 'text-gray-600 hover:text-gray-900'
+                            }`}
                         style={lang === 'bn' ? { backgroundColor: 'rgb(177,118,51)' } : {}}
                     >
                         বাংলা
@@ -94,7 +140,7 @@ function HeaderContent({ sidebarOpen, setSidebarOpen, user }) {
 
                         <Dropdown.Content align="right" className="glassmorphism mt-2 w-48 rounded-xl border border-gray-100 shadow-xl">
                             <div className="block px-4 py-3 text-xs text-gray-500 border-b border-gray-100/50 bg-gray-50/50 rounded-t-xl">
-                                {t('signedInAs')}<br/>
+                                {t('signedInAs')}<br />
                                 <span className="font-semibold text-gray-900">{user.email}</span>
                             </div>
                             <Dropdown.Link href={route('profile.edit')} className="hover:bg-brand-50 hover:text-brand-700 transition-colors">
@@ -112,14 +158,15 @@ function HeaderContent({ sidebarOpen, setSidebarOpen, user }) {
 }
 
 export default function AuthenticatedLayout({ header, children }) {
-    const user = usePage().props.auth.user;
+    const { user } = usePage().props.auth;
+    const { metal_prices } = usePage().props;
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     return (
         <div className="flex h-screen bg-[#FEF9E7] overflow-hidden font-sans">
             {/* Mobile sidebar backdrop */}
             {sidebarOpen && (
-                <div 
+                <div
                     className="fixed inset-0 z-40 bg-gray-900/40 backdrop-blur-sm transition-opacity lg:hidden print:hidden"
                     onClick={() => setSidebarOpen(false)}
                 />
@@ -132,7 +179,7 @@ export default function AuthenticatedLayout({ header, children }) {
             `}>
                 <Sidebar />
                 {/* Mobile close button inside sidebar */}
-                <button 
+                <button
                     onClick={() => setSidebarOpen(false)}
                     className="absolute top-4 right-4 text-gray-400 hover:text-white lg:hidden print:hidden"
                 >
@@ -142,16 +189,19 @@ export default function AuthenticatedLayout({ header, children }) {
 
             {/* Main content wrapper */}
             <div className="flex flex-1 flex-col overflow-hidden relative print:overflow-visible">
-                
+
                 {/* Decorative background gradients */}
                 <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-amber-100/40 to-transparent pointer-events-none -z-10 print:hidden" />
 
                 {/* Header Component */}
-                <HeaderContent 
-                    sidebarOpen={sidebarOpen} 
-                    setSidebarOpen={setSidebarOpen} 
-                    user={user} 
+                <HeaderContent
+                    sidebarOpen={sidebarOpen}
+                    setSidebarOpen={setSidebarOpen}
+                    user={user}
                 />
+
+                {/* Metal Price Ticker */}
+                <MetalPriceTicker metalPrices={metal_prices} />
 
                 {/* Page header (if provided) */}
                 {header && (
@@ -162,7 +212,7 @@ export default function AuthenticatedLayout({ header, children }) {
 
                 {/* Main content area */}
                 <main className="flex-1 overflow-y-auto p-4 sm:px-6 lg:px-8 custom-scrollbar">
-                    <div className="mx-auto max-w-7xl animate-slide-up" style={{ animationDelay: '0.1s' }}>
+                    <div className="mx-auto w-full animate-slide-up" style={{ animationDelay: '0.1s' }}>
                         {children}
                     </div>
                 </main>

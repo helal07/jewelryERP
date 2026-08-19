@@ -57,7 +57,7 @@ class CustomerController extends Controller
 
         $customer = Customer::create($validated);
 
-        if ($request->wantsJson() || $request->header('X-Requested-With') === 'XMLHttpRequest' || $request->expectsJson()) {
+        if (!$request->header('X-Inertia') && ($request->wantsJson() || $request->header('X-Requested-With') === 'XMLHttpRequest' || $request->expectsJson())) {
             return response()->json(['success' => true, 'customer' => $customer]);
         }
 

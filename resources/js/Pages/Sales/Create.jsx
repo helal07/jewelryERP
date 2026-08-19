@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, Link } from '@inertiajs/react';
+import axios from 'axios';
 import { 
     ShoppingBag, Plus, Trash2, ArrowLeft, Save, UserPlus, Calculator, 
     Search, Image as ImageIcon, X, PackagePlus, Check, Gem, Sparkles, Filter,
@@ -211,22 +212,20 @@ export default function Create({ customers = [], products = [], branches = [], a
         e.preventDefault();
         if (!newCustomer.name) return;
 
-        const created = {
-            id: Date.now(),
-            name: newCustomer.name,
-            phone: newCustomer.phone || 'N/A',
-            email: newCustomer.email || '',
-            nid_number: newCustomer.nid_number || '',
-            opening_balance: newCustomer.opening_balance || 0,
-            credit_limit: newCustomer.credit_limit || 0,
-            type: newCustomer.type || 'Retail',
-            address: newCustomer.address || '',
-        };
-
-        setCustomerList(prev => [created, ...prev]);
-        setData('customer_id', created.id);
-        setNewCustomer({ name: '', phone: '', email: '', nid_number: '', opening_balance: '', credit_limit: '', type: 'Retail', address: '' });
-        setIsCustomerModalOpen(false);
+        axios.post(route('customers.store'), newCustomer)
+            .then(res => {
+                if (res.data.success && res.data.customer) {
+                    const created = res.data.customer;
+                    setCustomerList(prev => [created, ...prev]);
+                    setData('customer_id', created.id);
+                    setNewCustomer({ name: '', phone: '', email: '', nid_number: '', opening_balance: '', credit_limit: '', type: 'Retail', address: '' });
+                    setIsCustomerModalOpen(false);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Failed to save customer. Please check the fields and try again.');
+            });
     };
 
     // Handle Quick Add Product Submit
@@ -234,22 +233,42 @@ export default function Create({ customers = [], products = [], branches = [], a
         e.preventDefault();
         if (!newProduct.name) return;
 
-        const created = {
-            id: Date.now(),
-            name: newProduct.name,
-            sku: newProduct.sku || `PROD-${Math.floor(100 + Math.random() * 900)}`,
-            gross_weight: parseFloat(newProduct.gross_weight || 10),
-            stone_weight: parseFloat(newProduct.stone_weight || 0),
-            selling_price: parseFloat(newProduct.selling_price || 11500),
-            making_charge: parseFloat(newProduct.making_charge || 500),
-            purity: { name: newProduct.purity_name },
-            image: null
-        };
-
-        setProductList(prev => [created, ...prev]);
-        addProductToSale(created);
-        setNewProduct({ name: '', sku: '', purity_name: '22K Gold', gross_weight: '', stone_weight: '0', selling_price: '', making_charge: '0' });
-        setIsProductModalOpen(false);
+        axios.post(route('products.store'), {
+            products: [{
+                name: newProduct.name,
+                sku: newProduct.sku || `PROD-${Math.floor(100 + Math.random() * 900)}`,
+                category_id: 1, // Fallback default
+                metal_type: 'gold', 
+                purity_id: 1, 
+                gross_weight: parseFloat(newProduct.gross_weight || 10),
+                stone_weight: parseFloat(newProduct.stone_weight || 0),
+                rate_per_vori: (parseFloat(newProduct.selling_price || 11500) * 11.664).toFixed(2),
+                making_charge_type: 'fixed',
+                making_charge_value: parseFloat(newProduct.making_charge || 500),
+                stone_charge: 0,
+                vat_percentage: 5,
+                wastage_percentage: 0,
+                unit: 'piece',
+                status: 'active'
+            }]
+        })
+        .then(res => {
+            if (res.data.success && res.data.product) {
+                const created = res.data.product;
+                // Add legacy properties used by POS UI if they are missing
+                created.selling_price = parseFloat(newProduct.selling_price || 11500);
+                created.purity = { name: newProduct.purity_name };
+                
+                setProductList(prev => [created, ...prev]);
+                addProductToSale(created);
+                setNewProduct({ name: '', sku: '', purity_name: '22K Gold', gross_weight: '', stone_weight: '0', selling_price: '', making_charge: '0' });
+                setIsProductModalOpen(false);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Failed to save product. Please try again.');
+        });
     };
 
     const handleSubmit = (e) => {
