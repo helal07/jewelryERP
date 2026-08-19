@@ -3,6 +3,7 @@ import { Head, useForm, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Pagination from '@/Components/Pagination';
 import Dropdown from '@/Components/Dropdown';
+import useFilter from '@/Hooks/useFilter';
 import { Plus, Wallet, Trash2, Edit2, FolderTree, Search, Filter, RotateCcw, CornerDownRight, CheckCircle2, XCircle } from 'lucide-react';
 
 export default function Index({ accounts, allAccounts = [], filters = {} }) {
@@ -12,18 +13,14 @@ export default function Index({ accounts, allAccounts = [], filters = {} }) {
     const [search, setSearch] = useState(filters.search || '');
     const [accountType, setAccountType] = useState(filters.account_type || '');
 
-    const handleFilter = (e) => {
-        e.preventDefault();
-        router.get(route('accounts.chart-of-accounts.index'), {
-            search,
-            account_type: accountType,
-        }, { preserveState: true });
-    };
+    useFilter(route('accounts.chart-of-accounts.index'), {
+        search,
+        account_type: accountType,
+    });
 
     const handleReset = () => {
         setSearch('');
         setAccountType('');
-        router.get(route('accounts.chart-of-accounts.index'), {}, { preserveState: true });
     };
 
     const { data, setData, post, put, processing, errors, reset } = useForm({
@@ -115,9 +112,9 @@ export default function Index({ accounts, allAccounts = [], filters = {} }) {
         >
             <Head title="Chart of Accounts" />
 
-            {/* Filter Section */}
+            {/* Filter Bar */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
-                <form onSubmit={handleFilter} className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                     <div className="flex-1 min-w-[200px] relative">
                         <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
                         <input
@@ -145,22 +142,13 @@ export default function Index({ accounts, allAccounts = [], filters = {} }) {
                     </div>
 
                     <button
-                        type="submit"
-                        className="bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
-                    >
-                        <Filter className="w-4 h-4" />
-                        Filter
-                    </button>
-
-                    <button
                         type="button"
                         onClick={handleReset}
-                        className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-xl text-sm font-semibold flex items-center gap-1 transition-colors"
-                        title="Reset Filters"
+                        className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
-                        <RotateCcw className="w-4 h-4" />
+                        <RotateCcw className="w-4 h-4" /> Clear
                     </button>
-                </form>
+                </div>
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 pb-24">

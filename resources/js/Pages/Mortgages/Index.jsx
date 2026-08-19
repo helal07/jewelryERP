@@ -3,6 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import Pagination from '@/Components/Pagination';
 import Dropdown from '@/Components/Dropdown';
+import useFilter from '@/Hooks/useFilter';
 import { Landmark, Plus, Search, Filter, Eye, AlertCircle, CheckCircle2, Clock, MapPin, Phone, Building2 } from 'lucide-react';
 
 const fmtBDT = (val) =>
@@ -28,18 +29,14 @@ export default function Index({ mortgages, filters = {} }) {
     const [search, setSearch] = useState(filters.search || '');
     const [status, setStatus] = useState(filters.status || '');
 
-    const handleFilter = (e) => {
-        e.preventDefault();
-        router.get(route('mortgages.index'), {
-            search,
-            status,
-        }, { preserveState: true });
-    };
+    useFilter(route('mortgages.index'), {
+        search,
+        status,
+    });
 
     const handleReset = () => {
         setSearch('');
         setStatus('');
-        router.get(route('mortgages.index'), {}, { preserveState: true });
     };
 
     return (
@@ -79,7 +76,7 @@ export default function Index({ mortgages, filters = {} }) {
 
                 {/* Filter Section */}
                 <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100">
-                    <form onSubmit={handleFilter} className="flex flex-col md:flex-row gap-4 items-end">
+                    <div className="flex flex-col md:flex-row gap-4 items-end">
                         <div className="flex-1 w-full">
                             <label className="block text-xs font-semibold text-gray-600 mb-1">Search Mortgage No, Customer</label>
                             <div className="relative">
@@ -109,25 +106,18 @@ export default function Index({ mortgages, filters = {} }) {
                             </select>
                         </div>
 
-                        <div className="flex items-center gap-2 w-full md:w-auto">
-                            <button
-                                type="submit"
-                                className="flex-1 md:flex-none px-5 py-2 text-white font-bold rounded-xl text-sm hover:opacity-90 active:opacity-100 cursor-pointer transition-all flex items-center justify-center gap-2"
-                                style={{ backgroundColor: 'rgb(177,118,51)' }}
-                            >
-                                <Filter className="w-4 h-4" /> Filter
-                            </button>
-                            {(search || status) && (
+                        {(search || status) && (
+                            <div className="flex items-center gap-2 w-full md:w-auto">
                                 <button
                                     type="button"
                                     onClick={handleReset}
-                                    className="px-5 py-2 bg-rose-50 text-rose-600 font-bold rounded-xl text-sm hover:bg-rose-100 transition-colors"
+                                    className="px-5 py-2 bg-rose-50 text-rose-600 font-bold rounded-xl text-sm hover:bg-rose-100 transition-colors h-10"
                                 >
                                     Clear
                                 </button>
-                            )}
-                        </div>
-                    </form>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Table Section */}

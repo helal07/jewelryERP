@@ -20,21 +20,22 @@ import {
     User,
     Phone
 } from 'lucide-react';
+import useFilter from '@/Hooks/useFilter';
 import { useLanguage } from '@/Context/LanguageContext';
 
 export default function Index({ productions, artisans, filters, stats }) {
     const { t } = useLanguage();
     const [viewingProduction, setViewingProduction] = useState(null);
+    const [search, setSearch] = useState(filters?.search || '');
+    const [status, setStatus] = useState(filters?.status || '');
+    const [artisanId, setArtisanId] = useState(filters?.artisan_id || '');
 
-    const handleSearch = (e) => {
-        e.preventDefault();
-        const form = e.target;
-        router.get(route('production.index'), {
-            search: form.search.value,
-            status: form.status.value,
-            artisan_id: form.artisan_id.value,
-        }, { preserveState: true });
-    };
+    useFilter(route('production.index'), {
+        search,
+        status,
+        artisan_id: artisanId,
+    });
+
 
     const handleStatusChange = (id, newStatus) => {
         router.patch(route('production.update-status', id), {
@@ -153,14 +154,15 @@ export default function Index({ productions, artisans, filters, stats }) {
 
             {/* Filter Bar */}
             <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm mb-6">
-                <form onSubmit={handleSearch} className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="flex-1 flex flex-col sm:flex-row items-center gap-3 w-full">
                         <div className="relative flex-1 w-full">
                             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                            <input
+                        <input
                                 type="text"
                                 name="search"
-                                defaultValue={filters?.search || ''}
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
                                 placeholder="Search production #, order #, artisan..."
                                 className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
                             />
@@ -168,7 +170,8 @@ export default function Index({ productions, artisans, filters, stats }) {
 
                         <select
                             name="status"
-                            defaultValue={filters?.status || ''}
+                            value={status}
+                            onChange={(e) => setStatus(e.target.value)}
                             className="w-full sm:w-44 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-gray-700"
                         >
                             <option value="">All Statuses</option>
@@ -180,7 +183,8 @@ export default function Index({ productions, artisans, filters, stats }) {
 
                         <select
                             name="artisan_id"
-                            defaultValue={filters?.artisan_id || ''}
+                            value={artisanId}
+                            onChange={(e) => setArtisanId(e.target.value)}
                             className="w-full sm:w-48 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-gray-700"
                         >
                             <option value="">All Artisans</option>
@@ -190,17 +194,8 @@ export default function Index({ productions, artisans, filters, stats }) {
                                 </option>
                             ))}
                         </select>
-
-                        <button
-                            type="submit"
-                            className="w-full sm:w-auto px-5 py-2 text-white rounded-xl text-sm font-bold shadow-xs transition-all flex items-center justify-center gap-2 hover:opacity-90 active:opacity-100 cursor-pointer"
-                            style={{ backgroundColor: 'rgb(177,118,51)' }}
-                        >
-                            <Filter className="w-4 h-4" />
-                            Filter
-                        </button>
                     </div>
-                </form>
+                </div>
             </div>
 
             {/* Production List Table */}

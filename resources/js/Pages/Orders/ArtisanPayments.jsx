@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import Modal from '@/Components/Modal';
+import useFilter from '@/Hooks/useFilter';
 import axios from 'axios';
 import { 
     Hammer, 
@@ -80,15 +81,15 @@ export default function ArtisanPayments({ payments, duePaymentsList = [], artisa
         }
     };
 
-    const handleSearch = (e) => {
-        e.preventDefault();
-        const form = e.target;
-        router.get(route('artisan-payments.index'), {
-            search: form.search.value,
-            artisan_id: form.artisan_id.value,
-            payment_method: form.payment_method.value,
-        }, { preserveState: true });
-    };
+    const [search, setSearch] = useState(filters?.search || '');
+    const [artisanIdFilter, setArtisanIdFilter] = useState(filters?.artisan_id || '');
+    const [paymentMethod, setPaymentMethod] = useState(filters?.payment_method || '');
+
+    useFilter(route('artisan-payments.index'), {
+        search,
+        artisan_id: artisanIdFilter,
+        payment_method: paymentMethod
+    });
 
     // Save Artisan Inline via Axios
     const handleQuickArtisanSubmit = async (e) => {
@@ -316,22 +317,22 @@ export default function ArtisanPayments({ payments, duePaymentsList = [], artisa
                 <>
                     {/* Filter Bar */}
                     <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm mb-6">
-                        <form onSubmit={handleSearch} className="flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                             <div className="flex-1 flex flex-col sm:flex-row items-center gap-3 w-full">
                                 <div className="relative flex-1 w-full">
                                     <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                                     <input
                                         type="text"
-                                        name="search"
-                                        defaultValue={filters?.search || ''}
+                                        value={search}
+                                        onChange={(e) => setSearch(e.target.value)}
                                         placeholder="Search payment #, artisan name..."
                                         className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
                                     />
                                 </div>
 
                                 <select
-                                    name="artisan_id"
-                                    defaultValue={filters?.artisan_id || ''}
+                                    value={artisanIdFilter}
+                                    onChange={(e) => setArtisanIdFilter(e.target.value)}
                                     className="w-full sm:w-48 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-gray-700"
                                 >
                                     <option value="">All Artisans</option>
@@ -343,8 +344,8 @@ export default function ArtisanPayments({ payments, duePaymentsList = [], artisa
                                 </select>
 
                                 <select
-                                    name="payment_method"
-                                    defaultValue={filters?.payment_method || ''}
+                                    value={paymentMethod}
+                                    onChange={(e) => setPaymentMethod(e.target.value)}
                                     className="w-full sm:w-44 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-gray-700"
                                 >
                                     <option value="">All Methods</option>
@@ -353,16 +354,8 @@ export default function ArtisanPayments({ payments, duePaymentsList = [], artisa
                                     <option value="Bank Transfer">Bank Transfer</option>
                                     <option value="Cheque">Cheque</option>
                                 </select>
-
-                                <button
-                                    type="submit"
-                                    className="w-full sm:w-auto px-5 py-2 bg-amber-600 text-white rounded-xl text-sm font-bold hover:bg-amber-700 shadow-xs transition-all flex items-center justify-center gap-2"
-                                >
-                                    <Filter className="w-4 h-4" />
-                                    Filter
-                                </button>
                             </div>
-                        </form>
+                        </div>
                     </div>
 
                     {/* Payments Table */}

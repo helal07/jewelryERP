@@ -4,6 +4,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import Pagination from '@/Components/Pagination';
 import Dropdown from '@/Components/Dropdown';
+import useFilter from '@/Hooks/useFilter';
 import axios from 'axios';
 import { 
     ShoppingBag, Plus, Search, Filter, RotateCcw, Eye, CreditCard, Edit, Trash2,
@@ -58,16 +59,13 @@ export default function Index({ purchases, suppliers = [], branches = [], filter
     const [selectedPurchase, setSelectedPurchase] = useState(null);
     const [isViewOpen, setIsViewOpen] = useState(false);
 
-    const handleFilter = (e) => {
-        e.preventDefault();
-        router.get(route('purchases.index'), {
-            search,
-            supplier_id: supplierId,
-            status,
-            date_from: dateFrom,
-            date_to: dateTo,
-        }, { preserveState: true });
-    };
+    useFilter(route('purchases.index'), {
+        search,
+        supplier_id: supplierId,
+        status,
+        date_from: dateFrom,
+        date_to: dateTo,
+    });
 
     const handleReset = () => {
         setSearch('');
@@ -75,7 +73,6 @@ export default function Index({ purchases, suppliers = [], branches = [], filter
         setStatus('');
         setDateFrom('');
         setDateTo('');
-        router.get(route('purchases.index'), {}, { preserveState: true });
     };
 
     const openViewModal = (purchase) => {
@@ -169,7 +166,7 @@ export default function Index({ purchases, suppliers = [], branches = [], filter
 
                 {/* Filter Bar */}
                 <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                    <form onSubmit={handleFilter} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3">
                         {/* Search input */}
                         <div className="sm:col-span-2">
                             <div className="relative">
@@ -215,21 +212,15 @@ export default function Index({ purchases, suppliers = [], branches = [], filter
                         {/* Buttons */}
                         <div className="sm:col-span-2 flex items-center gap-2">
                             <button
-                                type="submit"
-                                className="flex-1 h-10 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5"
-                            >
-                                <Filter className="w-3.5 h-3.5" /> Filter
-                            </button>
-                            <button
                                 type="button"
                                 onClick={handleReset}
-                                className="h-10 px-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-colors flex items-center justify-center"
-                                title="Reset filters"
+                                className="flex-1 h-10 px-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-colors flex items-center justify-center gap-1.5 font-bold text-xs"
+                                title="Clear filters"
                             >
-                                <RotateCcw className="w-3.5 h-3.5" />
+                                <RotateCcw className="w-3.5 h-3.5" /> Clear
                             </button>
                         </div>
-                    </form>
+                    </div>
                 </div>
 
                 {/* Purchases Table Card */}

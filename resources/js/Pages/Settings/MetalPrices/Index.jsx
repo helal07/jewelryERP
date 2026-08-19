@@ -4,6 +4,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, router, usePage } from '@inertiajs/react';
 import Pagination from '@/Components/Pagination';
 import Dropdown from '@/Components/Dropdown';
+import useFilter from '@/Hooks/useFilter';
 import { Scale, Plus, Trash2, Filter, RotateCcw } from 'lucide-react';
 import { useLanguage } from '@/Context/LanguageContext';
 
@@ -21,18 +22,14 @@ export default function Index({ metalPrices, purities = [], branches = [], filte
     const [metalType, setMetalType] = useState(filters.metal_type || '');
     const [purityId, setPurityId] = useState(filters.purity_id || '');
 
-    const handleFilter = (e) => {
-        e.preventDefault();
-        router.get(route('settings.metal-prices.index'), {
-            metal_type: metalType,
-            purity_id: purityId,
-        }, { preserveState: true });
-    };
+    useFilter(route('settings.metal-prices.index'), {
+        metal_type: metalType,
+        purity_id: purityId,
+    });
 
     const handleReset = () => {
         setMetalType('');
         setPurityId('');
-        router.get(route('settings.metal-prices.index'), {}, { preserveState: true });
     };
 
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -129,7 +126,7 @@ export default function Index({ metalPrices, purities = [], branches = [], filte
 
             {/* Filter */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
-                <form onSubmit={handleFilter} className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                     <div className="w-44">
                         <select
                             value={metalType}
@@ -156,24 +153,16 @@ export default function Index({ metalPrices, purities = [], branches = [], filte
                         </select>
                     </div>
 
-                    <button
-                        type="submit"
-                        className="text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-2xs cursor-pointer"
-                        style={{ backgroundColor: 'rgb(177, 118, 51)' }}
-                    >
-                        <Filter className="w-4 h-4" />
-                        Filter
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={handleReset}
-                        className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1 transition cursor-pointer"
-                        title="Reset Filters"
-                    >
-                        <RotateCcw className="w-4 h-4" />
-                    </button>
-                </form>
+                    {(metalType || purityId) && (
+                        <button
+                            type="button"
+                            onClick={handleReset}
+                            className="px-4 py-2 text-rose-600 bg-rose-50 rounded-xl text-xs font-bold transition flex items-center gap-1.5 hover:bg-rose-100 cursor-pointer"
+                        >
+                            <RotateCcw className="w-4 h-4" /> Reset
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 pb-16">

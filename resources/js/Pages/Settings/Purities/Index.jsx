@@ -3,6 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, router } from '@inertiajs/react';
 import Pagination from '@/Components/Pagination';
 import Dropdown from '@/Components/Dropdown';
+import useFilter from '@/Hooks/useFilter';
 import { Gem, Plus, Edit2, Trash2, CheckCircle2, XCircle, Filter, RotateCcw } from 'lucide-react';
 import { useLanguage } from '@/Context/LanguageContext';
 
@@ -13,16 +14,12 @@ export default function Index({ purities, filters = {} }) {
 
     const [metalType, setMetalType] = useState(filters.metal_type || '');
 
-    const handleFilter = (e) => {
-        e.preventDefault();
-        router.get(route('settings.purities.index'), {
-            metal_type: metalType,
-        }, { preserveState: true });
-    };
+    useFilter(route('settings.purities.index'), {
+        metal_type: metalType,
+    });
 
     const handleReset = () => {
         setMetalType('');
-        router.get(route('settings.purities.index'), {}, { preserveState: true });
     };
 
     const { data, setData, post, put, processing, errors, reset } = useForm({
@@ -98,7 +95,7 @@ export default function Index({ purities, filters = {} }) {
 
             {/* Filter */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
-                <form onSubmit={handleFilter} className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                     <div className="w-44">
                         <select
                             value={metalType}
@@ -112,24 +109,16 @@ export default function Index({ purities, filters = {} }) {
                         </select>
                     </div>
 
-                    <button
-                        type="submit"
-                        className="text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-2xs cursor-pointer"
-                        style={{ backgroundColor: 'rgb(177, 118, 51)' }}
-                    >
-                        <Filter className="w-4 h-4" />
-                        Filter
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={handleReset}
-                        className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1 transition cursor-pointer"
-                        title="Reset Filters"
-                    >
-                        <RotateCcw className="w-4 h-4" />
-                    </button>
-                </form>
+                    {metalType && (
+                        <button
+                            type="button"
+                            onClick={handleReset}
+                            className="px-4 py-2 text-rose-600 bg-rose-50 rounded-xl text-xs font-bold transition flex items-center gap-1.5 hover:bg-rose-100 cursor-pointer"
+                        >
+                            <RotateCcw className="w-4 h-4" /> Reset
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 pb-16">

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router, useForm } from '@inertiajs/react';
 import { Boxes, Plus, Search, Filter, Pencil, Trash2, X, Scale, Calculator } from 'lucide-react';
+import useFilter from '@/Hooks/useFilter';
 
 /* ─── helpers ──────────────────────────── */
 const VORI = 11.664;
@@ -121,10 +122,10 @@ export default function OpeningStockIndex({ openingStocks, branches, purities, p
             router.delete(route('inventory.opening.destroy', id));
     };
 
-    const handleFilter = (e) => {
-        e.preventDefault();
-        router.get(route('inventory.opening.index'), { search, branch_id: branchId }, { preserveState: true });
-    };
+    useFilter(route('inventory.opening.index'), {
+        search,
+        branch_id: branchId
+    });
 
     const rowTotal = (stock) => {
         const p = productMap[String(stock.product_id)] ?? stock.product ?? null;
@@ -163,29 +164,25 @@ export default function OpeningStockIndex({ openingStocks, branches, purities, p
             <div className="space-y-5">
 
                 {/* ── Filters ── */}
-                <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-                    <form onSubmit={handleFilter} className="flex flex-col sm:flex-row gap-3 items-end">
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-5">
+                    <div className="flex flex-col sm:flex-row gap-3 items-end">
                         <div className="flex-1">
                             <Lbl>Search</Lbl>
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                                <input value={search} onChange={e => setSearch(e.target.value)} type="text"
-                                    placeholder="Product name or code…"
-                                    className="w-full pl-9 pr-4 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500" />
+                                <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Product name or SKU..."
+                                    className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500" />
                             </div>
                         </div>
-                        <div className="w-full sm:w-44">
+                        <div className="w-full sm:w-56">
                             <Lbl>Branch</Lbl>
                             <select value={branchId} onChange={e => setBranchId(e.target.value)}
-                                className="w-full py-2 px-3 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500">
+                                className="w-full py-2 px-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500">
                                 <option value="">All Branches</option>
                                 {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                             </select>
                         </div>
-                        <button type="submit" className="px-4 py-2 bg-gray-900 text-white font-bold text-sm rounded-xl hover:bg-gray-700 flex items-center gap-2">
-                            <Filter className="w-3.5 h-3.5" /> Filter
-                        </button>
-                    </form>
+                    </div>
                 </div>
 
                 {/* ── Table ── */}

@@ -4,6 +4,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router, useForm } from '@inertiajs/react';
 import { Hammer, Plus, ArrowDownToLine, ArrowUpFromLine, X, Filter, Scale, RefreshCw } from 'lucide-react';
 import Pagination from '@/Components/Pagination';
+import useFilter from '@/Hooks/useFilter';
 
 /* ─── helpers ──────────────────────────── */
 const VORI = 11.664;
@@ -84,10 +85,10 @@ export default function ArtisanStockIndex({ artisans, branches, purities, transa
         setModalOpen(true);
     };
 
-    const handleFilter = (e) => {
-        e.preventDefault();
-        router.get(route('inventory.artisan.index'), { artisan_id: artisanFilter, branch_id: branchFilter }, { preserveState: true });
-    };
+    useFilter(route('inventory.artisan.index'), {
+        artisan_id: artisanFilter,
+        branch_id: branchFilter
+    });
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -162,28 +163,23 @@ export default function ArtisanStockIndex({ artisans, branches, purities, transa
                 )}
 
                 {/* Filters */}
-                <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-                    <form onSubmit={handleFilter} className="flex flex-col sm:flex-row gap-3 items-end">
-                        <div className="flex-1">
-                            <Lbl>Artisan</Lbl>
-                            <select value={artisanFilter} onChange={e => setArtisanFilter(e.target.value)}
-                                className="w-full py-2 px-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500">
-                                <option value="">All Artisans</option>
-                                {artisans.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                            </select>
-                        </div>
-                        <div className="w-full sm:w-48">
-                            <Lbl>Branch</Lbl>
-                            <select value={branchFilter} onChange={e => setBranchFilter(e.target.value)}
-                                className="w-full py-2 px-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500">
-                                <option value="">All Branches</option>
-                                {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                            </select>
-                        </div>
-                        <button type="submit" className="px-4 py-2 bg-gray-900 text-white font-bold text-sm rounded-xl hover:bg-gray-700 flex items-center gap-2">
-                            <Filter className="w-3.5 h-3.5" /> Filter
-                        </button>
-                    </form>
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-4 items-end">
+                    <div className="flex-1">
+                        <Lbl>Filter by Artisan</Lbl>
+                        <select value={artisanFilter} onChange={e => setArtisanFilter(e.target.value)}
+                            className="w-full py-2 px-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500">
+                            <option value="">All Artisans</option>
+                            {artisans.map(a => <option key={a.id} value={a.id}>{a.name} ({a.code})</option>)}
+                        </select>
+                    </div>
+                    <div className="flex-1">
+                        <Lbl>Filter by Branch</Lbl>
+                        <select value={branchFilter} onChange={e => setBranchFilter(e.target.value)}
+                            className="w-full py-2 px-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500">
+                            <option value="">All Branches</option>
+                            {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                        </select>
+                    </div>
                 </div>
 
                 {/* Transaction Table */}

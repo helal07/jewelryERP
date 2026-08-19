@@ -5,6 +5,7 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import Pagination from '@/Components/Pagination';
 import Dropdown from '@/Components/Dropdown';
 import Modal from '@/Components/Modal';
+import useFilter from '@/Hooks/useFilter';
 import axios from 'axios';
 import { 
     ShoppingBag, Plus, Search, Filter, RotateCcw, Eye, CheckCircle2, Clock, Edit,
@@ -88,20 +89,16 @@ export default function Index({ sales = { data: [] }, branches = [], filters = {
         }
     }, [flash, sales]);
 
-    const handleFilter = (e) => {
-        e.preventDefault();
-        router.get(route('sales.index'), {
-            search,
-            status,
-            branch_id: branchId,
-        }, { preserveState: true });
-    };
+    useFilter(route('sales.index'), {
+        search,
+        status,
+        branch_id: branchId
+    });
 
     const handleReset = () => {
         setSearch('');
         setStatus('');
         setBranchId('');
-        router.get(route('sales.index'), {}, { preserveState: true });
     };
 
     const openViewModal = (sale) => {
@@ -269,7 +266,7 @@ export default function Index({ sales = { data: [] }, branches = [], filters = {
 
             {/* Search & Filter Bar */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
-                <form onSubmit={handleFilter} className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                     <div className="flex-1 min-w-[200px]">
                         <div className="relative">
                             <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
@@ -311,20 +308,13 @@ export default function Index({ sales = { data: [] }, branches = [], filters = {
                     </div>
 
                     <button
-                        type="submit"
-                        className="bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
-                    >
-                        <Filter className="w-4 h-4" /> Filter
-                    </button>
-
-                    <button
                         type="button"
                         onClick={handleReset}
-                        className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-xl text-sm font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                        className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
-                        <RotateCcw className="w-4 h-4" />
+                        <RotateCcw className="w-4 h-4" /> Clear
                     </button>
-                </form>
+                </div>
             </div>
 
             {/* Sales Table */}

@@ -3,6 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import Dropdown from '@/Components/Dropdown';
 import Modal from '@/Components/Modal';
+import useFilter from '@/Hooks/useFilter';
 import { 
     Plus, 
     Search, 
@@ -36,15 +37,15 @@ export default function Index({ orders, filters, stats }) {
         amount: '',
     });
 
-    const handleSearch = (e) => {
-        e.preventDefault();
-        const form = e.target;
-        router.get(route('orders.index'), {
-            search: form.search.value,
-            status: form.status.value,
-            metal_type: form.metal_type.value,
-        }, { preserveState: true });
-    };
+    const [search, setSearch] = useState(filters?.search || '');
+    const [status, setStatus] = useState(filters?.status || '');
+    const [metalType, setMetalType] = useState(filters?.metal_type || '');
+
+    useFilter(route('orders.index'), {
+        search,
+        status,
+        metal_type: metalType
+    });
 
     const formatDate = (dateStr) => {
         if (!dateStr) return '—';
@@ -206,22 +207,22 @@ export default function Index({ orders, filters, stats }) {
 
             {/* Filter Bar */}
             <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm mb-6">
-                <form onSubmit={handleSearch} className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="flex-1 flex flex-col sm:flex-row items-center gap-3 w-full">
                         <div className="relative flex-1 w-full">
                             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                             <input
                                 type="text"
-                                name="search"
-                                defaultValue={filters?.search || ''}
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
                                 placeholder="Search order #, customer, item..."
                                 className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
                             />
                         </div>
 
                         <select
-                            name="status"
-                            defaultValue={filters?.status || ''}
+                            value={status}
+                            onChange={(e) => setStatus(e.target.value)}
                             className="w-full sm:w-44 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-gray-700"
                         >
                             <option value="">All Statuses</option>
@@ -234,8 +235,8 @@ export default function Index({ orders, filters, stats }) {
                         </select>
 
                         <select
-                            name="metal_type"
-                            defaultValue={filters?.metal_type || ''}
+                            value={metalType}
+                            onChange={(e) => setMetalType(e.target.value)}
                             className="w-full sm:w-40 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-gray-700"
                         >
                             <option value="">All Metals</option>
@@ -244,17 +245,8 @@ export default function Index({ orders, filters, stats }) {
                             <option value="Platinum">Platinum</option>
                             <option value="Diamond">Diamond</option>
                         </select>
-
-                        <button
-                            type="submit"
-                            className="w-full sm:w-auto px-5 py-2 text-white rounded-xl text-sm font-bold shadow-xs transition-all flex items-center justify-center gap-2 hover:opacity-90 active:opacity-100 cursor-pointer"
-                            style={{ backgroundColor: 'rgb(177,118,51)' }}
-                        >
-                            <Filter className="w-4 h-4" />
-                            Filter
-                        </button>
                     </div>
-                </form>
+                </div>
             </div>
 
             {/* Orders Table */}

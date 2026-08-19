@@ -4,6 +4,7 @@ import { Head, router } from '@inertiajs/react';
 import { 
     Hammer, Printer, Filter
 } from 'lucide-react';
+import useFilter from '@/Hooks/useFilter';
 import { useLanguage } from '@/Context/LanguageContext';
 
 const fmtBDT = (val) =>
@@ -14,13 +15,10 @@ export default function ArtisanReport({ artisans = [], summary = {}, branches = 
     const [branchId, setBranchId] = useState(filters.branch_id || '');
     const [artisanId, setArtisanId] = useState(filters.artisan_id || '');
 
-    const handleFilter = (e) => {
-        e.preventDefault();
-        router.get(route('reports.artisan'), {
-            branch_id: branchId,
-            artisan_id: artisanId,
-        }, { preserveState: true });
-    };
+    useFilter(route('reports.artisan'), {
+        branch_id: branchId,
+        artisan_id: artisanId,
+    });
 
     return (
         <AuthenticatedLayout
@@ -60,7 +58,7 @@ export default function ArtisanReport({ artisans = [], summary = {}, branches = 
 
             {/* Filter Bar */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6 print:hidden">
-                <form onSubmit={handleFilter} className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
                     <div>
                         <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Branch</label>
                         <select
@@ -89,16 +87,7 @@ export default function ArtisanReport({ artisans = [], summary = {}, branches = 
                         </select>
                     </div>
 
-                    <div>
-                        <button
-                            type="submit"
-                            className="w-full text-white py-2 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
-                            style={{ backgroundColor: 'rgb(177, 118, 51)' }}
-                        >
-                            <Filter className="w-4 h-4" /> Filter
-                        </button>
-                    </div>
-                </form>
+                </div>
             </div>
 
             {/* Summary Stat Cards */}

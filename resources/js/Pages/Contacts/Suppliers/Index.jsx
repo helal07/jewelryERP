@@ -2,10 +2,15 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { useLanguage } from '@/Context/LanguageContext';
 import Dropdown from '@/Components/Dropdown';
+import useFilter from '@/Hooks/useFilter';
+import React, { useState } from 'react';
 import { ChevronDown, Eye, Edit, Trash2 } from 'lucide-react';
 
-export default function Index({ suppliers }) {
+export default function Index({ suppliers, filters = {} }) {
     const { t } = useLanguage();
+    const [search, setSearch] = useState(filters.search || '');
+
+    useFilter(route('suppliers.index'), { search });
 
     return (
         <AuthenticatedLayout
@@ -17,11 +22,13 @@ export default function Index({ suppliers }) {
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     
                     <div className="flex justify-between items-center mb-4">
-                        <div className="flex">
+                        <div className="flex w-full md:w-1/3">
                             <input 
                                 type="text"
-                                placeholder="Search suppliers..."
-                                className="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Search suppliers by name, phone or address..."
+                                className="w-full border-gray-300 focus:border-amber-500 focus:ring-amber-500 rounded-xl shadow-sm text-sm"
                             />
                         </div>
                         <Link

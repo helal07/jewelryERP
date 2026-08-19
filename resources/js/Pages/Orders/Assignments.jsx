@@ -3,6 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import Modal from '@/Components/Modal';
 import Dropdown from '@/Components/Dropdown';
+import useFilter from '@/Hooks/useFilter';
 import axios from 'axios';
 import { 
     UserCheck, 
@@ -113,15 +114,15 @@ export default function Assignments({ assignments, unassignedOrders, artisans: i
         });
     };
 
-    const handleSearch = (e) => {
-        e.preventDefault();
-        const form = e.target;
-        router.get(route('orders.assignments'), {
-            search: form.search.value,
-            status: form.status.value,
-            artisan_id: form.artisan_id.value,
-        }, { preserveState: true });
-    };
+    const [search, setSearch] = useState(filters?.search || '');
+    const [status, setStatus] = useState(filters?.status || '');
+    const [artisanId, setArtisanId] = useState(filters?.artisan_id || '');
+
+    useFilter(route('orders.assignments'), {
+        search,
+        status,
+        artisan_id: artisanId
+    });
 
     // Save Artisan Inline via Axios
     const handleQuickArtisanSubmit = async (e) => {
@@ -255,22 +256,22 @@ export default function Assignments({ assignments, unassignedOrders, artisans: i
 
             {/* Filter Bar */}
             <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm mb-6">
-                <form onSubmit={handleSearch} className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="flex-1 flex flex-col sm:flex-row items-center gap-3 w-full">
                         <div className="relative flex-1 w-full">
                             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                             <input
                                 type="text"
-                                name="search"
-                                defaultValue={filters?.search || ''}
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
                                 placeholder="Search order #, customer, item name, artisan..."
                                 className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
                             />
                         </div>
 
                         <select
-                            name="status"
-                            defaultValue={filters?.status || ''}
+                            value={status}
+                            onChange={(e) => setStatus(e.target.value)}
                             className="w-full sm:w-44 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-gray-700"
                         >
                             <option value="">All Statuses</option>
@@ -281,8 +282,8 @@ export default function Assignments({ assignments, unassignedOrders, artisans: i
                         </select>
 
                         <select
-                            name="artisan_id"
-                            defaultValue={filters?.artisan_id || ''}
+                            value={artisanId}
+                            onChange={(e) => setArtisanId(e.target.value)}
                             className="w-full sm:w-48 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-gray-700"
                         >
                             <option value="">All Artisans</option>
@@ -292,16 +293,8 @@ export default function Assignments({ assignments, unassignedOrders, artisans: i
                                 </option>
                             ))}
                         </select>
-
-                        <button
-                            type="submit"
-                            className="w-full sm:w-auto px-5 py-2 bg-amber-600 text-white rounded-xl text-sm font-bold hover:bg-amber-700 shadow-xs transition-all flex items-center justify-center gap-2"
-                        >
-                            <Filter className="w-4 h-4" />
-                            Filter
-                        </button>
                     </div>
-                </form>
+                </div>
             </div>
 
             {/* Assignments Table */}

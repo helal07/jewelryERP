@@ -3,6 +3,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Pagination from '@/Components/Pagination';
 import Dropdown from '@/Components/Dropdown';
+import useFilter from '@/Hooks/useFilter';
 import { TrendingUp, Plus, Trash2, Search, Filter, RotateCcw } from 'lucide-react';
 
 export default function Index({ incomes, accounts = [], branches = [], filters = {} }) {
@@ -12,16 +13,13 @@ export default function Index({ incomes, accounts = [], branches = [], filters =
     const [toDate, setToDate] = useState(filters.to_date || '');
     const [branchId, setBranchId] = useState(filters.branch_id || '');
 
-    const handleFilter = (e) => {
-        e.preventDefault();
-        router.get(route('accounts.other-incomes.index'), {
-            search,
-            account_id: accountId,
-            from_date: fromDate,
-            to_date: toDate,
-            branch_id: branchId,
-        }, { preserveState: true });
-    };
+    useFilter(route('accounts.other-incomes.index'), {
+        search,
+        account_id: accountId,
+        from_date: fromDate,
+        to_date: toDate,
+        branch_id: branchId,
+    });
 
     const handleReset = () => {
         setSearch('');
@@ -29,7 +27,6 @@ export default function Index({ incomes, accounts = [], branches = [], filters =
         setFromDate('');
         setToDate('');
         setBranchId('');
-        router.get(route('accounts.other-incomes.index'), {}, { preserveState: true });
     };
 
     const handleDelete = (id) => {
@@ -63,7 +60,7 @@ export default function Index({ incomes, accounts = [], branches = [], filters =
 
             {/* Filter Bar */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
-                <form onSubmit={handleFilter} className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                     <div className="flex-1 min-w-[200px] relative">
                         <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
                         <input
@@ -109,22 +106,13 @@ export default function Index({ incomes, accounts = [], branches = [], filters =
                     </div>
 
                     <button
-                        type="submit"
-                        className="bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
-                    >
-                        <Filter className="w-4 h-4" />
-                        Filter
-                    </button>
-
-                    <button
                         type="button"
                         onClick={handleReset}
-                        className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-xl text-sm font-semibold flex items-center gap-1 transition-colors"
-                        title="Reset Filters"
+                        className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
-                        <RotateCcw className="w-4 h-4" />
+                        <RotateCcw className="w-4 h-4" /> Clear
                     </button>
-                </form>
+                </div>
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 pb-24">

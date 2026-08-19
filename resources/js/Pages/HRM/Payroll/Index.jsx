@@ -3,22 +3,22 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import Dropdown from '@/Components/Dropdown';
 import Pagination from '@/Components/Pagination';
-import { Edit2, Trash2, CreditCard } from 'lucide-react';
+import useFilter from '@/Hooks/useFilter';
+import { Edit2, Trash2, CreditCard, RotateCcw } from 'lucide-react';
 
 export default function Index({ auth, payrolls }) {
     const params = new URLSearchParams(window.location.search);
     const [month, setMonth] = useState(params.get('month') || '');
     const [year, setYear] = useState(params.get('year') || '');
 
-    const handleFilter = (e) => {
-        e.preventDefault();
-        router.get(route('hrm.payroll.index'), { month, year }, { preserveState: true });
-    };
+    useFilter(route('hrm.payroll.index'), {
+        month,
+        year,
+    });
 
     const handleReset = () => {
         setMonth('');
         setYear('');
-        router.get(route('hrm.payroll.index'));
     };
 
     const months = [
@@ -49,8 +49,8 @@ export default function Index({ auth, payrolls }) {
                     <div className="text-sm font-semibold text-gray-700 mb-3">All {payrolls.total}</div>
                     
                     {/* Filter Area */}
-                    <form onSubmit={handleFilter} className="bg-[#FDEEDC] rounded-xl p-5 mb-5 border border-amber-100">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-[#FDEEDC] rounded-xl p-5 mb-5 border border-amber-100">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                             <div>
                                 <label className="block text-[11px] text-gray-500 mb-1">Month</label>
                                 <select 
@@ -64,28 +64,30 @@ export default function Index({ auth, payrolls }) {
                                     ))}
                                 </select>
                             </div>
-                            <div>
-                                <label className="block text-[11px] text-gray-500 mb-1">Year</label>
-                                <select 
-                                    value={year}
-                                    onChange={(e) => setYear(e.target.value)}
-                                    className="w-full border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500 h-9 text-sm" 
-                                >
-                                    <option value="">Select Year</option>
-                                    <option value="2026">2026</option>
-                                    <option value="2027">2027</option>
-                                </select>
+                            <div className="flex gap-4">
+                                <div className="flex-1">
+                                    <label className="block text-[11px] text-gray-500 mb-1">Year</label>
+                                    <select 
+                                        value={year}
+                                        onChange={(e) => setYear(e.target.value)}
+                                        className="w-full border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500 h-9 text-sm" 
+                                    >
+                                        <option value="">Select Year</option>
+                                        <option value="2026">2026</option>
+                                        <option value="2027">2027</option>
+                                    </select>
+                                </div>
+                                <div className="flex items-end mb-0.5">
+                                    <button 
+                                        onClick={handleReset}
+                                        className="px-4 py-2 bg-gray-100 text-gray-700 font-bold rounded-lg shadow-sm hover:bg-gray-200 transition-all text-xs flex items-center gap-1 cursor-pointer"
+                                    >
+                                        <RotateCcw className="w-3.5 h-3.5" /> Clear
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <div className="flex justify-center gap-4 mt-5">
-                            <button type="submit" className="px-8 py-2 bg-gradient-to-r from-amber-300 to-amber-500 text-amber-900 font-bold rounded-lg shadow-sm hover:from-amber-400 hover:to-amber-600 transition-all text-xs">
-                                SEARCH
-                            </button>
-                            <button type="button" onClick={handleReset} className="px-8 py-2 bg-gradient-to-r from-amber-300 to-amber-500 text-amber-900 font-bold rounded-lg shadow-sm hover:from-amber-400 hover:to-amber-600 transition-all text-xs">
-                                RESET
-                            </button>
-                        </div>
-                    </form>
+                    </div>
 
                     {/* Table Area */}
                     <div className="overflow-x-auto custom-scrollbar rounded-t-lg shadow-sm border border-gray-200">

@@ -4,6 +4,7 @@ import { Head, useForm, router } from '@inertiajs/react';
 import Pagination from '@/Components/Pagination';
 import Modal from '@/Components/Modal';
 import Dropdown from '@/Components/Dropdown';
+import useFilter from '@/Hooks/useFilter';
 import { 
     RotateCcw, Plus, Search, CheckCircle2, Clock, 
     Calendar, DollarSign, User, Receipt, X, AlertCircle, Eye, Filter, Trash2
@@ -36,10 +37,7 @@ export default function Index({ returns = {}, sales = [], filters = {} }) {
         }
     }, [sales]);
 
-    const handleFilter = (e) => {
-        e.preventDefault();
-        router.get(route('sales.returns.index'), { search }, { preserveState: true });
-    };
+    useFilter(route('sales.returns.index'), { search });
 
     const openViewModal = (ret) => {
         setSelectedReturn(ret);
@@ -133,7 +131,7 @@ export default function Index({ returns = {}, sales = [], filters = {} }) {
 
             {/* Filter Search */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
-                <form onSubmit={handleFilter} className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                     <div className="flex-1 min-w-[240px]">
                         <div className="relative">
                             <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
@@ -146,13 +144,7 @@ export default function Index({ returns = {}, sales = [], filters = {} }) {
                             />
                         </div>
                     </div>
-                    <button
-                        type="submit"
-                        className="bg-gray-800 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-900 transition"
-                    >
-                        Filter
-                    </button>
-                </form>
+                </div>
             </div>
 
             {/* Table Card */}

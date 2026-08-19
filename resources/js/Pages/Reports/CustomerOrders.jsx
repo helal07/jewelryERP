@@ -4,6 +4,7 @@ import { Head, router } from '@inertiajs/react';
 import { 
     ClipboardList, Printer, Filter
 } from 'lucide-react';
+import useFilter from '@/Hooks/useFilter';
 import { useLanguage } from '@/Context/LanguageContext';
 
 const fmtBDT = (val) =>
@@ -17,16 +18,13 @@ export default function CustomerOrders({ orders = [], summary = {}, branches = [
     const [customerId, setCustomerId] = useState(filters.customer_id || '');
     const [status, setStatus] = useState(filters.status || '');
 
-    const handleFilter = (e) => {
-        e.preventDefault();
-        router.get(route('reports.customer-orders'), {
-            start_date: startDate,
-            end_date: endDate,
-            branch_id: branchId,
-            customer_id: customerId,
-            status: status,
-        }, { preserveState: true });
-    };
+    useFilter(route('reports.customer-orders'), {
+        start_date: startDate,
+        end_date: endDate,
+        branch_id: branchId,
+        customer_id: customerId,
+        status: status,
+    });
 
     return (
         <AuthenticatedLayout
@@ -67,7 +65,7 @@ export default function CustomerOrders({ orders = [], summary = {}, branches = [
 
             {/* Filter Bar */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6 print:hidden">
-                <form onSubmit={handleFilter} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3 items-end">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 items-end">
                     <div>
                         <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Start Date</label>
                         <input
@@ -132,16 +130,7 @@ export default function CustomerOrders({ orders = [], summary = {}, branches = [
                         </select>
                     </div>
 
-                    <div>
-                        <button
-                            type="submit"
-                            className="w-full text-white py-2 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
-                            style={{ backgroundColor: 'rgb(177, 118, 51)' }}
-                        >
-                            <Filter className="w-4 h-4" /> Filter
-                        </button>
-                    </div>
-                </form>
+                </div>
             </div>
 
             {/* Summary Stat Cards */}

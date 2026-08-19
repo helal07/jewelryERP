@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, usePage, router } from '@inertiajs/react';
-import Pagination from '@/Components/Pagination';
 import Dropdown from '@/Components/Dropdown';
+import useFilter from '@/Hooks/useFilter';
 import { 
     CreditCard, CheckCircle2, Calendar, 
     FileText, User, DollarSign, X, Printer, Receipt,
@@ -55,23 +55,14 @@ export default function Payments({ duePurchases, suppliers = [], branches = [], 
         notes: '',
     });
 
-    const handleFilterSubmit = (e) => {
-        e.preventDefault();
-        router.get(route('purchases.payments'), {
-            search,
-            supplier_id: supplierId,
-        }, {
-            preserveState: true,
-            replace: true,
-        });
-    };
+    useFilter(route('purchases.payments'), {
+        search,
+        supplier_id: supplierId,
+    });
 
     const handleResetFilters = () => {
         setSearch('');
         setSupplierId('');
-        router.get(route('purchases.payments'), {}, {
-            replace: true,
-        });
     };
 
     const openPaymentModal = (purchase) => {
@@ -158,7 +149,7 @@ export default function Payments({ duePurchases, suppliers = [], branches = [], 
 
                 {/* Search & Filter Bar Section */}
                 <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-                    <form onSubmit={handleFilterSubmit} className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-center">
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-center">
                         {/* ID / Invoice Search */}
                         <div className="sm:col-span-2 relative">
                             <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
@@ -198,21 +189,15 @@ export default function Payments({ duePurchases, suppliers = [], branches = [], 
                         {/* Action Buttons */}
                         <div className="flex items-end gap-2 mt-5 sm:mt-0">
                             <button
-                                type="submit"
-                                className="flex-1 h-10 bg-[#E88A1A] hover:bg-orange-600 text-white text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5 shadow-sm"
-                            >
-                                <Filter className="w-3.5 h-3.5" /> Filter Search
-                            </button>
-                            <button
                                 type="button"
                                 onClick={handleResetFilters}
-                                className="h-10 px-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-colors flex items-center justify-center"
-                                title="Reset filters"
+                                className="flex-1 h-10 px-3 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5"
+                                title="Clear filters"
                             >
-                                <RotateCcw className="w-3.5 h-3.5" />
+                                <RotateCcw className="w-3.5 h-3.5" /> Clear
                             </button>
                         </div>
-                    </form>
+                    </div>
                 </div>
 
                 {/* Outstanding Due Invoices Table */}

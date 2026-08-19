@@ -3,9 +3,21 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 import Dropdown from '@/Components/Dropdown';
 import Pagination from '@/Components/Pagination';
-import { Trash2 } from 'lucide-react';
+import useFilter from '@/Hooks/useFilter';
+import { Trash2, RotateCcw } from 'lucide-react';
+import { useState } from 'react';
 
-export default function Index({ auth, payments }) {
+export default function Index({ auth, payments, filters = {} }) {
+    const [paymentNo, setPaymentNo] = useState(filters.payment_no || '');
+
+    useFilter(route('hrm.salary-payment.index'), {
+        payment_no: paymentNo,
+    });
+
+    const handleReset = () => {
+        setPaymentNo('');
+    };
+
     return (
         <AuthenticatedLayout user={auth.user}>
             <Head title="Salary Payments" />
@@ -18,21 +30,28 @@ export default function Index({ auth, payments }) {
                 <div className="bg-[#FEF9E7] border border-amber-200/60 rounded-xl p-4 shadow-sm pb-24">
                     <div className="text-sm font-semibold text-gray-700 mb-3">All {payments.total}</div>
                     
-                    {/* Filter Area (Placeholder for consistency) */}
+                    {/* Filter Area */}
                     <div className="bg-[#FDEEDC] rounded-xl p-5 mb-5 border border-amber-100">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-[11px] text-gray-500 mb-1">Payment No</label>
-                                <input type="text" className="w-full border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500 h-9 text-sm" />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                            <div className="flex gap-4">
+                                <div className="flex-1">
+                                    <label className="block text-[11px] text-gray-500 mb-1">Payment No</label>
+                                    <input 
+                                        type="text" 
+                                        value={paymentNo}
+                                        onChange={(e) => setPaymentNo(e.target.value)}
+                                        className="w-full border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500 h-9 text-sm" 
+                                    />
+                                </div>
+                                <div className="flex items-end mb-0.5">
+                                    <button 
+                                        onClick={handleReset}
+                                        className="px-4 py-2 bg-gray-100 text-gray-700 font-bold rounded-lg shadow-sm hover:bg-gray-200 transition-all text-xs flex items-center gap-1 cursor-pointer"
+                                    >
+                                        <RotateCcw className="w-3.5 h-3.5" /> Clear
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                        <div className="flex justify-center gap-4 mt-5">
-                            <button className="px-8 py-2 bg-gradient-to-r from-amber-300 to-amber-500 text-amber-900 font-bold rounded-lg shadow-sm hover:from-amber-400 hover:to-amber-600 transition-all text-xs">
-                                SEARCH
-                            </button>
-                            <button className="px-8 py-2 bg-gradient-to-r from-amber-300 to-amber-500 text-amber-900 font-bold rounded-lg shadow-sm hover:from-amber-400 hover:to-amber-600 transition-all text-xs">
-                                RESET
-                            </button>
                         </div>
                     </div>
 

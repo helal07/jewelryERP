@@ -3,9 +3,14 @@ import { Head, Link } from '@inertiajs/react';
 import { useLanguage } from '@/Context/LanguageContext';
 import { Search, Plus, User, Phone, FileText, Paperclip, MapPin, ChevronDown, Eye, Edit, Trash2 } from 'lucide-react';
 import Dropdown from '@/Components/Dropdown';
+import useFilter from '@/Hooks/useFilter';
+import React, { useState } from 'react';
 
-export default function Index({ artisans }) {
+export default function Index({ artisans, filters = {} }) {
     const { t } = useLanguage();
+    const [search, setSearch] = useState(filters.search || '');
+
+    useFilter(route('artisans.index'), { search });
 
     return (
         <AuthenticatedLayout
@@ -23,8 +28,10 @@ export default function Index({ artisans }) {
                             </div>
                             <input 
                                 type="text"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
                                 placeholder="Search artisans..."
-                                className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all shadow-sm"
+                                className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-all shadow-sm"
                             />
                         </div>
                         <Link

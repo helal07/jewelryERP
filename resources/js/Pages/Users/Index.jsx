@@ -1,10 +1,15 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, usePage } from '@inertiajs/react';
 import Dropdown from '@/Components/Dropdown';
+import useFilter from '@/Hooks/useFilter';
 import { Edit, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 
 export default function Index({ users, filters }) {
     const { flash } = usePage().props;
+    const [search, setSearch] = useState(filters?.search || '');
+
+    useFilter(route('users.index'), { search });
 
     return (
         <AuthenticatedLayout
@@ -26,12 +31,8 @@ export default function Index({ users, filters }) {
                                 type="text"
                                 placeholder="Search users..."
                                 className="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                defaultValue={filters.search}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        window.location.href = route('users.index', { search: e.target.value });
-                                    }
-                                }}
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
                             />
                         </div>
                         <Link

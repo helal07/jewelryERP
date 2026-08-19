@@ -4,6 +4,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router, useForm } from '@inertiajs/react';
 import { SlidersHorizontal, Plus, Filter, Trash2, X, ArrowDownRight, ArrowUpRight, Search, ArrowRightLeft } from 'lucide-react';
 import Pagination from '@/Components/Pagination';
+import useFilter from '@/Hooks/useFilter';
 
 /* ─── helpers ──────────────────────────── */
 const VORI = 11.664;
@@ -70,10 +71,10 @@ export default function StockAdjustmentsIndex({ adjustments, branches, products,
         setModalOpen(true);
     };
 
-    const handleFilter = (e) => {
-        e.preventDefault();
-        router.get(route('inventory.adjustments.index'), { search, branch_id: branchId }, { preserveState: true });
-    };
+    useFilter(route('inventory.adjustments.index'), {
+        search,
+        branch_id: branchId
+    });
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -147,7 +148,7 @@ export default function StockAdjustmentsIndex({ adjustments, branches, products,
             <div className="space-y-5">
                 {/* Filters */}
                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-                    <form onSubmit={handleFilter} className="flex flex-col sm:flex-row gap-3 items-end">
+                    <div className="flex flex-col sm:flex-row gap-3 items-end">
                         <div className="flex-1">
                             <Lbl>Search</Lbl>
                             <div className="relative">
@@ -164,10 +165,7 @@ export default function StockAdjustmentsIndex({ adjustments, branches, products,
                                 {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                             </select>
                         </div>
-                        <button type="submit" className="px-4 py-2 bg-gray-900 text-white font-bold text-sm rounded-xl hover:bg-gray-700 flex items-center gap-2">
-                            <Filter className="w-3.5 h-3.5" /> Filter
-                        </button>
-                    </form>
+                    </div>
                 </div>
 
                 {/* Adjustments Table */}
