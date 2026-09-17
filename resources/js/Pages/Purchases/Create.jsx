@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, Link } from '@inertiajs/react';
+import { useLanguage } from '@/Context/LanguageContext';
 import axios from 'axios';
 import { 
     ShoppingBag, Plus, Trash2, Save, ArrowLeft, Building2, User, UserPlus,
@@ -12,15 +13,12 @@ import {
 const fmtBDT = (val) =>
     Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-// Traditional Jewelry Weight Conversion Helpers
-// 1 Vori = 11.664 g = 16 Ana
-// 1 Ana = 6 Roti = 0.729 g
-// 1 Roti = 10 Point = 0.1215 g
-// 1 Point = 0.01215 g
-
-const gramToVoriAnaRotiPoint = (grams) => {
+const gramToVoriAnaRotiPoint = (grams, isBn, toBn) => {
     let g = parseFloat(grams || 0);
-    if (g <= 0) return { vori: 0, ana: 0, roti: 0, point: 0, formatted: '0 vori 0 ana 0 roti 0 pt' };
+    if (g <= 0) return { 
+        vori: 0, ana: 0, roti: 0, point: 0, 
+        formatted: isBn ? '০ ভরি ০ আনা ০ রতি ০ পয়েন্ট' : '0 vori 0 ana 0 roti 0 pt' 
+    };
 
     const vori = Math.floor(g / 11.664);
     let rem = g % 11.664;
@@ -38,7 +36,9 @@ const gramToVoriAnaRotiPoint = (grams) => {
         ana,
         roti,
         point,
-        formatted: `${vori} vori ${ana} ana ${roti} roti ${point} pt`
+        formatted: isBn 
+            ? `${toBn(vori)} ভরি ${toBn(ana)} আনা ${toBn(roti)} রতি ${toBn(point)} পয়েন্ট` 
+            : `${vori} vori ${ana} ana ${roti} roti ${point} pt`
     };
 };
 
@@ -61,6 +61,9 @@ export default function Create({
     metalPrices = [],
     autoInvoiceNo = '' 
 }) {
+    const { t, lang, toBn } = useLanguage();
+    const isBn = lang === 'bn';
+
     const [supplierList, setSupplierList] = useState(suppliers);
     const [isAddSupplierModalOpen, setIsAddSupplierModalOpen] = useState(false);
     
@@ -81,53 +84,53 @@ export default function Create({
     const [supplierSubmitting, setSupplierSubmitting] = useState(false);
     const [supplierError, setSupplierError] = useState('');
 
+    const handleNumberFocus = (e) => {
+        if (e.target.value === '0' || e.target.value === '0.00' || e.target.value === '০') {
+            e.target.value = '';
+        }
+    };
+
     const { data, setData, post, processing, errors } = useForm({
         supplier_id: supplierList.length > 0 ? supplierList[0].id : '',
         branch_id: branches.length > 0 ? branches[0].id : '',
         invoice_no: autoInvoiceNo,
         purchase_date: new Date().toISOString().split('T')[0],
-        subtotal: 134136,
+        subtotal: 0,
         discount: 0,
         tax: 0,
         other_charges: 0,
-        grand_total: 134136,
-        paid_amount: 50000,
-        due_amount: 84136,
+        grand_total: 0,
+        paid_amount: 0,
+        due_amount: 0,
         payment_method: 'cash',
         notes: '',
         items: [
             {
                 is_custom: false,
                 product_id: products.length > 0 ? products[0].id : '',
-                item_name: '22K Gold Bridal Bangle',
+                item_name: products.length > 0 ? products[0].name : '',
                 stock_type: 'readymade',
                 category_id: categories.length > 0 ? categories[0].id : '',
                 metal_type: 'gold',
                 purity_id: purities.length > 0 ? purities[0].id : '',
                 hallmark_no: '',
                 photo: null,
-                
-                // Weight Unit Mode: 'gram' or 'traditional'
-                weight_unit: 'traditional', // default traditional vori-ana-roti-point
-                vori: 1,
+                weight_unit: 'traditional',
+                vori: 0,
                 ana: 0,
                 roti: 0,
                 point: 0,
-
-                gross_weight: 11.664,
+                gross_weight: 0,
                 stone_weight: 0,
-                net_weight: 11.664,
-
-                // Rate Mode: 'per_vori' or 'per_gram'
+                net_weight: 0,
                 rate_mode: 'per_vori',
-                rate_per_vori: 134136,
-                rate_per_gram: 11500,
-
+                rate_per_vori: 0,
+                rate_per_gram: 0,
                 making_charge: 0,
                 stone_charge: 0,
                 wastage_percentage: 0,
                 quantity: 1,
-                total_amount: 134136,
+                total_amount: 0,
             }
         ]
     });
@@ -136,7 +139,6 @@ export default function Create({
     const calculateItemTotal = (item) => {
         let gross = parseFloat(item.gross_weight || 0);
         
-        // If entering in traditional vori/ana/roti/point mode, calculate gross grams
         if (item.weight_unit === 'traditional') {
             gross = parseFloat(voriAnaRotiPointToGram(item.vori, item.ana, item.roti, item.point));
         }
@@ -144,7 +146,6 @@ export default function Create({
         const stone = parseFloat(item.stone_weight || 0);
         const net = Math.max(0, gross - stone);
         
-        // Rate per gram resolution
         let ratePerGram = parseFloat(item.rate_per_gram || 0);
         if (item.rate_mode === 'per_vori') {
             const rateVori = parseFloat(item.rate_per_vori || 0);
@@ -156,7 +157,6 @@ export default function Create({
         const wastagePct = parseFloat(item.wastage_percentage || 0);
         const qty = Math.max(1, parseInt(item.quantity || 1));
 
-        // Effective metal weight after wastage %
         const totalNetWithWastage = net * (1 + (wastagePct / 100));
         const total = (totalNetWithWastage * ratePerGram + making + stoneChg) * qty;
 
@@ -173,26 +173,22 @@ export default function Create({
         const newItems = [...data.items];
         newItems[index][field] = value;
 
-        // If user changed gross_weight in Gram mode, sync Vori-Ana-Roti-Point
         if (field === 'gross_weight' && newItems[index].weight_unit === 'gram') {
-            const varp = gramToVoriAnaRotiPoint(value);
+            const varp = gramToVoriAnaRotiPoint(value, false, toBn);
             newItems[index].vori = varp.vori;
             newItems[index].ana = varp.ana;
             newItems[index].roti = varp.roti;
             newItems[index].point = varp.point;
         }
 
-        // If user changed rate_per_vori, sync rate_per_gram
         if (field === 'rate_per_vori' && newItems[index].rate_mode === 'per_vori') {
             newItems[index].rate_per_gram = (parseFloat(value || 0) / 11.664).toFixed(2);
         }
 
-        // If user changed rate_per_gram, sync rate_per_vori
         if (field === 'rate_per_gram' && newItems[index].rate_mode === 'per_gram') {
             newItems[index].rate_per_vori = (parseFloat(value || 0) * 11.664).toFixed(2);
         }
 
-        // Auto recalculate net weight & total for item
         const calc = calculateItemTotal(newItems[index]);
         newItems[index].gross_weight = calc.gross_weight;
         newItems[index].net_weight = calc.net_weight;
@@ -216,7 +212,7 @@ export default function Create({
         const newItem = {
             is_custom: false,
             product_id: products.length > 0 ? products[0].id : '',
-            item_name: '',
+            item_name: products.length > 0 ? products[0].name : '',
             stock_type: 'readymade',
             category_id: categories.length > 0 ? categories[0].id : '',
             metal_type: 'gold',
@@ -224,21 +220,21 @@ export default function Create({
             hallmark_no: '',
             photo: null,
             weight_unit: 'traditional',
-            vori: 1,
+            vori: 0,
             ana: 0,
             roti: 0,
             point: 0,
-            gross_weight: 11.664,
+            gross_weight: 0,
             stone_weight: 0,
-            net_weight: 11.664,
+            net_weight: 0,
             rate_mode: 'per_vori',
-            rate_per_vori: 134136,
-            rate_per_gram: 11500,
+            rate_per_vori: 0,
+            rate_per_gram: 0,
             making_charge: 0,
             stone_charge: 0,
             wastage_percentage: 0,
             quantity: 1,
-            total_amount: 134136,
+            total_amount: 0,
         };
         const updatedItems = [...data.items, newItem];
         recalculateOverallTotals(updatedItems, data.discount, data.tax, data.other_charges, data.paid_amount);
@@ -283,7 +279,6 @@ export default function Create({
         recalculateOverallTotals(data.items, data.discount, data.tax, val, data.paid_amount);
     };
 
-    // Direct write-able paid amount input with real-time due calculation
     const handlePaidAmountChange = (val) => {
         const paidVal = parseFloat(val || 0);
         const grandVal = parseFloat(data.grand_total || 0);
@@ -296,7 +291,6 @@ export default function Create({
         }));
     };
 
-    // Handle Quick Add Supplier AJAX submission
     const handleQuickAddSupplier = async (e) => {
         e.preventDefault();
         setSupplierSubmitting(true);
@@ -345,7 +339,7 @@ export default function Create({
             }
         } catch (err) {
             console.error(err);
-            setSupplierError(err.response?.data?.message || 'Failed to save supplier. Please check required fields.');
+            setSupplierError(err.response?.data?.message || t('Failed to save supplier. Please check required fields.'));
         } finally {
             setSupplierSubmitting(false);
         }
@@ -363,11 +357,11 @@ export default function Create({
 
     const getPaymentBadge = () => {
         if (paidVal >= grandVal && grandVal > 0) {
-            return { text: 'FULL PAYMENT', bg: 'bg-emerald-500 text-white', icon: CheckCircle2 };
+            return { text: t('Full Paid'), bg: 'bg-emerald-500 text-white', icon: CheckCircle2 };
         } else if (paidVal > 0 && paidVal < grandVal) {
-            return { text: 'PARTIAL PAYMENT', bg: 'bg-amber-500 text-white', icon: Clock };
+            return { text: t('Partial Payment'), bg: 'bg-amber-500 text-white', icon: Clock };
         } else {
-            return { text: 'UNPAID / 100% DUE', bg: 'bg-rose-500 text-white', icon: AlertCircle };
+            return { text: t('Unpaid / Due'), bg: 'bg-rose-500 text-white', icon: AlertCircle };
         }
     };
 
@@ -377,52 +371,54 @@ export default function Create({
     return (
         <AuthenticatedLayout
             header={
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
                         <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                            <ShoppingBag className="w-7 h-7 text-[#E88A1A]" />
-                            Add Purchase
+                            <ShoppingBag className="w-7 h-7 text-[#b17633]" />
+                            {t('Add Purchase')}
                         </h2>
-                        <p className="text-sm text-gray-500 mt-1">Add Purchase</p>
+                        <p className="text-xs text-gray-500 mt-1">{t('Record jewelry stock receipts, weight breakdown and payments')}</p>
                     </div>
                     <Link
                         href={route('purchases.index')}
-                        className="px-4 py-2 text-xs font-bold text-gray-600 bg-white border border-gray-200 hover:bg-gray-100 rounded-xl transition-colors flex items-center gap-2 shadow-sm"
+                        className="px-4 py-2 text-xs font-bold text-gray-600 bg-white border border-gray-200 hover:bg-gray-100 rounded-xl transition-colors flex items-center gap-2 shadow-xs cursor-pointer"
                     >
-                        <ArrowLeft className="w-4 h-4" /> Back to Purchase List
+                        <ArrowLeft className="w-4 h-4" /> {t('Back to List')}
                     </Link>
                 </div>
             }
         >
-            <Head title="Add Purchase" />
+            <Head title={t('Add Purchase')} />
 
-            <form onSubmit={handleSubmit} className="max-w-6xl space-y-6">
+            <form onSubmit={handleSubmit} className="max-w-6xl space-y-6 pb-16">
                 
                 {/* ── UNIFIED MASTER FORM CONTAINER ── */}
                 <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden space-y-6">
 
                     {/* TOP GRADIENT HEADER BAR */}
-                    <div className="bg-gradient-to-r from-amber-500 via-[#E88A1A] to-orange-500 px-6 py-4 flex items-center justify-between text-white">
+                    <div className="bg-gradient-to-r from-amber-600 via-[#b17633] to-orange-600 px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-white">
                         <div className="flex items-center gap-3">
                             <div className="bg-white/20 p-2.5 rounded-2xl backdrop-blur-md">
                                 <Receipt className="w-6 h-6 text-white" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-extrabold text-white">Invoice</h3>
-                                <p className="text-xs text-white/80">Invoice</p>
+                                <h3 className="text-lg font-extrabold text-white">{t('Purchase Invoice')}</h3>
+                                <p className="text-xs text-white/80">{t('Supplier Purchase & Metal Inward')}</p>
                             </div>
                         </div>
 
                         {/* Invoice Number Pill & Payment Status */}
                         <div className="flex items-center gap-3">
-                            <span className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold flex items-center gap-1.5 shadow-sm ${paymentBadge.bg}`}>
+                            <span className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold flex items-center gap-1.5 shadow-xs ${paymentBadge.bg}`}>
                                 <BadgeIcon className="w-4 h-4" />
                                 {paymentBadge.text}
                             </span>
 
                             <div className="flex items-center gap-2 bg-white/20 px-3.5 py-1.5 rounded-2xl border border-white/30 backdrop-blur-md">
-                                <span className="text-xs text-white/90 font-medium">Invoice #:</span>
-                                <span className="text-sm font-mono font-extrabold text-white">{data.invoice_no}</span>
+                                <span className="text-xs text-white/90 font-medium">{t('Invoice #')}:</span>
+                                <span className="text-sm font-mono font-extrabold text-white">
+                                    {isBn ? toBn(data.invoice_no) : data.invoice_no}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -433,30 +429,30 @@ export default function Create({
                             {/* Supplier Select + Quick Add */}
                             <div className="md:col-span-2">
                                 <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                                    <User className="w-3.5 h-3.5 text-[#E88A1A]" />
-                                    Supplier Name <span className="text-rose-500">*</span>
+                                    <User className="w-3.5 h-3.5 text-[#b17633]" />
+                                    {t('Supplier')} <span className="text-rose-500">*</span>
                                 </label>
 
                                 <div className="flex gap-2">
                                     <select
                                         value={data.supplier_id}
                                         onChange={(e) => setData('supplier_id', e.target.value)}
-                                        className="flex-1 h-11 rounded-xl border-gray-200 bg-white focus:border-[#E88A1A] focus:ring-2 focus:ring-[#E88A1A]/20 text-sm font-bold text-gray-900 px-3 shadow-sm"
+                                        className="flex-1 h-11 rounded-xl border-gray-200 bg-white focus:border-[#b17633] focus:ring-2 focus:ring-[#b17633]/20 text-sm font-bold text-gray-900 px-3 shadow-xs"
                                         required
                                     >
-                                        <option value="">— Select Supplier —</option>
+                                        <option value="">— {t('Select Supplier')} —</option>
                                         {supplierList.map(s => (
-                                            <option key={s.id} value={s.id}>{s.name} ({s.company_name})</option>
+                                            <option key={s.id} value={s.id}>{s.name} {s.company_name ? `(${s.company_name})` : ''}</option>
                                         ))}
                                     </select>
                                     <button
                                         type="button"
                                         onClick={() => setIsAddSupplierModalOpen(true)}
-                                        className="h-11 px-3 bg-[#E88A1A]/10 text-[#E88A1A] hover:bg-[#E88A1A] hover:text-white rounded-xl font-bold transition-all flex items-center justify-center border border-[#E88A1A]/30 gap-1.5 text-xs shadow-sm"
-                                        title="Quick Add Supplier"
+                                        className="h-11 px-3 bg-[#b17633]/10 text-[#b17633] hover:bg-[#b17633] hover:text-white rounded-xl font-bold transition-all flex items-center justify-center border border-[#b17633]/30 gap-1.5 text-xs shadow-xs cursor-pointer"
+                                        title={t('Add Supplier')}
                                     >
                                         <UserPlus className="w-4 h-4" />
-                                        <span className="hidden sm:inline">+ Add</span>
+                                        <span className="hidden sm:inline">+{t('Add')}</span>
                                     </button>
                                 </div>
                                 {errors.supplier_id && <p className="text-xs text-rose-500 mt-1">{errors.supplier_id}</p>}
@@ -465,13 +461,13 @@ export default function Create({
                             {/* Receiving Branch */}
                             <div>
                                 <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                                    <Building2 className="w-3.5 h-3.5 text-[#E88A1A]" />
-                                    Receiving Branch <span className="text-rose-500">*</span>
+                                    <Building2 className="w-3.5 h-3.5 text-[#b17633]" />
+                                    {t('Branch')} <span className="text-rose-500">*</span>
                                 </label>
                                 <select
                                     value={data.branch_id}
                                     onChange={(e) => setData('branch_id', e.target.value)}
-                                    className="w-full h-11 rounded-xl border-gray-200 bg-white focus:border-[#E88A1A] focus:ring-2 focus:ring-[#E88A1A]/20 text-sm font-semibold text-gray-800 px-3 shadow-sm"
+                                    className="w-full h-11 rounded-xl border-gray-200 bg-white focus:border-[#b17633] focus:ring-2 focus:ring-[#b17633]/20 text-sm font-semibold text-gray-800 px-3 shadow-xs"
                                     required
                                 >
                                     {branches.map(b => (
@@ -484,14 +480,14 @@ export default function Create({
                             {/* Purchase Date */}
                             <div>
                                 <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                                    <Calendar className="w-3.5 h-3.5 text-[#E88A1A]" />
-                                    Purchase Date <span className="text-rose-500">*</span>
+                                    <Calendar className="w-3.5 h-3.5 text-[#b17633]" />
+                                    {t('Purchase Date')} <span className="text-rose-500">*</span>
                                 </label>
                                 <input
                                     type="date"
                                     value={data.purchase_date}
                                     onChange={(e) => setData('purchase_date', e.target.value)}
-                                    className="w-full h-11 rounded-xl border-gray-200 bg-white focus:border-[#E88A1A] focus:ring-2 focus:ring-[#E88A1A]/20 text-sm font-semibold text-gray-800 px-3 shadow-sm"
+                                    className="w-full h-11 rounded-xl border-gray-200 bg-white focus:border-[#b17633] focus:ring-2 focus:ring-[#b17633]/20 text-sm font-semibold text-gray-800 px-3 shadow-xs"
                                     required
                                 />
                                 {errors.purchase_date && <p className="text-xs text-rose-500 mt-1">{errors.purchase_date}</p>}
@@ -501,20 +497,22 @@ export default function Create({
 
                     {/* SECTION 2: MODULAR ITEM CARDS WITH VORI / ANA / ROTI / POINT CALCULATOR */}
                     <div className="px-6 space-y-4">
-                        <div className="flex items-center justify-between border-b pb-3">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b pb-3 gap-3">
                             <div className="flex items-center gap-2">
-                                <Scale className="w-5 h-5 text-[#E88A1A]" />
+                                <Scale className="w-5 h-5 text-[#b17633]" />
+                                <h4 className="font-bold text-gray-800 text-sm">{t('Purchase Items')}</h4>
                             </div>
                             <div className="flex items-center gap-3">
                                 <span className="text-xs font-bold text-amber-900 bg-amber-100/70 px-3 py-1.5 rounded-xl border border-amber-200/80">
-                                    Total Items: {data.items.length} | Total Qty: {totalQty} pcs
+                                    {t('Total Items')}: {isBn ? toBn(data.items.length) : data.items.length} | {t('Total Qty')}: {isBn ? toBn(totalQty) : totalQty}
                                 </span>
                                 <button
                                     type="button"
                                     onClick={addItemRow}
-                                    className="bg-gradient-to-r from-[#E88A1A] to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-md"
+                                    style={{ backgroundColor: 'rgb(177, 118, 51)' }}
+                                    className="hover:opacity-90 text-white px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
                                 >
-                                    <Plus className="w-4 h-4" /> Add Item Card
+                                    <Plus className="w-4 h-4" /> {t('Add Item Card')}
                                 </button>
                             </div>
                         </div>
@@ -522,31 +520,31 @@ export default function Create({
                         {/* RENDER EACH PURCHASE ITEM CARD */}
                         <div className="space-y-4">
                             {data.items.map((item, index) => {
-                                const varp = gramToVoriAnaRotiPoint(item.gross_weight);
+                                const varp = gramToVoriAnaRotiPoint(item.gross_weight, isBn, toBn);
                                 return (
-                                    <div key={index} className="bg-gradient-to-br from-white via-amber-50/20 to-orange-50/30 rounded-2xl p-4 border border-amber-200/60 shadow-sm relative space-y-4 hover:border-amber-400/80 transition-all">
+                                    <div key={index} className="bg-gradient-to-br from-white via-amber-50/20 to-orange-50/30 rounded-2xl p-4 border border-amber-200/60 shadow-xs relative space-y-4 hover:border-amber-400/80 transition-all">
                                         
                                         {/* Card Header Tag & Remove Action */}
                                         <div className="flex justify-between items-center border-b border-amber-100 pb-2">
                                             <div className="flex items-center gap-2">
-                                                <span className="w-6 h-6 rounded-full bg-[#E88A1A] text-white flex items-center justify-center text-xs font-extrabold">
-                                                    {index + 1}
+                                                <span className="w-6 h-6 rounded-full bg-[#b17633] text-white flex items-center justify-center text-xs font-extrabold">
+                                                    {isBn ? toBn(index + 1) : index + 1}
                                                 </span>
                                                 <span className="text-xs font-bold text-amber-900 uppercase tracking-wider">
-                                                    Item #{index + 1}
+                                                    {t('Item')} #{isBn ? toBn(index + 1) : index + 1}
                                                 </span>
-                                                <span className="text-xs font-mono font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-200">
-                                                    ⚖️ {varp.formatted} ({item.gross_weight} g)
+                                                <span className="text-xs font-mono font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-200">
+                                                    ⚖️ {varp.formatted} ({isBn ? toBn(item.gross_weight || '0') : (item.gross_weight || '0')} g)
                                                 </span>
                                             </div>
 
                                             <button
                                                 type="button"
                                                 onClick={() => removeItemRow(index)}
-                                                className="text-xs font-bold text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-1 rounded-xl transition-colors flex items-center gap-1 disabled:opacity-30"
+                                                className="text-xs font-bold text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-1 rounded-xl transition-colors flex items-center gap-1 disabled:opacity-30 cursor-pointer"
                                                 disabled={data.items.length === 1}
                                             >
-                                                <Trash2 className="w-3.5 h-3.5" /> Remove Card
+                                                <Trash2 className="w-3.5 h-3.5" /> {t('Remove Card')}
                                             </button>
                                         </div>
 
@@ -555,31 +553,31 @@ export default function Create({
                                             
                                             {/* Stock Type */}
                                             <div>
-                                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Stock Type</label>
+                                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">{t('Stock Type')}</label>
                                                 <select
                                                     value={item.stock_type}
                                                     onChange={(e) => updateItem(index, 'stock_type', e.target.value)}
                                                     className="w-full h-9 rounded-xl border-gray-200 bg-white text-xs font-bold text-gray-800"
                                                 >
-                                                    <option value="readymade">📦 Ready Stock</option>
-                                                    <option value="custom">🛠️ Custom Order</option>
-                                                    <option value="raw_gold">🪙 Raw Gold / Metal</option>
-                                                    <option value="scrap">♻️ Scrap / Old Gold</option>
+                                                    <option value="readymade">📦 {t('Ready Stock')}</option>
+                                                    <option value="custom">🛠️ {t('Custom Order')}</option>
+                                                    <option value="raw_gold">🪙 {t('Raw Gold / Metal')}</option>
+                                                    <option value="scrap">♻️ {t('Scrap / Old Gold')}</option>
                                                 </select>
                                             </div>
 
                                             {/* Item Source & Name Selection */}
                                             <div className="md:col-span-2 space-y-1">
                                                 <div className="flex items-center gap-3 text-[10px] font-bold text-gray-600">
-                                                    <span>Item Type:</span>
-                                                    <label className="flex items-center gap-1 cursor-pointer text-[#E88A1A]">
+                                                    <span>{t('Item Type')}:</span>
+                                                    <label className="flex items-center gap-1 cursor-pointer text-[#b17633]">
                                                         <input
                                                             type="radio"
                                                             name={`item_mode_${index}`}
                                                             checked={!item.is_custom}
                                                             onChange={() => updateItem(index, 'is_custom', false)}
-                                                            className="text-[#E88A1A] focus:ring-[#E88A1A]"
-                                                        /> Existing Product
+                                                            className="text-[#b17633] focus:ring-[#b17633]"
+                                                        /> {t('Existing Product')}
                                                     </label>
                                                     <label className="flex items-center gap-1 cursor-pointer text-orange-700">
                                                         <input
@@ -587,8 +585,8 @@ export default function Create({
                                                             name={`item_mode_${index}`}
                                                             checked={item.is_custom}
                                                             onChange={() => updateItem(index, 'is_custom', true)}
-                                                            className="text-[#E88A1A] focus:ring-[#E88A1A]"
-                                                        /> Custom Item / Metal
+                                                            className="text-[#b17633] focus:ring-[#b17633]"
+                                                        /> {t('Custom Item / Metal')}
                                                     </label>
                                                 </div>
 
@@ -607,9 +605,9 @@ export default function Create({
                                                         }}
                                                         className="w-full h-9 rounded-xl border-gray-200 bg-white text-xs font-semibold text-gray-800"
                                                     >
-                                                        <option value="">Select Existing Product</option>
+                                                        <option value="">{t('Select Existing Product')}</option>
                                                         {products.map(p => (
-                                                            <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>
+                                                            <option key={p.id} value={p.id}>{p.name} ({p.sku || p.barcode || ''})</option>
                                                         ))}
                                                     </select>
                                                 ) : (
@@ -617,7 +615,7 @@ export default function Create({
                                                         type="text"
                                                         value={item.item_name}
                                                         onChange={(e) => updateItem(index, 'item_name', e.target.value)}
-                                                        placeholder="Type custom metal or item name..."
+                                                        placeholder={t('Type custom metal or item name...')}
                                                         className="w-full h-9 rounded-xl border-amber-300 bg-white text-xs font-bold text-amber-900"
                                                     />
                                                 )}
@@ -625,17 +623,17 @@ export default function Create({
 
                                             {/* Metal & Purity */}
                                             <div>
-                                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Metal & Purity</label>
+                                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">{t('Metal & Purity')}</label>
                                                 <div className="grid grid-cols-2 gap-1">
                                                     <select
                                                         value={item.metal_type}
                                                         onChange={(e) => updateItem(index, 'metal_type', e.target.value)}
                                                         className="h-9 rounded-xl border-gray-200 bg-white text-[11px] font-bold uppercase text-amber-900 px-1"
                                                     >
-                                                        <option value="gold">Gold</option>
-                                                        <option value="silver">Silver</option>
-                                                        <option value="platinum">Plat</option>
-                                                        <option value="diamond">Diam</option>
+                                                        <option value="gold">{t('Gold')}</option>
+                                                        <option value="silver">{t('Silver')}</option>
+                                                        <option value="platinum">{t('Platinum')}</option>
+                                                        <option value="diamond">{t('Diamond')}</option>
                                                     </select>
 
                                                     <select
@@ -652,13 +650,13 @@ export default function Create({
 
                                             {/* Category */}
                                             <div>
-                                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Category</label>
+                                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">{t('Category')}</label>
                                                 <select
                                                     value={item.category_id}
                                                     onChange={(e) => updateItem(index, 'category_id', e.target.value)}
                                                     className="w-full h-9 rounded-xl border-gray-200 bg-white text-xs font-semibold text-gray-800"
                                                 >
-                                                    <option value="">Select Category</option>
+                                                    <option value="">{t('Select Category')}</option>
                                                     {categories.map(c => (
                                                         <option key={c.id} value={c.id}>{c.name}</option>
                                                     ))}
@@ -668,7 +666,7 @@ export default function Create({
                                             {/* Hallmark / Cert & Photo */}
                                             <div className="flex items-center gap-2">
                                                 <div className="flex-1">
-                                                    <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Hallmark / Cert</label>
+                                                    <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">{t('Hallmark / Cert')}</label>
                                                     <input
                                                         type="text"
                                                         value={item.hallmark_no || ''}
@@ -679,7 +677,7 @@ export default function Create({
                                                 </div>
 
                                                 <div>
-                                                    <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1 text-center">Photo</label>
+                                                    <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1 text-center">{t('Photo')}</label>
                                                     <label className="relative cursor-pointer inline-block">
                                                         <input
                                                             type="file"
@@ -691,10 +689,10 @@ export default function Create({
                                                             <img
                                                                 src={item.photo}
                                                                 alt="preview"
-                                                                className="w-9 h-9 object-cover rounded-xl border border-amber-300 shadow-sm"
+                                                                className="w-9 h-9 object-cover rounded-xl border border-amber-300 shadow-xs"
                                                             />
                                                         ) : (
-                                                            <div className="w-9 h-9 rounded-xl bg-white hover:bg-amber-100 text-gray-400 hover:text-amber-700 flex items-center justify-center border border-dashed border-gray-300 transition-colors shadow-sm">
+                                                            <div className="w-9 h-9 rounded-xl bg-white hover:bg-amber-100 text-gray-400 hover:text-amber-700 flex items-center justify-center border border-dashed border-gray-300 transition-colors shadow-xs">
                                                                 <Camera className="w-4 h-4" />
                                                             </div>
                                                         )}
@@ -711,39 +709,41 @@ export default function Create({
                                             <div className="flex flex-wrap items-center justify-between gap-3 text-xs border-b pb-2">
                                                 {/* Weight Mode Selector */}
                                                 <div className="flex items-center gap-2">
-                                                    <span className="font-bold text-gray-500 uppercase text-[10px]">Weight Input Mode:</span>
+                                                    <span className="font-bold text-gray-500 uppercase text-[10px]">{t('Weight Input Mode')}:</span>
                                                     <button
                                                         type="button"
                                                         onClick={() => updateItem(index, 'weight_unit', 'traditional')}
-                                                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${item.weight_unit === 'traditional' ? 'bg-[#E88A1A] text-white shadow-sm' : 'bg-gray-100 text-gray-600'}`}
+                                                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${item.weight_unit === 'traditional' ? 'text-white shadow-xs' : 'bg-gray-100 text-gray-600'}`}
+                                                        style={item.weight_unit === 'traditional' ? { backgroundColor: 'rgb(177, 118, 51)' } : {}}
                                                     >
-                                                        Traditional (Vori-Ana-Roti-Point)
+                                                        {t('Traditional (Vori-Ana-Roti-Point)')}
                                                     </button>
                                                     <button
                                                         type="button"
                                                         onClick={() => updateItem(index, 'weight_unit', 'gram')}
-                                                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${item.weight_unit === 'gram' ? 'bg-[#E88A1A] text-white shadow-sm' : 'bg-gray-100 text-gray-600'}`}
+                                                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${item.weight_unit === 'gram' ? 'text-white shadow-xs' : 'bg-gray-100 text-gray-600'}`}
+                                                        style={item.weight_unit === 'gram' ? { backgroundColor: 'rgb(177, 118, 51)' } : {}}
                                                     >
-                                                        Gram (g)
+                                                        {t('Gram (g)')}
                                                     </button>
                                                 </div>
 
                                                 {/* Rate Mode Selector */}
                                                 <div className="flex items-center gap-2">
-                                                    <span className="font-bold text-gray-500 uppercase text-[10px]">Rate Mode:</span>
+                                                    <span className="font-bold text-gray-500 uppercase text-[10px]">{t('Rate Mode')}:</span>
                                                     <button
                                                         type="button"
                                                         onClick={() => updateItem(index, 'rate_mode', 'per_vori')}
-                                                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${item.rate_mode === 'per_vori' ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600'}`}
+                                                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${item.rate_mode === 'per_vori' ? 'bg-amber-600 text-white shadow-xs' : 'bg-gray-100 text-gray-600'}`}
                                                     >
-                                                        Rate Per Vori (BDT)
+                                                        {t('Rate Per Vori (BDT)')}
                                                     </button>
                                                     <button
                                                         type="button"
                                                         onClick={() => updateItem(index, 'rate_mode', 'per_gram')}
-                                                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${item.rate_mode === 'per_gram' ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600'}`}
+                                                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${item.rate_mode === 'per_gram' ? 'bg-amber-600 text-white shadow-xs' : 'bg-gray-100 text-gray-600'}`}
                                                     >
-                                                        Rate Per Gram (BDT)
+                                                        {t('Rate Per Gram (BDT)')}
                                                     </button>
                                                 </div>
                                             </div>
@@ -755,61 +755,75 @@ export default function Create({
                                                 {item.weight_unit === 'traditional' ? (
                                                     <>
                                                         <div>
-                                                            <label className="block text-[10px] font-bold text-amber-900 uppercase mb-1">Vori</label>
+                                                            <label className="block text-[10px] font-bold text-amber-900 uppercase mb-1">{t('Vori')}</label>
                                                             <input
                                                                 type="number"
+                                                                step="any"
                                                                 min="0"
                                                                 value={item.vori}
+                                                                onFocus={handleNumberFocus}
                                                                 onChange={(e) => updateItem(index, 'vori', e.target.value)}
+                                                                placeholder="0"
                                                                 className="w-full h-9 text-xs font-bold text-center rounded-lg border-amber-300 bg-amber-50/50"
                                                             />
                                                         </div>
 
                                                         <div>
-                                                            <label className="block text-[10px] font-bold text-amber-900 uppercase mb-1">Ana</label>
+                                                            <label className="block text-[10px] font-bold text-amber-900 uppercase mb-1">{t('Ana')}</label>
                                                             <input
                                                                 type="number"
+                                                                step="any"
                                                                 min="0"
                                                                 max="15"
                                                                 value={item.ana}
+                                                                onFocus={handleNumberFocus}
                                                                 onChange={(e) => updateItem(index, 'ana', e.target.value)}
+                                                                placeholder="0"
                                                                 className="w-full h-9 text-xs font-bold text-center rounded-lg border-amber-300 bg-amber-50/50"
                                                             />
                                                         </div>
 
                                                         <div>
-                                                            <label className="block text-[10px] font-bold text-amber-900 uppercase mb-1">Roti</label>
+                                                            <label className="block text-[10px] font-bold text-amber-900 uppercase mb-1">{t('Roti')}</label>
                                                             <input
                                                                 type="number"
+                                                                step="any"
                                                                 min="0"
                                                                 max="5"
                                                                 value={item.roti}
+                                                                onFocus={handleNumberFocus}
                                                                 onChange={(e) => updateItem(index, 'roti', e.target.value)}
+                                                                placeholder="0"
                                                                 className="w-full h-9 text-xs font-bold text-center rounded-lg border-amber-300 bg-amber-50/50"
                                                             />
                                                         </div>
 
                                                         <div>
-                                                            <label className="block text-[10px] font-bold text-amber-900 uppercase mb-1">Point</label>
+                                                            <label className="block text-[10px] font-bold text-amber-900 uppercase mb-1">{t('Point')}</label>
                                                             <input
                                                                 type="number"
+                                                                step="any"
                                                                 min="0"
                                                                 max="9"
                                                                 value={item.point}
+                                                                onFocus={handleNumberFocus}
                                                                 onChange={(e) => updateItem(index, 'point', e.target.value)}
+                                                                placeholder="0"
                                                                 className="w-full h-9 text-xs font-bold text-center rounded-lg border-amber-300 bg-amber-50/50"
                                                             />
                                                         </div>
                                                     </>
                                                 ) : (
                                                     <div className="col-span-4">
-                                                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Gross Weight (Gram)</label>
+                                                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">{t('Gross Weight (Gram)')}</label>
                                                         <input
                                                             type="number"
-                                                            step="0.001"
+                                                            step="any"
                                                             min="0"
                                                             value={item.gross_weight}
+                                                            onFocus={handleNumberFocus}
                                                             onChange={(e) => updateItem(index, 'gross_weight', e.target.value)}
+                                                            placeholder="0"
                                                             className="w-full h-9 text-xs font-mono font-bold text-right rounded-lg border-gray-200"
                                                         />
                                                     </div>
@@ -817,34 +831,38 @@ export default function Create({
 
                                                 {/* Calculated Grams Badge */}
                                                 <div>
-                                                    <label className="block text-[10px] font-bold text-amber-800 uppercase mb-1">Calculated Grams</label>
+                                                    <label className="block text-[10px] font-bold text-amber-800 uppercase mb-1">{t('Calculated Grams')}</label>
                                                     <div className="h-9 px-2 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-end font-mono font-extrabold text-amber-900 text-xs">
-                                                        {item.gross_weight} g
+                                                        {isBn ? toBn(item.gross_weight || '0') : (item.gross_weight || '0')} g
                                                     </div>
                                                 </div>
 
                                                 {/* Rate Input based on Rate Mode */}
                                                 {item.rate_mode === 'per_vori' ? (
                                                     <div>
-                                                        <label className="block text-[10px] font-bold text-amber-900 uppercase mb-1">Rate/Vori (BDT)</label>
+                                                        <label className="block text-[10px] font-bold text-amber-900 uppercase mb-1">{t('Rate/Vori')}</label>
                                                         <input
                                                             type="number"
-                                                            step="0.01"
+                                                            step="any"
                                                             min="0"
                                                             value={item.rate_per_vori}
+                                                            onFocus={handleNumberFocus}
                                                             onChange={(e) => updateItem(index, 'rate_per_vori', e.target.value)}
+                                                            placeholder="0"
                                                             className="w-full h-9 text-xs font-mono font-bold text-right rounded-lg border-amber-300 bg-amber-50/50"
                                                         />
                                                     </div>
                                                 ) : (
                                                     <div>
-                                                        <label className="block text-[10px] font-bold text-amber-900 uppercase mb-1">Rate/Gram (BDT)</label>
+                                                        <label className="block text-[10px] font-bold text-amber-900 uppercase mb-1">{t('Rate/Gram')}</label>
                                                         <input
                                                             type="number"
-                                                            step="0.01"
+                                                            step="any"
                                                             min="0"
                                                             value={item.rate_per_gram}
+                                                            onFocus={handleNumberFocus}
                                                             onChange={(e) => updateItem(index, 'rate_per_gram', e.target.value)}
+                                                            placeholder="0"
                                                             className="w-full h-9 text-xs font-mono font-bold text-right rounded-lg border-amber-300 bg-amber-50/50"
                                                         />
                                                     </div>
@@ -852,24 +870,28 @@ export default function Create({
 
                                                 {/* Wastage (%) */}
                                                 <div>
-                                                    <label className="block text-[10px] font-bold text-amber-700 uppercase mb-1">Wastage (%)</label>
+                                                    <label className="block text-[10px] font-bold text-amber-700 uppercase mb-1">{t('Wastage %')}</label>
                                                     <input
                                                         type="number"
-                                                        step="0.1"
+                                                        step="any"
                                                         min="0"
                                                         value={item.wastage_percentage || 0}
+                                                        onFocus={handleNumberFocus}
                                                         onChange={(e) => updateItem(index, 'wastage_percentage', e.target.value)}
+                                                        placeholder="0"
                                                         className="w-full h-9 text-xs font-mono font-bold text-right rounded-lg border-amber-200 bg-amber-50/60 text-amber-900"
                                                     />
                                                 </div>
 
                                                 {/* Quantity Input */}
                                                 <div>
-                                                    <label className="block text-[10px] font-extrabold text-amber-900 uppercase mb-1 text-center">Qty (Pcs) *</label>
+                                                    <label className="block text-[10px] font-extrabold text-amber-900 uppercase mb-1 text-center">{t('Quantity')} *</label>
                                                     <input
                                                         type="number"
+                                                        step="1"
                                                         min="1"
                                                         value={item.quantity}
+                                                        onFocus={handleNumberFocus}
                                                         onChange={(e) => updateItem(index, 'quantity', e.target.value)}
                                                         className="w-full h-9 text-xs font-extrabold text-center rounded-lg border-amber-300 bg-amber-50/80 text-amber-900"
                                                         required
@@ -878,9 +900,9 @@ export default function Create({
 
                                                 {/* Item Total Amount */}
                                                 <div>
-                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 text-right">Item Total</label>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 text-right">{t('Total')}</label>
                                                     <div className="h-9 px-2 bg-gray-900 text-white rounded-lg flex items-center justify-end font-extrabold text-xs whitespace-nowrap">
-                                                        ৳ {fmtBDT(item.total_amount)}
+                                                        {isBn ? '৳ ' : 'BDT '} {isBn ? toBn(fmtBDT(item.total_amount)) : fmtBDT(item.total_amount)}
                                                     </div>
                                                 </div>
 
@@ -901,15 +923,15 @@ export default function Create({
                             {/* Left Remarks (4 cols) */}
                             <div className="lg:col-span-4 space-y-3">
                                 <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider flex items-center gap-1.5">
-                                    <FileText className="w-3.5 h-3.5 text-[#E88A1A]" />
-                                    Purchase Notes / Remarks
+                                    <FileText className="w-3.5 h-3.5 text-[#b17633]" />
+                                    {t('Purchase Notes / Remarks')}
                                 </label>
                                 <textarea
                                     value={data.notes}
                                     onChange={(e) => setData('notes', e.target.value)}
-                                    className="w-full rounded-2xl border-gray-200 bg-gray-50 focus:bg-white focus:border-[#E88A1A] focus:ring-2 focus:ring-[#E88A1A]/20 text-xs p-3.5 placeholder:text-gray-400"
+                                    className="w-full rounded-2xl border-gray-200 bg-gray-50 focus:bg-white focus:border-[#b17633] focus:ring-2 focus:ring-[#b17633]/20 text-xs p-3.5 placeholder:text-gray-400"
                                     rows="4"
-                                    placeholder="Add supplier terms, purity verification numbers, or notes..."
+                                    placeholder={t('Add supplier terms, purity verification numbers, or notes...')}
                                 ></textarea>
                             </div>
 
@@ -919,42 +941,50 @@ export default function Create({
                                 {/* Charges & Discounts Inline Grid */}
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-gray-50 p-3.5 rounded-2xl border border-gray-100">
                                     <div>
-                                        <span className="text-[11px] font-bold text-gray-400 uppercase">Subtotal</span>
-                                        <p className="text-sm font-bold text-gray-900 mt-0.5">৳ {fmtBDT(data.subtotal)}</p>
+                                        <span className="text-[11px] font-bold text-gray-400 uppercase">{t('Subtotal')}</span>
+                                        <p className="text-sm font-bold text-gray-900 mt-0.5">
+                                            {isBn ? '৳ ' : 'BDT '} {isBn ? toBn(fmtBDT(data.subtotal)) : fmtBDT(data.subtotal)}
+                                        </p>
                                     </div>
 
                                     <div>
-                                        <label className="block text-[11px] font-bold text-gray-400 uppercase mb-1">Discount (৳)</label>
+                                        <label className="block text-[11px] font-bold text-gray-400 uppercase mb-1">{t('Discount')} ({isBn ? '৳' : 'BDT'})</label>
                                         <input
                                             type="number"
-                                            step="0.01"
+                                            step="any"
                                             min="0"
                                             value={data.discount}
+                                            onFocus={handleNumberFocus}
                                             onChange={(e) => handleDiscountChange(e.target.value)}
+                                            placeholder="0"
                                             className="w-full h-8 text-xs font-bold text-right rounded-lg border-gray-200"
                                         />
                                     </div>
 
                                     <div>
-                                        <label className="block text-[11px] font-bold text-gray-400 uppercase mb-1">Tax / VAT (৳)</label>
+                                        <label className="block text-[11px] font-bold text-gray-400 uppercase mb-1">{t('Tax / VAT')} ({isBn ? '৳' : 'BDT'})</label>
                                         <input
                                             type="number"
-                                            step="0.01"
+                                            step="any"
                                             min="0"
                                             value={data.tax}
+                                            onFocus={handleNumberFocus}
                                             onChange={(e) => handleTaxChange(e.target.value)}
+                                            placeholder="0"
                                             className="w-full h-8 text-xs font-bold text-right rounded-lg border-gray-200"
                                         />
                                     </div>
 
                                     <div>
-                                        <label className="block text-[11px] font-bold text-gray-400 uppercase mb-1">Other Chg (৳)</label>
+                                        <label className="block text-[11px] font-bold text-gray-400 uppercase mb-1">{t('Other Charges')} ({isBn ? '৳' : 'BDT'})</label>
                                         <input
                                             type="number"
-                                            step="0.01"
+                                            step="any"
                                             min="0"
                                             value={data.other_charges}
+                                            onFocus={handleNumberFocus}
                                             onChange={(e) => handleOtherChargesChange(e.target.value)}
+                                            placeholder="0"
                                             className="w-full h-8 text-xs font-bold text-right rounded-lg border-gray-200"
                                         />
                                     </div>
@@ -964,35 +994,36 @@ export default function Create({
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-amber-50/40 p-3.5 rounded-2xl border border-amber-200/60">
                                     <div>
                                         <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                                            Payment Method
+                                            {t('Payment Method')}
                                         </label>
                                         <select
                                             value={data.payment_method}
                                             onChange={(e) => setData('payment_method', e.target.value)}
-                                            className="w-full h-11 rounded-xl border-gray-200 bg-white font-bold text-xs text-gray-800 px-3 shadow-sm"
+                                            className="w-full h-11 rounded-xl border-gray-200 bg-white font-bold text-xs text-gray-800 px-3 shadow-xs"
                                         >
-                                            <option value="cash">💵 Cash Payment</option>
-                                            <option value="bank">🏦 Bank Transfer</option>
-                                            <option value="cheque">📜 Cheque</option>
-                                            <option value="mobile_banking">📱 Mobile Banking (bKash/Nagad)</option>
+                                            <option value="cash">💵 {t('Cash')}</option>
+                                            <option value="bank">🏦 {t('Bank Transfer')}</option>
+                                            <option value="cheque">📜 {t('Cheque')}</option>
+                                            <option value="mobile_banking">📱 {t('Mobile Banking')}</option>
                                         </select>
                                     </div>
 
                                     <div>
                                         <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1 flex items-center gap-1">
                                             <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
-                                            Paid Amount Now (BDT) <span className="text-rose-500">*</span>
+                                            {t('Paid Amount')} ({isBn ? '৳' : 'BDT'}) <span className="text-rose-500">*</span>
                                         </label>
                                         <div className="relative">
-                                            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-emerald-600 font-extrabold text-xs select-none">৳</span>
+                                            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-emerald-600 font-extrabold text-xs select-none">{isBn ? '৳' : 'BDT'}</span>
                                             <input
                                                 type="number"
-                                                step="0.01"
+                                                step="any"
                                                 min="0"
                                                 value={data.paid_amount}
+                                                onFocus={handleNumberFocus}
                                                 onChange={(e) => handlePaidAmountChange(e.target.value)}
-                                                className="w-full h-11 pl-8 pr-3 rounded-xl border-2 border-emerald-400 bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 text-sm font-extrabold text-emerald-900 shadow-sm"
-                                                placeholder="0.00"
+                                                className="w-full h-11 pl-12 pr-3 rounded-xl border-2 border-emerald-400 bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 text-sm font-extrabold text-emerald-900 shadow-xs"
+                                                placeholder="0"
                                                 required
                                             />
                                         </div>
@@ -1001,24 +1032,29 @@ export default function Create({
 
                                 {/* Financial Final Totals & Submit */}
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
-                                    <div className="bg-gradient-to-br from-amber-500 to-orange-500 text-white p-3.5 rounded-2xl shadow-sm">
-                                        <span className="text-[11px] text-white/80 font-bold uppercase tracking-wider">Grand Total</span>
-                                        <h4 className="text-xl font-extrabold text-white mt-0.5">৳ {fmtBDT(data.grand_total)}</h4>
+                                    <div className="bg-gradient-to-br from-amber-600 to-[#b17633] text-white p-3.5 rounded-2xl shadow-xs">
+                                        <span className="text-[11px] text-white/80 font-bold uppercase tracking-wider">{t('Grand Total')}</span>
+                                        <h4 className="text-xl font-extrabold text-white mt-0.5">
+                                            {isBn ? '৳ ' : 'BDT '} {isBn ? toBn(fmtBDT(data.grand_total)) : fmtBDT(data.grand_total)}
+                                        </h4>
                                     </div>
 
-                                    <div className={`p-3.5 rounded-2xl border shadow-sm ${dueVal > 0 ? 'bg-rose-50 border-rose-200 text-rose-900' : 'bg-emerald-50 border-emerald-200 text-emerald-900'}`}>
-                                        <span className="text-[11px] font-bold uppercase tracking-wider opacity-80">Calculated Due Balance</span>
-                                        <h4 className="text-xl font-extrabold mt-0.5">৳ {fmtBDT(data.due_amount)}</h4>
+                                    <div className={`p-3.5 rounded-2xl border shadow-xs ${dueVal > 0 ? 'bg-rose-50 border-rose-200 text-rose-900' : 'bg-emerald-50 border-emerald-200 text-emerald-900'}`}>
+                                        <span className="text-[11px] font-bold uppercase tracking-wider opacity-80">{t('Due Amount')}</span>
+                                        <h4 className="text-xl font-extrabold mt-0.5">
+                                            {isBn ? '৳ ' : 'BDT '} {isBn ? toBn(fmtBDT(data.due_amount)) : fmtBDT(data.due_amount)}
+                                        </h4>
                                     </div>
 
                                     <div>
                                         <button
                                             type="submit"
                                             disabled={processing}
-                                            className="w-full h-full min-h-[64px] bg-gradient-to-r from-[#E88A1A] to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white rounded-2xl font-extrabold text-xs transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-1.5 disabled:opacity-60"
+                                            style={{ backgroundColor: 'rgb(177, 118, 51)' }}
+                                            className="w-full h-full min-h-[64px] hover:opacity-90 text-white rounded-2xl font-extrabold text-xs transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer"
                                         >
                                             <Save className="w-4 h-4" />
-                                            Save Invoice
+                                            {t('Save Invoice')}
                                         </button>
                                     </div>
                                 </div>
@@ -1037,20 +1073,20 @@ export default function Create({
                         <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden border border-amber-500/20 text-left my-8">
                             
                             {/* Modal Header */}
-                            <div className="bg-gradient-to-r from-amber-600 via-[#E88A1A] to-orange-500 px-6 py-4 flex items-center justify-between text-white shadow-md">
+                            <div className="bg-gradient-to-r from-amber-600 via-[#b17633] to-orange-600 px-6 py-4 flex items-center justify-between text-white shadow-md">
                                 <div className="flex items-center gap-3">
                                     <div className="bg-white/20 p-2 rounded-2xl backdrop-blur-md">
                                         <UserPlus className="w-5 h-5 text-white" />
                                     </div>
                                     <div>
-                                        <h3 className="text-lg font-black tracking-tight text-white">Add New Supplier</h3>
-                                        <p className="text-xs text-white/80">Complete supplier profile without leaving purchase invoice</p>
+                                        <h3 className="text-lg font-black tracking-tight text-white">{t('Add Supplier')}</h3>
+                                        <p className="text-xs text-white/80">{t('Complete supplier profile without leaving purchase invoice')}</p>
                                     </div>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={() => setIsAddSupplierModalOpen(false)}
-                                    className="text-white/80 hover:text-white p-1.5 rounded-xl hover:bg-white/20 transition-colors"
+                                    className="text-white/80 hover:text-white p-1.5 rounded-xl hover:bg-white/20 transition-colors cursor-pointer"
                                 >
                                     <X className="w-6 h-6" />
                                 </button>
@@ -1069,53 +1105,53 @@ export default function Create({
                                     <div className="space-y-4">
                                         <div>
                                             <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                                                Supplier Name <span className="text-rose-500">*</span>
+                                                {t('Supplier Name')} <span className="text-rose-500">*</span>
                                             </label>
                                             <input
                                                 type="text"
                                                 value={newSupplier.name}
                                                 onChange={(e) => setNewSupplier({ ...newSupplier, name: e.target.value })}
-                                                className="w-full h-10 rounded-xl border-gray-300 bg-gray-50 focus:bg-white text-xs font-bold text-gray-900 focus:border-[#E88A1A]"
-                                                placeholder="e.g. Al-Razi Gold Bullion"
+                                                className="w-full h-10 rounded-xl border-gray-300 bg-gray-50 focus:bg-white text-xs font-bold text-gray-900 focus:border-[#b17633]"
+                                                placeholder={t('e.g. Al-Razi Gold Bullion')}
                                                 required
                                             />
                                         </div>
 
                                         <div>
                                             <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                                                Company / Business Name
+                                                {t('Company Name')}
                                             </label>
                                             <input
                                                 type="text"
                                                 value={newSupplier.company_name}
                                                 onChange={(e) => setNewSupplier({ ...newSupplier, company_name: e.target.value })}
-                                                className="w-full h-10 rounded-xl border-gray-300 bg-gray-50 focus:bg-white text-xs font-bold text-gray-900 focus:border-[#E88A1A]"
-                                                placeholder="e.g. Al-Razi Traders Ltd"
+                                                className="w-full h-10 rounded-xl border-gray-300 bg-gray-50 focus:bg-white text-xs font-bold text-gray-900 focus:border-[#b17633]"
+                                                placeholder={t('e.g. Al-Razi Traders Ltd')}
                                             />
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                                                    Phone Number
+                                                    {t('Phone')}
                                                 </label>
                                                 <input
                                                     type="text"
                                                     value={newSupplier.phone}
                                                     onChange={(e) => setNewSupplier({ ...newSupplier, phone: e.target.value })}
-                                                    className="w-full h-10 rounded-xl border-gray-300 bg-gray-50 focus:bg-white text-xs font-bold text-gray-900 focus:border-[#E88A1A]"
+                                                    className="w-full h-10 rounded-xl border-gray-300 bg-gray-50 focus:bg-white text-xs font-bold text-gray-900 focus:border-[#b17633]"
                                                     placeholder="01700000000"
                                                 />
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                                                    Email Address
+                                                    {t('Email')}
                                                 </label>
                                                 <input
                                                     type="email"
                                                     value={newSupplier.email}
                                                     onChange={(e) => setNewSupplier({ ...newSupplier, email: e.target.value })}
-                                                    className="w-full h-10 rounded-xl border-gray-300 bg-gray-50 focus:bg-white text-xs font-bold text-gray-900 focus:border-[#E88A1A]"
+                                                    className="w-full h-10 rounded-xl border-gray-300 bg-gray-50 focus:bg-white text-xs font-bold text-gray-900 focus:border-[#b17633]"
                                                     placeholder="supplier@company.com"
                                                 />
                                             </div>
@@ -1123,14 +1159,14 @@ export default function Create({
 
                                         <div>
                                             <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                                                Store / Factory Address
+                                                {t('Address')}
                                             </label>
                                             <input
                                                 type="text"
                                                 value={newSupplier.address}
                                                 onChange={(e) => setNewSupplier({ ...newSupplier, address: e.target.value })}
-                                                className="w-full h-10 rounded-xl border-gray-300 bg-gray-50 focus:bg-white text-xs font-medium text-gray-900 focus:border-[#E88A1A]"
-                                                placeholder="Baitul Mukarram Gold Market, Dhaka"
+                                                className="w-full h-10 rounded-xl border-gray-300 bg-gray-50 focus:bg-white text-xs font-medium text-gray-900 focus:border-[#b17633]"
+                                                placeholder={t('Store address...')}
                                             />
                                         </div>
                                     </div>
@@ -1140,28 +1176,30 @@ export default function Create({
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                                                    Opening Balance
+                                                    {t('Opening Balance')}
                                                 </label>
                                                 <input
                                                     type="number"
-                                                    step="0.01"
+                                                    step="any"
                                                     value={newSupplier.opening_balance}
+                                                    onFocus={handleNumberFocus}
                                                     onChange={(e) => setNewSupplier({ ...newSupplier, opening_balance: e.target.value })}
-                                                    className="w-full h-10 rounded-xl border-gray-300 bg-gray-50 focus:bg-white text-xs font-bold text-gray-900 focus:border-[#E88A1A]"
-                                                    placeholder="0.00"
+                                                    className="w-full h-10 rounded-xl border-gray-300 bg-gray-50 focus:bg-white text-xs font-bold text-gray-900 focus:border-[#b17633]"
+                                                    placeholder="0"
                                                 />
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                                                    Credit Limit
+                                                    {t('Credit Limit')}
                                                 </label>
                                                 <input
                                                     type="number"
-                                                    step="0.01"
+                                                    step="any"
                                                     value={newSupplier.credit_limit}
+                                                    onFocus={handleNumberFocus}
                                                     onChange={(e) => setNewSupplier({ ...newSupplier, credit_limit: e.target.value })}
-                                                    className="w-full h-10 rounded-xl border-gray-300 bg-gray-50 focus:bg-white text-xs font-bold text-gray-900 focus:border-[#E88A1A]"
-                                                    placeholder="0.00"
+                                                    className="w-full h-10 rounded-xl border-gray-300 bg-gray-50 focus:bg-white text-xs font-bold text-gray-900 focus:border-[#b17633]"
+                                                    placeholder="0"
                                                 />
                                             </div>
                                         </div>
@@ -1169,27 +1207,27 @@ export default function Create({
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                                                    NID / Passport
+                                                    {t('NID / Passport')}
                                                 </label>
                                                 <input
                                                     type="text"
                                                     value={newSupplier.nid_number}
                                                     onChange={(e) => setNewSupplier({ ...newSupplier, nid_number: e.target.value })}
-                                                    className="w-full h-10 rounded-xl border-gray-300 bg-gray-50 focus:bg-white text-xs font-bold text-gray-900 focus:border-[#E88A1A]"
+                                                    className="w-full h-10 rounded-xl border-gray-300 bg-gray-50 focus:bg-white text-xs font-bold text-gray-900 focus:border-[#b17633]"
                                                     placeholder="Document No"
                                                 />
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                                                    Status
+                                                    {t('Status')}
                                                 </label>
                                                 <select
                                                     value={newSupplier.status}
                                                     onChange={(e) => setNewSupplier({ ...newSupplier, status: e.target.value })}
-                                                    className="w-full h-10 rounded-xl border-gray-300 bg-gray-50 focus:bg-white text-xs font-bold text-gray-900 focus:border-[#E88A1A]"
+                                                    className="w-full h-10 rounded-xl border-gray-300 bg-gray-50 focus:bg-white text-xs font-bold text-gray-900 focus:border-[#b17633]"
                                                 >
-                                                    <option value="active">Active</option>
-                                                    <option value="inactive">Inactive</option>
+                                                    <option value="active">{t('Active')}</option>
+                                                    <option value="inactive">{t('Inactive')}</option>
                                                 </select>
                                             </div>
                                         </div>
@@ -1197,18 +1235,18 @@ export default function Create({
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                                                    Supplier Photo
+                                                    {t('Photo')}
                                                 </label>
                                                 <input
                                                     type="file"
                                                     accept="image/*"
                                                     onChange={(e) => setNewSupplier({ ...newSupplier, photo: e.target.files[0] })}
-                                                    className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#E88A1A]/10 file:text-[#E88A1A] hover:file:bg-[#E88A1A]/20 transition-all cursor-pointer"
+                                                    className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#b17633]/10 file:text-[#b17633] hover:file:bg-[#b17633]/20 transition-all cursor-pointer"
                                                 />
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                                                    Attachment Doc
+                                                    {t('Attachment Doc')}
                                                 </label>
                                                 <input
                                                     type="file"
@@ -1225,16 +1263,17 @@ export default function Create({
                                     <button
                                         type="button"
                                         onClick={() => setIsAddSupplierModalOpen(false)}
-                                        className="px-5 py-2.5 text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+                                        className="px-5 py-2.5 text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer"
                                     >
-                                        Cancel
+                                        {t('Cancel')}
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={supplierSubmitting}
-                                        className="px-6 py-2.5 bg-gradient-to-r from-[#E88A1A] to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white text-xs font-extrabold rounded-xl shadow-md transition-all flex items-center gap-1.5 disabled:opacity-60"
+                                        style={{ backgroundColor: 'rgb(177, 118, 51)' }}
+                                        className="px-6 py-2.5 hover:opacity-90 text-white text-xs font-extrabold rounded-xl shadow-md transition-all flex items-center gap-1.5 disabled:opacity-60 cursor-pointer"
                                     >
-                                        <UserPlus className="w-4 h-4" /> Save & Select Supplier
+                                        <UserPlus className="w-4 h-4" /> {t('Save & Select Supplier')}
                                     </button>
                                 </div>
                             </form>

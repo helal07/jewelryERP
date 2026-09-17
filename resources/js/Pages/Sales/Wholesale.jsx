@@ -12,12 +12,16 @@ import {
     Printer, X, Receipt, Sparkles, Award, Phone, MapPin, Mail, CreditCard,
     Trash2, CornerUpLeft, DollarSign, Gem, ShieldCheck, Building2
 } from 'lucide-react';
+import { useLanguage } from '@/Context/LanguageContext';
 
 const fmtBDT = (val) =>
     Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function Wholesale({ sales = { data: [] }, branches = [], customers = [], products = [], filters = {} }) {
     const { flash } = usePage().props;
+    const { t, lang, toBn } = useLanguage();
+    const isBn = lang === 'bn';
+
     const [search, setSearch] = useState(filters.search || '');
     const [status, setStatus] = useState(filters.status || '');
     const [branchId, setBranchId] = useState(filters.branch_id || '');
@@ -103,20 +107,20 @@ export default function Wholesale({ sales = { data: [] }, branches = [], custome
                     <div>
                         <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                             <Building2 className="w-7 h-7 text-amber-700" />
-                            Wholesales
+                            {t('wholesales') || 'Wholesales'}
                         </h2>
-                        <p className="text-sm text-gray-500 mt-1">Manage wholesale dealer sales, bulk orders, and B2B invoices</p>
+                        <p className="text-sm text-gray-500 mt-1">{t('Manage wholesale dealer sales, bulk orders, and B2B invoices')}</p>
                     </div>
                     <Link
                         href={route('sales.wholesale.create')}
                         className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl font-semibold text-sm transition-colors flex items-center gap-2 shadow-md hover:shadow-lg"
                     >
-                        <Plus className="w-4 h-4" /> Add New
+                        <Plus className="w-4 h-4" /> {t('addNew') || 'Add New'}
                     </Link>
                 </div>
             }
         >
-            <Head title="Wholesales" />
+            <Head title={t('wholesales') || "Wholesales"} />
 
             {/* Flash Banner */}
             {flash?.success && (
@@ -150,10 +154,10 @@ export default function Wholesale({ sales = { data: [] }, branches = [], custome
                             onChange={(e) => setStatus(e.target.value)}
                             className="w-full text-sm rounded-xl border-gray-300 focus:border-amber-500 focus:ring-amber-500"
                         >
-                            <option value="">All Statuses</option>
-                            <option value="paid">Paid</option>
-                            <option value="due">Due</option>
-                            <option value="partial">Partial</option>
+                            <option value="">{t('All Statuses')}</option>
+                            <option value="paid">{t('Paid')}</option>
+                            <option value="due">{t('Due')}</option>
+                            <option value="partial">{t('Partial')}</option>
                         </select>
                     </div>
 
@@ -163,7 +167,7 @@ export default function Wholesale({ sales = { data: [] }, branches = [], custome
                             onChange={(e) => setBranchId(e.target.value)}
                             className="w-full text-sm rounded-xl border-gray-300 focus:border-amber-500 focus:ring-amber-500"
                         >
-                            <option value="">All Branches</option>
+                            <option value="">{t('All Branches')}</option>
                             {branches.map(b => (
                                 <option key={b.id} value={b.id}>{b.name}</option>
                             ))}
@@ -175,7 +179,7 @@ export default function Wholesale({ sales = { data: [] }, branches = [], custome
                         onClick={handleReset}
                         className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
-                        <RotateCcw className="w-4 h-4" /> Clear
+                        <RotateCcw className="w-4 h-4" /> {t('Clear')}
                     </button>
                 </div>
             </div>
@@ -186,15 +190,15 @@ export default function Wholesale({ sales = { data: [] }, branches = [], custome
                     <table className="w-full text-xs text-left">
                         <thead className="bg-amber-900 text-white font-bold uppercase tracking-wider text-[11px]">
                             <tr>
-                                <th className="px-3.5 py-3.5">Date</th>
-                                <th className="px-3.5 py-3.5">Invoice No</th>
-                                <th className="px-3.5 py-3.5">Customer / Dealer</th>
-                                <th className="px-3.5 py-3.5">Mobile</th>
-                                <th className="px-3.5 py-3.5 text-right">Total Bill</th>
-                                <th className="px-3.5 py-3.5 text-right">Received</th>
-                                <th className="px-3.5 py-3.5 text-right">Due</th>
-                                <th className="px-3.5 py-3.5 text-center">Status</th>
-                                <th className="px-3.5 py-3.5 text-center">Action</th>
+                                <th className="px-3.5 py-3.5">{t('Date')}</th>
+                                <th className="px-3.5 py-3.5">{t('Invoice No')}</th>
+                                <th className="px-3.5 py-3.5">{t('Customer / Dealer')}</th>
+                                <th className="px-3.5 py-3.5">{t('Mobile')}</th>
+                                <th className="px-3.5 py-3.5 text-right">{t('Total Bill')}</th>
+                                <th className="px-3.5 py-3.5 text-right">{t('Received')}</th>
+                                <th className="px-3.5 py-3.5 text-right">{t('Due')}</th>
+                                <th className="px-3.5 py-3.5 text-center">{t('Status')}</th>
+                                <th className="px-3.5 py-3.5 text-center">{t('Action')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 font-medium text-gray-800">
@@ -211,44 +215,44 @@ export default function Wholesale({ sales = { data: [] }, branches = [], custome
                                         <tr key={sale.id} className="hover:bg-amber-50/40 transition-colors">
                                             {/* Date (no time) */}
                                             <td className="px-3.5 py-3 font-semibold text-gray-700">
-                                                {formattedDate}
+                                                {isBn ? toBn(formattedDate) : formattedDate}
                                             </td>
 
                                             {/* Invoice No */}
                                             <td className="px-3.5 py-3 font-bold text-amber-900">
-                                                {sale.invoice_no}
+                                                {isBn ? toBn(sale.invoice_no) : sale.invoice_no}
                                             </td>
 
                                             {/* Customer / Dealer Name */}
                                             <td className="px-3.5 py-3 font-bold text-gray-900">
-                                                {sale.customer?.name || 'Wholesale Client'}
+                                                {sale.customer?.name || (isBn ? 'পাইকারি ক্রেতা' : 'Wholesale Client')}
                                             </td>
 
                                             {/* Mobile */}
                                             <td className="px-3.5 py-3 text-gray-600 font-mono">
-                                                {sale.customer?.phone || 'N/A'}
+                                                {isBn ? toBn(sale.customer?.phone || 'N/A') : (sale.customer?.phone || 'N/A')}
                                             </td>
 
                                             {/* Total Bill */}
                                             <td className="px-3.5 py-3 text-right font-black text-gray-900">
-                                                ৳ {fmtBDT(grandTotal)}
+                                                BDT {isBn ? toBn(fmtBDT(grandTotal)) : fmtBDT(grandTotal)}
                                             </td>
 
                                             {/* Received */}
                                             <td className="px-3.5 py-3 text-right font-bold text-emerald-700">
-                                                ৳ {fmtBDT(paidAmount)}
+                                                BDT {isBn ? toBn(fmtBDT(paidAmount)) : fmtBDT(paidAmount)}
                                             </td>
 
                                             {/* Due */}
                                             <td className="px-3.5 py-3 text-right font-bold text-rose-600">
-                                                ৳ {fmtBDT(dueAmount)}
+                                                BDT {isBn ? toBn(fmtBDT(dueAmount)) : fmtBDT(dueAmount)}
                                             </td>
 
-                                            {/* Status Badge (Click to open Add Payment if due/partial) */}
+                                            {/* Status Badge */}
                                             <td className="px-3.5 py-3 text-center">
                                                 {statusType === 'paid' ? (
                                                     <span className="px-2.5 py-1 text-[10px] font-black text-emerald-800 bg-emerald-100 rounded-full border border-emerald-300 uppercase tracking-wide">
-                                                        paid
+                                                        {t('Paid')}
                                                     </span>
                                                 ) : statusType === 'partial' ? (
                                                     <button
@@ -257,7 +261,7 @@ export default function Wholesale({ sales = { data: [] }, branches = [], custome
                                                         title="Click to Add Payment"
                                                         className="px-2.5 py-1 text-[10px] font-black text-amber-800 bg-amber-100 hover:bg-amber-200 rounded-full border border-amber-300 uppercase tracking-wide cursor-pointer transition-colors"
                                                     >
-                                                        partial
+                                                        {t('Partial')}
                                                     </button>
                                                 ) : (
                                                     <button
@@ -266,7 +270,7 @@ export default function Wholesale({ sales = { data: [] }, branches = [], custome
                                                         title="Click to Add Payment"
                                                         className="px-2.5 py-1 text-[10px] font-black text-rose-800 bg-rose-100 hover:bg-rose-200 rounded-full border border-rose-300 uppercase tracking-wide cursor-pointer transition-colors"
                                                     >
-                                                        due
+                                                        {t('Due')}
                                                     </button>
                                                 )}
                                             </td>
@@ -293,7 +297,7 @@ export default function Wholesale({ sales = { data: [] }, branches = [], custome
                                                             onClick={() => openViewModal(sale)}
                                                             className="w-full text-left px-3.5 py-2 text-gray-800 hover:bg-amber-50 flex items-center gap-2"
                                                         >
-                                                            <Eye className="w-4 h-4 text-gray-500" /> View
+                                                            <Eye className="w-4 h-4 text-gray-500" /> {t('View')}
                                                         </button>
 
                                                         {/* Print Invoice */}
@@ -301,7 +305,7 @@ export default function Wholesale({ sales = { data: [] }, branches = [], custome
                                                             href={route('sales.show', [sale.id, { print: 'true' }])}
                                                             className="w-full text-left px-3.5 py-2 text-amber-900 hover:bg-amber-50 flex items-center gap-2 font-bold"
                                                         >
-                                                            <Printer className="w-4 h-4 text-amber-600" /> Print Invoice
+                                                            <Printer className="w-4 h-4 text-amber-600" /> {t('Print Invoice')}
                                                         </Link>
 
                                                         {/* Add Payment */}
@@ -310,7 +314,7 @@ export default function Wholesale({ sales = { data: [] }, branches = [], custome
                                                             onClick={() => openPaymentModal(sale)}
                                                             className="w-full text-left px-3.5 py-2 text-emerald-700 hover:bg-emerald-50 flex items-center gap-2"
                                                         >
-                                                            <CreditCard className="w-4 h-4 text-emerald-600" /> Add Payment
+                                                            <CreditCard className="w-4 h-4 text-emerald-600" /> {t('Record Payment')}
                                                         </button>
 
                                                         {/* Delete */}
@@ -319,7 +323,7 @@ export default function Wholesale({ sales = { data: [] }, branches = [], custome
                                                             onClick={() => handleDeleteSale(sale)}
                                                             className="w-full text-left px-3.5 py-2 text-rose-600 hover:bg-rose-50 flex items-center gap-2 border-t border-gray-100"
                                                         >
-                                                            <Trash2 className="w-4 h-4 text-rose-500" /> Delete
+                                                            <Trash2 className="w-4 h-4 text-rose-500" /> {t('Delete')}
                                                         </button>
                                                     </Dropdown.Content>
                                                 </Dropdown>
@@ -330,7 +334,7 @@ export default function Wholesale({ sales = { data: [] }, branches = [], custome
                             ) : (
                                 <tr>
                                     <td colSpan="9" className="px-4 py-12 text-center text-gray-400 font-medium">
-                                        No wholesale sales records found.
+                                        {t('No wholesale sales records found.')}
                                     </td>
                                 </tr>
                             )}

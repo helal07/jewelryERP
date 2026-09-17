@@ -51,8 +51,10 @@ function ToggleRow({ label, description, checked, onChange }) {
     );
 }
 
-export default function Index({ settings }) {
-    const { t } = useLanguage();
+export default function Index({ settings = {} }) {
+    const { t, lang, toBn } = useLanguage();
+    const isBn = lang === 'bn';
+
     const { data, setData, post, processing, recentlySuccessful } = useForm({
         low_stock_threshold: settings.low_stock_threshold || '5',
         enable_low_stock_alerts: settings.enable_low_stock_alerts ?? true,
@@ -68,6 +70,12 @@ export default function Index({ settings }) {
         sales_return_notification: settings.sales_return_notification ?? true,
     });
 
+    const handleNumberFocus = (e) => {
+        if (e.target.value === '0') {
+            e.target.select();
+        }
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
         post(route('settings.notifications.update'));
@@ -79,22 +87,22 @@ export default function Index({ settings }) {
                 <div className="flex items-center justify-between">
                     <h2 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
                         <Bell className="w-7 h-7" style={{ color: 'rgb(177, 118, 51)' }} />
-                        {t('notificationSettings') || 'Notification Settings'}
+                        {t('notificationSettings')}
                     </h2>
                 </div>
             }
         >
-            <Head title="Notification Settings" />
+            <Head title={t('notificationSettings')} />
 
             <form onSubmit={handleSubmit} className="max-w-3xl space-y-5">
                 {/* Stock & Payment Alert Rules */}
                 <SectionCard
                     icon={PackageSearch}
-                    title="Stock & Payment Alerts"
+                    title={isBn ? 'স্টক ও পেমেন্ট সতর্কতা' : 'Stock & Payment Alerts'}
                 >
                     <div>
                         <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                            Low Stock Threshold *
+                            {isBn ? 'কম স্টকের সীমা (ইউনিট) *' : 'Low Stock Threshold *'}
                         </label>
                         <div className="flex items-center gap-3">
                             <div className="w-36">
@@ -102,24 +110,26 @@ export default function Index({ settings }) {
                                     type="number"
                                     min="0"
                                     value={data.low_stock_threshold}
+                                    onFocus={handleNumberFocus}
                                     onChange={(e) => setData('low_stock_threshold', e.target.value)}
                                     className="w-full text-sm rounded-xl border-gray-300 focus:ring-amber-500 focus:border-amber-500 font-bold"
+                                    placeholder="0"
                                 />
                             </div>
-                            <span className="text-xs text-gray-500 font-semibold">units</span>
+                            <span className="text-xs text-gray-500 font-semibold">{isBn ? 'ইউনিট' : 'units'}</span>
                         </div>
                     </div>
 
                     <div className="rounded-xl border border-gray-100 divide-y divide-gray-50 overflow-hidden p-2 bg-gray-50/40">
                         <ToggleRow
-                            label="Enable Low Stock Alerts"
-                            description="Notify dashboard when item stock drops below threshold"
+                            label={isBn ? 'কম স্টক নোটিফিকেশন সক্রিয় করুন' : 'Enable Low Stock Alerts'}
+                            description={isBn ? 'পণ্যের স্টক নির্দিষ্ট সীমার নিচে নামলে ড্যাশবোর্ডে সতর্কতা দেখাবে' : 'Notify dashboard when item stock drops below threshold'}
                             checked={data.enable_low_stock_alerts}
                             onChange={(val) => setData('enable_low_stock_alerts', val)}
                         />
                         <ToggleRow
-                            label="Enable Payment Due Reminders"
-                            description="Auto-generate reminders for overdue mortgage & credit balances"
+                            label={isBn ? 'বকেয়া পেমেন্ট রিমাইন্ডার সক্রিয় করুন' : 'Enable Payment Due Reminders'}
+                            description={isBn ? 'মেয়াদোত্তীর্ণ বন্ধক ও বাকির জন্য স্বয়ংক্রিয় রিমাইন্ডার তৈরি হবে' : 'Auto-generate reminders for overdue mortgage & credit balances'}
                             checked={data.enable_payment_due_reminders}
                             onChange={(val) => setData('enable_payment_due_reminders', val)}
                         />
@@ -129,11 +139,11 @@ export default function Index({ settings }) {
                 {/* Automated Email Reports */}
                 <SectionCard
                     icon={Mail}
-                    title="Automated Email Reports"
+                    title={isBn ? 'স্বয়ংক্রিয় ইমেইল রিপোর্ট' : 'Automated Email Reports'}
                 >
                     <ToggleRow
-                        label="Enable Daily Sales Summary Email"
-                        description="Send automated daily sales digest at end of business day"
+                        label={isBn ? 'দৈনিক বিক্রয় সারসংক্ষেপ ইমেইল' : 'Enable Daily Sales Summary Email'}
+                        description={isBn ? 'প্রতি কার্যদিবসের শেষে স্বয়ংক্রিয় বিক্রয় বিবরণী ইমেইলে পাঠানো হবে' : 'Send automated daily sales digest at end of business day'}
                         checked={data.enable_daily_summary_email}
                         onChange={(val) => setData('enable_daily_summary_email', val)}
                     />
@@ -141,7 +151,7 @@ export default function Index({ settings }) {
                     {data.enable_daily_summary_email && (
                         <div className="pt-2">
                             <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                                Recipient Email Address *
+                                {isBn ? 'প্রাপক ইমেইল ঠিকানা *' : 'Recipient Email Address *'}
                             </label>
                             <input
                                 type="email"
@@ -157,11 +167,11 @@ export default function Index({ settings }) {
                 {/* SMS Gateway */}
                 <SectionCard
                     icon={MessageSquare}
-                    title="SMS Gateway"
+                    title={isBn ? 'এসএমএস গেটওয়ে' : 'SMS Gateway'}
                 >
                     <ToggleRow
-                        label="Enable SMS Notifications"
-                        description="Send SMS receipts to customers on sale completion and payments"
+                        label={isBn ? 'এসএমএস নোটিফিকেশন সক্রিয় করুন' : 'Enable SMS Notifications'}
+                        description={isBn ? 'বিক্রয় এবং পেমেন্ট সম্পন্ন হলে ক্রেতাদের নিকট এসএমএস ভাউচার পাঠানো হবে' : 'Send SMS receipts to customers on sale completion and payments'}
                         checked={data.sms_gateway_active}
                         onChange={(val) => setData('sms_gateway_active', val)}
                     />
@@ -170,7 +180,7 @@ export default function Index({ settings }) {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                             <div>
                                 <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                                    SMS API Key *
+                                    {isBn ? 'এসএমএস এপিআই কী (SMS API Key) *' : 'SMS API Key *'}
                                 </label>
                                 <input
                                     type="password"
@@ -182,7 +192,7 @@ export default function Index({ settings }) {
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                                    Sender Masking ID
+                                    {isBn ? 'প্রেরক আইডি (Sender Masking ID)' : 'Sender Masking ID'}
                                 </label>
                                 <input
                                     type="text"
@@ -199,30 +209,30 @@ export default function Index({ settings }) {
                 {/* Business Event Notifications */}
                 <SectionCard
                     icon={ShoppingBag}
-                    title="Business Event Notifications"
+                    title={isBn ? 'ব্যবসায়িক ইভেন্ট নোটিফিকেশন' : 'Business Event Notifications'}
                 >
                     <div className="rounded-xl border border-gray-100 divide-y divide-gray-50 overflow-hidden p-2 bg-gray-50/40">
                         <ToggleRow
-                            label="Customer Order Notification"
-                            description="Trigger an alert whenever a new customer order is placed"
+                            label={isBn ? 'কাস্টমার অর্ডার নোটিফিকেশন' : 'Customer Order Notification'}
+                            description={isBn ? 'নতুন কাস্টমার অর্ডার দেওয়া হলে তাৎক্ষণিক সতর্কতা দিন' : 'Trigger an alert whenever a new customer order is placed'}
                             checked={data.customer_order_notification}
                             onChange={(val) => setData('customer_order_notification', val)}
                         />
                         <ToggleRow
-                            label="Sales Notification"
-                            description="Send a notification when a sale is recorded"
+                            label={isBn ? 'বিক্রয় নোটিফিকেশন' : 'Sales Notification'}
+                            description={isBn ? 'নতুন বিক্রয় সম্পন্ন হলে নোটিফিকেশন প্রদান করুন' : 'Send a notification when a sale is recorded'}
                             checked={data.sales_notification}
                             onChange={(val) => setData('sales_notification', val)}
                         />
                         <ToggleRow
-                            label="Payment Received Notification"
-                            description="Alert when a customer payment or instalment is received"
+                            label={isBn ? 'পেমেন্ট গ্রহণ নোটিফিকেশন' : 'Payment Received Notification'}
+                            description={isBn ? 'কাস্টমার থেকে বকেয়া বা কিস্তির টাকা গ্রহণ করা হলে অ্যালার্ট দিন' : 'Alert when a customer payment or instalment is received'}
                             checked={data.payment_received_notification}
                             onChange={(val) => setData('payment_received_notification', val)}
                         />
                         <ToggleRow
-                            label="Sales Return Notification"
-                            description="Notify when a sales return or refund request is submitted"
+                            label={isBn ? 'বিক্রয় ফেরত নোটিফিকেশন' : 'Sales Return Notification'}
+                            description={isBn ? 'বিক্রয় ফেরত বা রিফান্ড রেকর্ড করা হলে নোটিফাই করুন' : 'Notify when a sales return or refund request is submitted'}
                             checked={data.sales_return_notification}
                             onChange={(val) => setData('sales_return_notification', val)}
                         />
@@ -238,13 +248,13 @@ export default function Index({ settings }) {
                         style={{ backgroundColor: 'rgb(177, 118, 51)' }}
                     >
                         <Save className="w-4 h-4" />
-                        Save Settings
+                        {isBn ? 'সেটিংস সংরক্ষণ করুন' : 'Save Settings'}
                     </button>
 
                     {recentlySuccessful && (
                         <span className="text-xs font-bold text-emerald-700 flex items-center gap-1 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
                             <CheckCircle2 className="w-4 h-4" />
-                            Settings Saved!
+                            {isBn ? 'সেটিংস সংরক্ষিত হয়েছে!' : 'Settings Saved!'}
                         </span>
                     )}
                 </div>

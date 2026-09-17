@@ -49,7 +49,7 @@ export default function UpdatePasswordForm({ className = '' }) {
                     <KeyRound className="w-4 h-4" />
                 </div>
                 <div>
-                    <h3 className="text-sm font-bold text-gray-900">Change Password</h3>
+                    <h3 className="text-sm font-bold text-gray-900">{t('changePassword')}</h3>
                 </div>
             </div>
 
@@ -57,7 +57,7 @@ export default function UpdatePasswordForm({ className = '' }) {
                 {/* Current Password */}
                 <div>
                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                        Current Password *
+                        {t('currentPassword')} *
                     </label>
                     <div className="relative">
                         <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -79,7 +79,7 @@ export default function UpdatePasswordForm({ className = '' }) {
                 {/* New Password */}
                 <div>
                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                        New Password *
+                        {t('newPassword')} *
                     </label>
                     <div className="relative">
                         <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -91,7 +91,7 @@ export default function UpdatePasswordForm({ className = '' }) {
                             onChange={(e) => setData('password', e.target.value)}
                             className="w-full text-sm font-semibold text-gray-900 pl-10 rounded-xl border-gray-300 focus:ring-amber-500 focus:border-amber-500"
                             autoComplete="new-password"
-                            placeholder="Minimum 8 characters"
+                            placeholder={t('min8Chars')}
                             required
                         />
                     </div>
@@ -101,7 +101,7 @@ export default function UpdatePasswordForm({ className = '' }) {
                 {/* Confirm Password */}
                 <div>
                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                        Confirm New Password *
+                        {t('confirmNewPassword')} *
                     </label>
                     <div className="relative">
                         <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -112,7 +112,7 @@ export default function UpdatePasswordForm({ className = '' }) {
                             onChange={(e) => setData('password_confirmation', e.target.value)}
                             className="w-full text-sm font-semibold text-gray-900 pl-10 rounded-xl border-gray-300 focus:ring-amber-500 focus:border-amber-500"
                             autoComplete="new-password"
-                            placeholder="Re-enter new password"
+                            placeholder={t('reEnterNewPassword')}
                             required
                         />
                     </div>
@@ -127,13 +127,13 @@ export default function UpdatePasswordForm({ className = '' }) {
                         style={{ backgroundColor: 'rgb(177, 118, 51)' }}
                     >
                         <Save className="w-4 h-4" />
-                        Update Password
+                        {t('updatePassword')}
                     </button>
 
                     {recentlySuccessful && (
                         <span className="text-xs font-bold text-emerald-700 flex items-center gap-1 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
                             <CheckCircle2 className="w-4 h-4" />
-                            Password Updated!
+                            {t('passwordUpdated')}
                         </span>
                     )}
                 </div>

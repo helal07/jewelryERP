@@ -1,12 +1,37 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Head, useForm, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Pagination from '@/Components/Pagination';
 import Dropdown from '@/Components/Dropdown';
 import useFilter from '@/Hooks/useFilter';
-import { Plus, Wallet, Trash2, Edit2, FolderTree, Search, Filter, RotateCcw, CornerDownRight, CheckCircle2, XCircle } from 'lucide-react';
+import { useLanguage } from '@/Context/LanguageContext';
+import { Plus, Trash2, Edit2, FolderTree, Search, RotateCcw, CornerDownRight, CheckCircle2, XCircle, X } from 'lucide-react';
 
 export default function Index({ accounts, allAccounts = [], filters = {} }) {
+    const { t, lang, toBn } = useLanguage();
+    const isBn = lang === 'bn';
+
+    const handleNumberFocus = (e) => {
+        if (e.target.value === '0' || e.target.value === '0.00' || e.target.value === '০') {
+            e.target.value = '';
+        }
+    };
+
+    const cleanNumber = (val) => {
+        if (val === null || val === undefined) return '';
+        let str = String(val);
+        if (/^0+[0-9]/.test(str)) {
+            str = str.replace(/^0+/, '');
+        }
+        return str;
+    };
+
+    const fmtMoney = (val) => {
+        const num = Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return isBn ? `৳ ${toBn(num)}` : `BDT ${num}`;
+    };
+
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [editAccount, setEditAccount] = useState(null);
 
@@ -23,30 +48,32 @@ export default function Index({ accounts, allAccounts = [], filters = {} }) {
         setAccountType('');
     };
 
-    const { data, setData, post, put, processing, errors, reset } = useForm({
+    const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         code: '',
         name: '',
         account_type: 'asset',
         parent_id: '',
-        opening_balance: 0,
+        opening_balance: '',
         description: '',
         is_active: true,
     });
 
     const openCreateModal = () => {
+        clearErrors();
         reset();
         setEditAccount(null);
         setIsCreateOpen(true);
     };
 
     const openEditModal = (account) => {
+        clearErrors();
         setEditAccount(account);
         setData({
-            code: account.code,
-            name: account.name,
-            account_type: account.account_type,
+            code: account.code || '',
+            name: account.name || '',
+            account_type: account.account_type || 'asset',
             parent_id: account.parent_id || '',
-            opening_balance: account.opening_balance,
+            opening_balance: account.opening_balance || '',
             description: account.description || '',
             is_active: account.is_active ?? true,
         });
@@ -73,202 +100,264 @@ export default function Index({ accounts, allAccounts = [], filters = {} }) {
     };
 
     const handleDelete = (id) => {
-        if (confirm('Are you sure you want to delete this account?')) {
+        if (confirm(isBn ? 'আপনি কি নিশ্চিত যে আপনি এই অ্যাকাউন্ট মুছে ফেলতে চান?' : 'Are you sure you want to delete this account?')) {
             router.delete(route('accounts.chart-of-accounts.destroy', id));
         }
     };
 
     const getTypeBadgeClass = (type) => {
         switch (type) {
-            case 'asset': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-            case 'liability': return 'bg-rose-100 text-rose-800 border-rose-200';
-            case 'equity': return 'bg-purple-100 text-purple-800 border-purple-200';
-            case 'income': return 'bg-blue-100 text-blue-800 border-blue-200';
-            case 'expense': return 'bg-amber-100 text-amber-800 border-amber-200';
-            default: return 'bg-gray-100 text-gray-800 border-gray-200';
+            case 'asset': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+            case 'liability': return 'bg-rose-50 text-rose-700 border-rose-200';
+            case 'equity': return 'bg-purple-50 text-purple-700 border-purple-200';
+            case 'income': return 'bg-blue-50 text-blue-700 border-blue-200';
+            case 'expense': return 'bg-amber-50 text-amber-700 border-amber-200';
+            default: return 'bg-gray-50 text-gray-700 border-gray-200';
+        }
+    };
+
+    const getTypeLabel = (type) => {
+        if (!isBn) return type;
+        switch (type) {
+            case 'asset': return 'সম্পদ (Asset)';
+            case 'liability': return 'দায় (Liability)';
+            case 'equity': return 'মালিকানাস্বত্ব (Equity)';
+            case 'income': return 'আয় (Income)';
+            case 'expense': return 'ব্যয় (Expense)';
+            default: return type;
         }
     };
 
     return (
         <AuthenticatedLayout
             header={
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                            <FolderTree className="w-7 h-7 text-[#E88A1A]" />
-                            Chart of Accounts
-                        </h2>
-                        <p className="text-sm text-gray-500 mt-1">Manage general ledger accounts, parent relationships & opening balances</p>
+                <div className="flex items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-amber-50 rounded-xl" style={{ color: 'rgb(177,118,51)' }}>
+                            <FolderTree className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-black text-gray-900 leading-tight">
+                                {isBn ? 'হিসাবের তালিকা' : 'Chart of Accounts'}
+                            </h2>
+                            <p className="text-xs text-gray-500">
+                                {isBn ? 'লেজার অ্যাকাউন্ট, সাব-ক্যাটেগরি ও প্রারম্ভিক জের পরিচালনা করুন' : 'Manage general ledger accounts, parent relationships & opening balances'}
+                            </p>
+                        </div>
                     </div>
                     <button
                         onClick={openCreateModal}
-                        className="bg-[#E88A1A] hover:bg-orange-600 text-white px-4 py-2.5 rounded-xl font-semibold text-sm transition-colors flex items-center gap-2 shadow-md hover:shadow-lg"
+                        style={{ backgroundColor: 'rgb(177,118,51)' }}
+                        className="flex items-center gap-2 px-4 py-2 hover:opacity-90 text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer active:scale-95"
                     >
                         <Plus className="w-4 h-4" />
-                        Add New Account
+                        <span>{isBn ? 'নতুন অ্যাকাউন্ট' : 'Add New Account'}</span>
                     </button>
                 </div>
             }
         >
-            <Head title="Chart of Accounts" />
+            <Head title={isBn ? 'হিসাবের তালিকা' : 'Chart of Accounts'} />
 
-            {/* Filter Bar */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
-                <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex-1 min-w-[200px] relative">
-                        <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
-                        <input
-                            type="text"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Search by code or account name..."
-                            className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border-gray-300 focus:border-[#E88A1A] focus:ring-[#E88A1A]"
-                        />
-                    </div>
+            <div className="space-y-4">
+                {/* Filter Bar */}
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+                    <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex-1 min-w-[200px] relative">
+                            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder={isBn ? 'কোড বা অ্যাকাউন্টের নাম দিয়ে খুঁজুন...' : 'Search by code or account name...'}
+                                className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-gray-200 bg-gray-50 focus:border-amber-500 focus:ring-amber-500"
+                            />
+                        </div>
 
-                    <div className="w-48">
-                        <select
-                            value={accountType}
-                            onChange={(e) => setAccountType(e.target.value)}
-                            className="w-full text-sm rounded-xl border-gray-300 focus:border-[#E88A1A] focus:ring-[#E88A1A]"
+                        <div className="w-48">
+                            <select
+                                value={accountType}
+                                onChange={(e) => setAccountType(e.target.value)}
+                                className="w-full text-xs rounded-xl border border-gray-200 bg-gray-50 py-2 px-3 focus:border-amber-500 focus:ring-amber-500"
+                            >
+                                <option value="">{isBn ? 'সকল অ্যাকাউন্টের ধরন' : 'All Account Types'}</option>
+                                <option value="asset">{isBn ? 'সম্পদ (Asset)' : 'Asset'}</option>
+                                <option value="liability">{isBn ? 'দায় (Liability)' : 'Liability'}</option>
+                                <option value="equity">{isBn ? 'মালিকানাস্বত্ব (Equity)' : 'Equity'}</option>
+                                <option value="income">{isBn ? 'আয় (Income)' : 'Income'}</option>
+                                <option value="expense">{isBn ? 'ব্যয় (Expense)' : 'Expense'}</option>
+                            </select>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={handleReset}
+                            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                         >
-                            <option value="">All Account Types</option>
-                            <option value="asset">Asset</option>
-                            <option value="liability">Liability</option>
-                            <option value="equity">Equity</option>
-                            <option value="income">Income</option>
-                            <option value="expense">Expense</option>
-                        </select>
+                            <RotateCcw className="w-3.5 h-3.5" /> {isBn ? 'রিসেট' : 'Clear'}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Table Container */}
+                <div className="bg-white shadow-sm rounded-2xl border border-gray-100 p-4 pb-12 min-h-[350px]">
+                    <div className="overflow-x-auto min-h-[320px] pb-40">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-[#e68a1d] text-white">
+                                    <th className="px-3 py-2.5 text-[11px] font-bold uppercase whitespace-nowrap">{isBn ? 'কোড' : 'Code'}</th>
+                                    <th className="px-3 py-2.5 text-[11px] font-bold uppercase whitespace-nowrap">{isBn ? 'অ্যাকাউন্টের নাম' : 'Account Name'}</th>
+                                    <th className="px-3 py-2.5 text-[11px] font-bold uppercase whitespace-nowrap">{isBn ? 'ধরন' : 'Type'}</th>
+                                    <th className="px-3 py-2.5 text-[11px] font-bold uppercase whitespace-nowrap">{isBn ? 'মূল অ্যাকাউন্ট' : 'Parent Account'}</th>
+                                    <th className="px-3 py-2.5 text-[11px] font-bold uppercase whitespace-nowrap">{isBn ? 'বিবরণ' : 'Description'}</th>
+                                    <th className="px-3 py-2.5 text-[11px] font-bold uppercase whitespace-nowrap text-right">{isBn ? 'প্রারম্ভিক জের' : 'Opening Balance'}</th>
+                                    <th className="px-3 py-2.5 text-[11px] font-bold uppercase whitespace-nowrap text-center">{isBn ? 'অবস্থা' : 'Status'}</th>
+                                    <th className="px-3 py-2.5 text-[11px] font-bold uppercase whitespace-nowrap text-right">{isBn ? 'অ্যাকশন' : 'Actions'}</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 text-xs text-gray-700">
+                                {accounts.data && accounts.data.length > 0 ? (
+                                    accounts.data.map((acc) => (
+                                        <tr key={acc.id} className="hover:bg-amber-50/20 transition-colors">
+                                            <td className="px-3 py-2.5 font-mono font-bold text-gray-700 whitespace-nowrap">
+                                                {isBn ? toBn(acc.code) : acc.code}
+                                            </td>
+                                            <td className="px-3 py-2.5 font-semibold text-gray-900">
+                                                <div className="flex items-center gap-1.5">
+                                                    {acc.parent_id && <CornerDownRight className="w-3.5 h-3.5 text-amber-500 ml-2" />}
+                                                    <span className={acc.parent_id ? 'text-gray-700 font-normal' : 'font-bold text-gray-900'}>{acc.name}</span>
+                                                    {acc.is_system && (
+                                                        <span className="ml-1.5 text-[9px] bg-gray-100 text-gray-500 px-1 py-0.2 rounded border">System</span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-3 py-2.5 whitespace-nowrap">
+                                                <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded-md border ${getTypeBadgeClass(acc.account_type)}`}>
+                                                    {getTypeLabel(acc.account_type)}
+                                                </span>
+                                            </td>
+                                            <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap">{acc.parent ? acc.parent.name : '—'}</td>
+                                            <td className="px-3 py-2.5 text-gray-500 max-w-[200px] truncate" title={acc.description}>
+                                                {acc.description || '—'}
+                                            </td>
+                                            <td className="px-3 py-2.5 text-right font-bold text-gray-800 whitespace-nowrap">
+                                                {fmtMoney(acc.opening_balance)}
+                                            </td>
+                                            <td className="px-3 py-2.5 text-center whitespace-nowrap">
+                                                {acc.is_active ? (
+                                                    <span className="px-2 py-0.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 rounded-md border border-emerald-200 inline-flex items-center gap-1">
+                                                        <CheckCircle2 className="w-3 h-3" /> {isBn ? 'সক্রিয়' : 'Active'}
+                                                    </span>
+                                                ) : (
+                                                    <span className="px-2 py-0.5 text-[10px] font-bold text-gray-500 bg-gray-100 rounded-md border border-gray-200 inline-flex items-center gap-1">
+                                                        <XCircle className="w-3 h-3" /> {isBn ? 'নিষ্ক্রিয়' : 'Inactive'}
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                                                <Dropdown>
+                                                    <Dropdown.Trigger>
+                                                        <button
+                                                            type="button"
+                                                            className="inline-flex items-center px-3 py-1 border border-[#00b4d8] rounded-full text-[13px] font-medium text-[#00b4d8] bg-white hover:bg-[#00b4d8]/10 focus:outline-none transition ease-in-out duration-150 cursor-pointer"
+                                                        >
+                                                            {isBn ? 'অ্যাকশন' : 'Actions'}
+                                                            <svg className="ml-1.5 -mr-0.5 h-3.5 w-3.5 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                            </svg>
+                                                        </button>
+                                                    </Dropdown.Trigger>
+
+                                                    <Dropdown.Content align="right" width="48">
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                openEditModal(acc);
+                                                            }}
+                                                            className="block w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-gray-100 flex items-center cursor-pointer font-medium"
+                                                        >
+                                                            <Edit2 className="w-3.5 h-3.5 mr-2 text-blue-500" /> {isBn ? 'সম্পাদনা করুন' : 'Edit Account'}
+                                                        </button>
+                                                        {!acc.is_system && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleDelete(acc.id);
+                                                                }}
+                                                                className="block w-full text-left px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 flex items-center cursor-pointer font-medium"
+                                                            >
+                                                                <Trash2 className="w-3.5 h-3.5 mr-2 text-rose-500" /> {isBn ? 'মুছে ফেলুন' : 'Delete Account'}
+                                                            </button>
+                                                        )}
+                                                    </Dropdown.Content>
+                                                </Dropdown>
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="8" className="px-4 py-12 text-center text-gray-400 font-medium">
+                                            <div className="flex flex-col items-center gap-2">
+                                                <FolderTree className="w-8 h-8 opacity-30" />
+                                                <p className="text-xs font-semibold">{isBn ? 'কোন অ্যাকাউন্ট পাওয়া যায়নি।' : 'No accounts match your filter criteria.'}</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
 
-                    <button
-                        type="button"
-                        onClick={handleReset}
-                        className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                        <RotateCcw className="w-4 h-4" /> Clear
-                    </button>
+                    {/* Pagination */}
+                    {accounts.links && (
+                        <div className="mt-4">
+                            <Pagination links={accounts.links} />
+                        </div>
+                    )}
                 </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 pb-24">
-                <div className="overflow-visible">
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-[#E88A1A] text-white">
-                            <tr>
-                                <th className="px-4 py-3.5 font-bold rounded-tl-lg">Code</th>
-                                <th className="px-4 py-3.5 font-bold">Account Name</th>
-                                <th className="px-4 py-3.5 font-bold">Type</th>
-                                <th className="px-4 py-3.5 font-bold">Parent Account</th>
-                                <th className="px-4 py-3.5 font-bold">Description</th>
-                                <th className="px-4 py-3.5 font-bold text-right">Opening Balance</th>
-                                <th className="px-4 py-3.5 font-bold text-center">Status</th>
-                                <th className="px-4 py-3.5 font-bold text-right rounded-tr-lg">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {accounts.data.map((acc) => (
-                                <tr key={acc.id} className="hover:bg-amber-50/40 transition-colors">
-                                    <td className="px-4 py-3.5 font-mono font-bold text-gray-700">{acc.code}</td>
-                                    <td className="px-4 py-3.5 font-semibold text-gray-900">
-                                        <div className="flex items-center gap-1.5">
-                                            {acc.parent_id && <CornerDownRight className="w-3.5 h-3.5 text-amber-500 ml-2" />}
-                                            <span className={acc.parent_id ? 'text-gray-700 font-normal' : 'font-bold text-gray-900'}>{acc.name}</span>
-                                            {acc.is_system && (
-                                                <span className="ml-2 text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border">System</span>
-                                            )}
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3.5">
-                                        <span className={`px-2.5 py-1 text-xs font-bold rounded-full border capitalize ${getTypeBadgeClass(acc.account_type)}`}>
-                                            {acc.account_type}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-3.5 text-gray-600">{acc.parent ? acc.parent.name : '-'}</td>
-                                    <td className="px-4 py-3.5 text-gray-500 max-w-[200px] truncate" title={acc.description}>
-                                        {acc.description || '-'}
-                                    </td>
-                                    <td className="px-4 py-3.5 text-right font-bold text-gray-800">
-                                        BDT {Number(acc.opening_balance).toLocaleString('en-US', {minimumFractionDigits: 2})}
-                                    </td>
-                                    <td className="px-4 py-3.5 text-center">
-                                        {acc.is_active ? (
-                                            <span className="px-2 py-0.5 text-xs font-bold text-emerald-700 bg-emerald-50 rounded-full border border-emerald-200 inline-flex items-center gap-1">
-                                                <CheckCircle2 className="w-3 h-3" /> Active
-                                            </span>
-                                        ) : (
-                                            <span className="px-2 py-0.5 text-xs font-bold text-gray-500 bg-gray-100 rounded-full border border-gray-200 inline-flex items-center gap-1">
-                                                <XCircle className="w-3 h-3" /> Inactive
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-3.5 text-right font-medium">
-                                        <Dropdown>
-                                            <Dropdown.Trigger>
-                                                <button
-                                                    type="button"
-                                                    className="inline-flex items-center px-3 py-1 border border-[#00b4d8] rounded-full text-[13px] font-medium text-[#00b4d8] bg-white hover:bg-[#00b4d8]/10 focus:outline-none transition ease-in-out duration-150"
-                                                >
-                                                    Actions
-                                                    <svg className="ml-1.5 -mr-0.5 h-3.5 w-3.5 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                                                    </svg>
-                                                </button>
-                                            </Dropdown.Trigger>
+            {/* Modal via Portal */}
+            {isCreateOpen && createPortal(
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                    style={{ background: 'rgba(15,23,42,0.55)' }}
+                >
+                    <div className="relative bg-white rounded-3xl w-full shadow-2xl flex flex-col" style={{ maxWidth: '540px', maxHeight: '90vh' }}>
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 rounded-t-3xl"
+                            style={{ background: 'linear-gradient(to right, #fdf8f3, #ffffff)' }}>
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-amber-50 rounded-xl" style={{ color: 'rgb(177,118,51)' }}>
+                                    <FolderTree className="w-4 h-4" />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-extrabold text-gray-800">
+                                        {editAccount ? (isBn ? 'অ্যাকাউন্ট সম্পাদনা' : 'Edit Account') : (isBn ? 'নতুন অ্যাকাউন্ট তৈরি' : 'Add New Account')}
+                                    </h3>
+                                    <p className="text-[10px] text-gray-400">
+                                        {isBn ? 'অ্যাকাউন্ট কোড, ধরন এবং প্রারম্ভিক জের প্রদান করুন' : 'Fill in account details, type and starting balance'}
+                                    </p>
+                                </div>
+                            </div>
+                            <button type="button" onClick={closeModal}
+                                className="p-1.5 hover:bg-gray-100 rounded-xl text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
 
-                                            <Dropdown.Content align="right" width="48">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => openEditModal(acc)}
-                                                    className="block w-full text-start px-4 py-2 text-sm leading-5 text-gray-700 hover:bg-gray-100 focus:outline-none flex items-center cursor-pointer"
-                                                >
-                                                    <Edit2 className="w-4 h-4 mr-2 text-blue-500" /> Edit Account
-                                                </button>
-                                                {!acc.is_system && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleDelete(acc.id)}
-                                                        className="block w-full text-start px-4 py-2 text-sm leading-5 text-rose-600 hover:bg-rose-50 focus:outline-none flex items-center cursor-pointer"
-                                                    >
-                                                        <Trash2 className="w-4 h-4 mr-2 text-rose-500" /> Delete Account
-                                                    </button>
-                                                )}
-                                            </Dropdown.Content>
-                                        </Dropdown>
-                                    </td>
-                                </tr>
-                            ))}
-                            {accounts.data.length === 0 && (
-                                <tr>
-                                    <td colSpan="8" className="px-4 py-12 text-center text-gray-500 font-medium">
-                                        No accounts match your filter criteria.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                <Pagination links={accounts.links} from={accounts.from} to={accounts.to} total={accounts.total} />
-            </div>
-
-            {/* Modal */}
-            {isCreateOpen && (
-                <div className="fixed inset-0 z-[9999] overflow-y-auto bg-gray-900/60 backdrop-blur-sm">
-                    <div className="flex min-h-full items-center justify-center p-4">
-                        <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl animate-scale-up my-8">
-                            <h3 className="text-xl font-bold text-gray-900 mb-4">
-                                {editAccount ? 'Edit Account' : 'Add New Account'}
-                            </h3>
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="px-6 py-5 overflow-y-auto flex-1">
+                            <form id="coa-form" onSubmit={handleSubmit} className="space-y-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Account Code *</label>
+                                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                                            {isBn ? 'অ্যাকাউন্ট কোড' : 'Account Code'} <span className="text-rose-500">*</span>
+                                        </label>
                                         <input
                                             type="text"
                                             value={data.code}
                                             onChange={(e) => setData('code', e.target.value)}
-                                            className="w-full rounded-xl border-gray-300 focus:border-[#E88A1A] focus:ring-[#E88A1A] text-sm"
+                                            className="w-full rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500 text-xs bg-gray-50 py-2.5 px-3"
                                             placeholder="e.g. 1040"
                                             required
                                         />
@@ -276,89 +365,103 @@ export default function Index({ accounts, allAccounts = [], filters = {} }) {
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Account Type *</label>
+                                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                                            {isBn ? 'অ্যাকাউন্টের ধরন' : 'Account Type'} <span className="text-rose-500">*</span>
+                                        </label>
                                         <select
                                             value={data.account_type}
                                             onChange={(e) => setData('account_type', e.target.value)}
-                                            className="w-full rounded-xl border-gray-300 focus:border-[#E88A1A] focus:ring-[#E88A1A] text-sm capitalize"
+                                            className="w-full rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500 text-xs bg-gray-50 py-2.5 px-3 capitalize"
                                             required
                                         >
-                                            <option value="asset">Asset</option>
-                                            <option value="liability">Liability</option>
-                                            <option value="equity">Equity</option>
-                                            <option value="income">Income</option>
-                                            <option value="expense">Expense</option>
+                                            <option value="asset">{isBn ? 'সম্পদ (Asset)' : 'Asset'}</option>
+                                            <option value="liability">{isBn ? 'দায় (Liability)' : 'Liability'}</option>
+                                            <option value="equity">{isBn ? 'মালিকানাস্বত্ব (Equity)' : 'Equity'}</option>
+                                            <option value="income">{isBn ? 'আয় (Income)' : 'Income'}</option>
+                                            <option value="expense">{isBn ? 'ব্যয় (Expense)' : 'Expense'}</option>
                                         </select>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Account Name *</label>
+                                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                                        {isBn ? 'অ্যাকাউন্টের নাম' : 'Account Name'} <span className="text-rose-500">*</span>
+                                    </label>
                                     <input
                                         type="text"
                                         value={data.name}
                                         onChange={(e) => setData('name', e.target.value)}
-                                        className="w-full rounded-xl border-gray-300 focus:border-[#E88A1A] focus:ring-[#E88A1A] text-sm"
-                                        placeholder="e.g. Cash in Hand, SBI Bank Account"
+                                        className="w-full rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500 text-xs bg-gray-50 py-2.5 px-3"
+                                        placeholder={isBn ? 'যেমন: নগদ তহবিল, ডাচ বাংলা ব্যাংক ইত্যাদি' : 'e.g. Cash in Hand, DBBL Bank Account'}
                                         required
                                     />
                                     {errors.name && <p className="text-xs text-rose-600 mt-1">{errors.name}</p>}
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Description / Sub-category</label>
+                                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                                        {isBn ? 'বিবরণ / সাব-ক্যাটেগরি' : 'Description / Sub-category'}
+                                    </label>
                                     <input
                                         type="text"
                                         value={data.description}
                                         onChange={(e) => setData('description', e.target.value)}
-                                        className="w-full rounded-xl border-gray-300 focus:border-[#E88A1A] focus:ring-[#E88A1A] text-sm"
-                                        placeholder="Optional description"
+                                        className="w-full rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500 text-xs bg-gray-50 py-2.5 px-3"
+                                        placeholder={isBn ? 'ঐচ্ছিক বিবরণ' : 'Optional description'}
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Opening Balance (BDT)</label>
+                                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                                        {isBn ? 'প্রারম্ভিক জের (BDT)' : 'Opening Balance (BDT)'}
+                                    </label>
                                     <input
                                         type="number"
-                                        step="0.01"
+                                        step="any"
                                         value={data.opening_balance}
-                                        onChange={(e) => setData('opening_balance', e.target.value)}
-                                        className="w-full rounded-xl border-gray-300 focus:border-[#E88A1A] focus:ring-[#E88A1A] text-sm font-bold text-gray-900"
-                                        placeholder="0.00"
+                                        onFocus={handleNumberFocus}
+                                        onChange={(e) => setData('opening_balance', cleanNumber(e.target.value))}
+                                        className="w-full rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500 text-xs bg-gray-50 py-2.5 px-3 font-bold text-gray-900"
+                                        placeholder="0"
                                     />
                                 </div>
 
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 pt-1">
                                     <input
                                         type="checkbox"
                                         id="is_active"
                                         checked={data.is_active}
                                         onChange={(e) => setData('is_active', e.target.checked)}
-                                        className="rounded border-gray-300 text-[#E88A1A] focus:ring-[#E88A1A]"
+                                        className="w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
                                     />
-                                    <label htmlFor="is_active" className="text-sm font-medium text-gray-700">Account is Active</label>
-                                </div>
-
-                                <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
-                                    <button
-                                        type="button"
-                                        onClick={closeModal}
-                                        className="px-4 py-2 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={processing}
-                                        className="bg-[#E88A1A] hover:bg-orange-600 text-white px-5 py-2 rounded-xl text-sm font-bold shadow-md transition-colors"
-                                    >
-                                        {editAccount ? 'Update Account' : 'Create Account'}
-                                    </button>
+                                    <label htmlFor="is_active" className="text-xs font-bold text-gray-700 cursor-pointer select-none">
+                                        {isBn ? 'অ্যাকাউন্ট সক্রিয়' : 'Account is Active'}
+                                    </label>
                                 </div>
                             </form>
                         </div>
+
+                        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 rounded-b-3xl bg-gray-50/60">
+                            <button
+                                type="button"
+                                onClick={closeModal}
+                                className="px-5 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer border border-gray-200"
+                            >
+                                {isBn ? 'বাতিল' : 'Cancel'}
+                            </button>
+                            <button
+                                type="submit"
+                                form="coa-form"
+                                disabled={processing}
+                                style={{ backgroundColor: 'rgb(177,118,51)' }}
+                                className="text-white px-6 py-2 rounded-xl text-xs font-bold shadow-sm transition-all hover:opacity-90 disabled:opacity-50 cursor-pointer"
+                            >
+                                {processing ? (isBn ? 'সংরক্ষণ হচ্ছে…' : 'Saving...') : editAccount ? (isBn ? 'আপডেট করুন' : 'Update Account') : (isBn ? 'সংরক্ষণ করুন' : 'Create Account')}
+                            </button>
+                        </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </AuthenticatedLayout>
     );

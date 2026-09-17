@@ -1,11 +1,14 @@
+import React from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
+import { useLanguage } from '@/Context/LanguageContext';
+import { UserCheck, Save, ArrowLeft } from 'lucide-react';
 
 export default function Edit({ user, branches, roles }) {
+    const { t } = useLanguage();
     const { data, setData, put, processing, errors } = useForm({
         name: user.name,
         email: user.email,
@@ -24,147 +27,166 @@ export default function Edit({ user, branches, roles }) {
 
     return (
         <AuthenticatedLayout
-            header={<h2 className="font-semibold text-xl text-gray-800 leading-tight">Edit User: {user.name}</h2>}
+            header={
+                <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+                        <UserCheck className="w-7 h-7" style={{ color: 'rgb(177, 118, 51)' }} />
+                        {t('edit')} {t('users')}: {user.name}
+                    </h2>
+                    <Link
+                        href={route('users.index')}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 bg-white border border-gray-200 px-3 py-1.5 rounded-xl hover:bg-gray-50 transition shadow-xs"
+                    >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        {t('backToList')}
+                    </Link>
+                </div>
+            }
         >
-            <Head title="Edit User" />
+            <Head title={t('edit')} />
 
-            <div className="py-12">
-                <div className="max-w-2xl mx-auto sm:px-6 lg:px-8">
-                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                        <div className="p-6 bg-white border-b border-gray-200">
-                            <form onSubmit={submit} className="space-y-6">
-                                <div>
-                                    <InputLabel htmlFor="name" value="Name" />
-                                    <TextInput
-                                        id="name"
-                                        type="text"
-                                        name="name"
-                                        value={data.name}
-                                        className="mt-1 block w-full"
-                                        autoComplete="name"
-                                        onChange={(e) => setData('name', e.target.value)}
-                                        required
-                                    />
-                                    <InputError message={errors.name} className="mt-2" />
-                                </div>
-
-                                <div>
-                                    <InputLabel htmlFor="email" value="Email" />
-                                    <TextInput
-                                        id="email"
-                                        type="email"
-                                        name="email"
-                                        value={data.email}
-                                        className="mt-1 block w-full"
-                                        onChange={(e) => setData('email', e.target.value)}
-                                        required
-                                    />
-                                    <InputError message={errors.email} className="mt-2" />
-                                </div>
-
-                                <div>
-                                    <InputLabel htmlFor="phone" value="Phone (optional)" />
-                                    <TextInput
-                                        id="phone"
-                                        type="text"
-                                        name="phone"
-                                        value={data.phone}
-                                        className="mt-1 block w-full"
-                                        onChange={(e) => setData('phone', e.target.value)}
-                                    />
-                                    <InputError message={errors.phone} className="mt-2" />
-                                </div>
-
-                                <div>
-                                    <InputLabel htmlFor="password" value="Password (leave blank to keep current)" />
-                                    <TextInput
-                                        id="password"
-                                        type="password"
-                                        name="password"
-                                        value={data.password}
-                                        className="mt-1 block w-full"
-                                        onChange={(e) => setData('password', e.target.value)}
-                                    />
-                                    <InputError message={errors.password} className="mt-2" />
-                                </div>
-
-                                <div>
-                                    <InputLabel htmlFor="password_confirmation" value="Confirm Password" />
-                                    <TextInput
-                                        id="password_confirmation"
-                                        type="password"
-                                        name="password_confirmation"
-                                        value={data.password_confirmation}
-                                        className="mt-1 block w-full"
-                                        onChange={(e) => setData('password_confirmation', e.target.value)}
-                                    />
-                                </div>
-
-                                <div>
-                                    <InputLabel htmlFor="role" value="Role" />
-                                    <select
-                                        id="role"
-                                        name="role"
-                                        value={data.role}
-                                        className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                        onChange={(e) => setData('role', e.target.value)}
-                                        required
-                                    >
-                                        <option value="">Select a role</option>
-                                        {roles.map((r) => (
-                                            <option key={r.id} value={r.name}>{r.name.replace('_', ' ')}</option>
-                                        ))}
-                                    </select>
-                                    <InputError message={errors.role} className="mt-2" />
-                                </div>
-
-                                <div>
-                                    <InputLabel htmlFor="branch_id" value="Branch (optional for Super Admin)" />
-                                    <select
-                                        id="branch_id"
-                                        name="branch_id"
-                                        value={data.branch_id}
-                                        className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                        onChange={(e) => setData('branch_id', e.target.value)}
-                                    >
-                                        <option value="">No Branch (Global)</option>
-                                        {branches.map((b) => (
-                                            <option key={b.id} value={b.id}>{b.name}</option>
-                                        ))}
-                                    </select>
-                                    <InputError message={errors.branch_id} className="mt-2" />
-                                </div>
-
-                                <div>
-                                    <InputLabel htmlFor="status" value="Status" />
-                                    <select
-                                        id="status"
-                                        name="status"
-                                        value={data.status}
-                                        className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                        onChange={(e) => setData('status', e.target.value)}
-                                        required
-                                    >
-                                        <option value="active">Active</option>
-                                        <option value="inactive">Inactive</option>
-                                    </select>
-                                    <InputError message={errors.status} className="mt-2" />
-                                </div>
-
-                                <div className="flex items-center justify-end mt-4">
-                                    <Link
-                                        href={route('users.index')}
-                                        className="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mr-4"
-                                    >
-                                        Cancel
-                                    </Link>
-                                    <PrimaryButton className="ml-4" disabled={processing}>
-                                        Update
-                                    </PrimaryButton>
-                                </div>
-                            </form>
+            <div className="max-w-2xl mx-auto py-6">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                    <form onSubmit={submit} className="space-y-5">
+                        <div>
+                            <InputLabel htmlFor="name" value={t('fullName') + ' *'} />
+                            <TextInput
+                                id="name"
+                                type="text"
+                                name="name"
+                                value={data.name}
+                                className="mt-1 block w-full rounded-xl border-gray-300 focus:ring-amber-500 focus:border-amber-500 text-sm"
+                                autoComplete="name"
+                                onChange={(e) => setData('name', e.target.value)}
+                                required
+                            />
+                            <InputError message={errors.name} className="mt-1" />
                         </div>
-                    </div>
+
+                        <div>
+                            <InputLabel htmlFor="email" value={t('emailAddress') + ' *'} />
+                            <TextInput
+                                id="email"
+                                type="email"
+                                name="email"
+                                value={data.email}
+                                className="mt-1 block w-full rounded-xl border-gray-300 focus:ring-amber-500 focus:border-amber-500 text-sm"
+                                onChange={(e) => setData('email', e.target.value)}
+                                required
+                            />
+                            <InputError message={errors.email} className="mt-1" />
+                        </div>
+
+                        <div>
+                            <InputLabel htmlFor="phone" value={t('contactPhoneNumber')} />
+                            <TextInput
+                                id="phone"
+                                type="text"
+                                name="phone"
+                                value={data.phone}
+                                className="mt-1 block w-full rounded-xl border-gray-300 focus:ring-amber-500 focus:border-amber-500 text-sm"
+                                onChange={(e) => setData('phone', e.target.value)}
+                                placeholder={t('phonePlaceholder')}
+                            />
+                            <InputError message={errors.phone} className="mt-1" />
+                        </div>
+
+                        <div>
+                            <InputLabel htmlFor="password" value={t('newPassword') + ' (' + (t('optional') || 'leave blank to keep current') + ')'} />
+                            <TextInput
+                                id="password"
+                                type="password"
+                                name="password"
+                                value={data.password}
+                                className="mt-1 block w-full rounded-xl border-gray-300 focus:ring-amber-500 focus:border-amber-500 text-sm"
+                                onChange={(e) => setData('password', e.target.value)}
+                                placeholder={t('min8Chars')}
+                            />
+                            <InputError message={errors.password} className="mt-1" />
+                        </div>
+
+                        <div>
+                            <InputLabel htmlFor="password_confirmation" value={t('confirmNewPassword')} />
+                            <TextInput
+                                id="password_confirmation"
+                                type="password"
+                                name="password_confirmation"
+                                value={data.password_confirmation}
+                                className="mt-1 block w-full rounded-xl border-gray-300 focus:ring-amber-500 focus:border-amber-500 text-sm"
+                                onChange={(e) => setData('password_confirmation', e.target.value)}
+                                placeholder={t('reEnterNewPassword')}
+                            />
+                        </div>
+
+                        <div>
+                            <InputLabel htmlFor="role" value={t('role') || 'Role'} />
+                            <select
+                                id="role"
+                                name="role"
+                                value={data.role}
+                                className="mt-1 block w-full border-gray-300 focus:border-amber-500 focus:ring-amber-500 rounded-xl shadow-xs text-sm"
+                                onChange={(e) => setData('role', e.target.value)}
+                                required
+                            >
+                                <option value="">{t('select') || 'Select a role'}</option>
+                                {roles.map((r) => (
+                                    <option key={r.id} value={r.name}>{t(r.name.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())) || r.name}</option>
+                                ))}
+                            </select>
+                            <InputError message={errors.role} className="mt-1" />
+                        </div>
+
+                        <div>
+                            <InputLabel htmlFor="branch_id" value={t('branch') || 'Branch'} />
+                            <select
+                                id="branch_id"
+                                name="branch_id"
+                                value={data.branch_id}
+                                className="mt-1 block w-full border-gray-300 focus:border-amber-500 focus:ring-amber-500 rounded-xl shadow-xs text-sm"
+                                onChange={(e) => setData('branch_id', e.target.value)}
+                            >
+                                <option value="">{t('headOffice') || 'No Branch (Global)'}</option>
+                                {branches.map((b) => (
+                                    <option key={b.id} value={b.id}>{b.name}</option>
+                                ))}
+                            </select>
+                            <InputError message={errors.branch_id} className="mt-1" />
+                        </div>
+
+                        <div>
+                            <InputLabel htmlFor="status" value={t('status') || 'Status'} />
+                            <select
+                                id="status"
+                                name="status"
+                                value={data.status}
+                                className="mt-1 block w-full border-gray-300 focus:border-amber-500 focus:ring-amber-500 rounded-xl shadow-xs text-sm"
+                                onChange={(e) => setData('status', e.target.value)}
+                                required
+                            >
+                                <option value="active">{t('active') || 'Active'}</option>
+                                <option value="inactive">{t('inactive') || 'Inactive'}</option>
+                            </select>
+                            <InputError message={errors.status} className="mt-1" />
+                        </div>
+
+                        <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+                            <Link
+                                href={route('users.index')}
+                                className="text-xs font-bold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 px-4 py-2 rounded-xl transition"
+                            >
+                                {t('cancel')}
+                            </Link>
+                            <button
+                                type="submit"
+                                disabled={processing}
+                                className="px-5 py-2 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-1.5 cursor-pointer hover:opacity-90 active:opacity-100"
+                                style={{ backgroundColor: 'rgb(177, 118, 51)' }}
+                            >
+                                <Save className="w-4 h-4" />
+                                {t('saveChanges')}
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </AuthenticatedLayout>

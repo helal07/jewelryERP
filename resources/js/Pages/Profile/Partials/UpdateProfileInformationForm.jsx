@@ -4,7 +4,7 @@ import { User, Mail, Phone, Save, CheckCircle2, ShieldCheck } from 'lucide-react
 import { useLanguage } from '@/Context/LanguageContext';
 
 export default function UpdateProfileInformationForm({ mustVerifyEmail, status, className = '' }) {
-    const { t } = useLanguage();
+    const { t, lang } = useLanguage();
     const user = usePage().props.auth.user;
 
     const { data, setData, patch, errors, processing, recentlySuccessful } = useForm({
@@ -25,7 +25,7 @@ export default function UpdateProfileInformationForm({ mustVerifyEmail, status, 
                     <User className="w-4 h-4" />
                 </div>
                 <div>
-                    <h3 className="text-sm font-bold text-gray-900">Personal & Contact Info</h3>
+                    <h3 className="text-sm font-bold text-gray-900">{t('personalContactInfo')}</h3>
                 </div>
             </div>
 
@@ -33,7 +33,7 @@ export default function UpdateProfileInformationForm({ mustVerifyEmail, status, 
                 {/* Full Name */}
                 <div>
                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                        Full Name *
+                        {t('fullName')} *
                     </label>
                     <div className="relative">
                         <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -51,7 +51,7 @@ export default function UpdateProfileInformationForm({ mustVerifyEmail, status, 
                 {/* Email / Gmail Address */}
                 <div>
                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                        Email / Gmail Address *
+                        {t('emailAddress')} *
                     </label>
                     <div className="relative">
                         <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -69,7 +69,7 @@ export default function UpdateProfileInformationForm({ mustVerifyEmail, status, 
                 {/* Contact Phone Number */}
                 <div>
                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                        Contact Phone Number
+                        {t('contactPhoneNumber')}
                     </label>
                     <div className="relative">
                         <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -78,7 +78,7 @@ export default function UpdateProfileInformationForm({ mustVerifyEmail, status, 
                             value={data.phone}
                             onChange={(e) => setData('phone', e.target.value)}
                             className="w-full text-sm font-semibold text-gray-900 pl-10 rounded-xl border-gray-300 focus:ring-amber-500 focus:border-amber-500"
-                            placeholder="+880 1XXXXXXXXX"
+                            placeholder={t('phonePlaceholder')}
                         />
                     </div>
                     {errors.phone && <p className="text-xs text-rose-600 mt-1">{errors.phone}</p>}
@@ -86,7 +86,7 @@ export default function UpdateProfileInformationForm({ mustVerifyEmail, status, 
 
                 {mustVerifyEmail && user.email_verified_at === null && (
                     <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900">
-                        Your email address is unverified.
+                        {t('emailUnverified')}
                     </div>
                 )}
 
@@ -98,13 +98,13 @@ export default function UpdateProfileInformationForm({ mustVerifyEmail, status, 
                         style={{ backgroundColor: 'rgb(177, 118, 51)' }}
                     >
                         <Save className="w-4 h-4" />
-                        Save Changes
+                        {t('saveChanges')}
                     </button>
 
                     {recentlySuccessful && (
                         <span className="text-xs font-bold text-emerald-700 flex items-center gap-1 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
                             <CheckCircle2 className="w-4 h-4" />
-                            Saved!
+                            {t('saved')}
                         </span>
                     )}
                 </div>

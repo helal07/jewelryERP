@@ -8,6 +8,7 @@ use App\Models\ArtisanStock;
 use App\Models\Branch;
 use App\Models\Category;
 use App\Models\Customer;
+use App\Models\MetalPrice;
 use App\Models\Mortgage;
 use App\Models\MortgageCustomer;
 use App\Models\MortgagePayment;
@@ -35,7 +36,9 @@ class ReportController extends Controller
 
         $salesRevenue = Sale::whereBetween('sale_date', [$startDate, $endDate])->sum('grand_total');
         $otherIncome = OtherIncome::whereBetween('income_date', [$startDate, $endDate])->sum('amount');
-        $mortgageInterest = MortgagePayment::whereBetween('payment_date', [$startDate, $endDate])->sum('interest_amount');
+        $mortgageInterest = MortgagePayment::where('payment_type', 'interest')
+            ->whereBetween('payment_date', [$startDate, $endDate])
+            ->sum('amount');
         $totalIncome = $salesRevenue + $otherIncome + $mortgageInterest;
 
         $purchasesCost = Purchase::whereBetween('purchase_date', [$startDate, $endDate])->sum('grand_total');
@@ -286,12 +289,29 @@ class ReportController extends Controller
             $query->where('purity_id', $purityId);
         }
 
-        $products = $query->orderBy('name')->get();
+        $latestPrices = MetalPrice::orderBy('effective_date', 'desc')
+            ->orderBy('id', 'desc')
+            ->get()
+            ->unique('purity_id')
+            ->pluck('price_per_gram', 'purity_id');
+
+        $products = $query->orderBy('name')->get()->map(function ($product) use ($latestPrices) {
+            $metalPricePerGram = $latestPrices[$product->purity_id] ?? 0;
+            $metalValue = $product->net_weight * $metalPricePerGram;
+            $makingCharge = $product->making_charge_type === 'per_gram' 
+                ? $product->making_charge_value * $product->net_weight 
+                : $product->making_charge_value;
+            $sellingPrice = $metalValue + $makingCharge + ($product->stone_charge ?? 0);
+
+            $product->selling_price = round($sellingPrice, 2);
+            $product->metal_price_per_gram = $metalPricePerGram;
+            return $product;
+        });
 
         $totalWeightGm = $products->sum('net_weight');
         $totalWeightVori = round($totalWeightGm / 11.664, 3);
         $totalValuation = $products->sum('selling_price');
-        $artisanHoldingGm = ArtisanStock::sum('weight');
+        $artisanHoldingGm = ArtisanStock::sum('balance_weight');
 
         $summary = [
             'total_items' => $products->count(),
@@ -339,7 +359,7 @@ class ReportController extends Controller
         // Attach statistics for each artisan
         $artisanData = $artisans->map(function ($artisan) {
             $productions = Production::where('artisan_id', $artisan->id)->get();
-            $stockHolding = ArtisanStock::where('artisan_id', $artisan->id)->sum('weight');
+            $stockHolding = ArtisanStock::where('artisan_id', $artisan->id)->sum('balance_weight');
             $totalCharges = $productions->sum('artisan_charge');
             $totalPaid = $productions->sum('paid_amount');
             $totalDue = $productions->sum('due_amount');
@@ -366,7 +386,7 @@ class ReportController extends Controller
         $summary = [
             'total_artisans' => $artisans->count(),
             'active_jobs_count' => Production::whereIn('status', ['pending', 'in_progress'])->count(),
-            'total_holding_gm' => round(ArtisanStock::sum('weight'), 3),
+            'total_holding_gm' => round(ArtisanStock::sum('balance_weight'), 3),
             'total_payable_due' => Production::sum('due_amount'),
         ];
 
@@ -407,8 +427,12 @@ class ReportController extends Controller
 
         $mortgages = $query->orderBy('mortgage_date', 'desc')->get();
 
-        $interestCollected = MortgagePayment::whereBetween('payment_date', [$startDate, $endDate])->sum('interest_amount');
-        $principalReleased = MortgagePayment::whereBetween('payment_date', [$startDate, $endDate])->sum('principal_amount');
+        $interestCollected = MortgagePayment::where('payment_type', 'interest')
+            ->whereBetween('payment_date', [$startDate, $endDate])
+            ->sum('amount');
+        $principalReleased = MortgagePayment::whereIn('payment_type', ['principal', 'redemption'])
+            ->whereBetween('payment_date', [$startDate, $endDate])
+            ->sum('amount');
 
         $summary = [
             'total_mortgages' => $mortgages->count(),
@@ -434,3 +458,4 @@ class ReportController extends Controller
         ]);
     }
 }
+

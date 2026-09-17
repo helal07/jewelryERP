@@ -2,8 +2,7 @@ import React from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { 
-    Sliders, Save, CheckCircle2, Calendar, DollarSign, Percent, 
-    FileText, Hash, Receipt, Building2, Phone, Mail, MapPin, Award, ShieldAlert
+    Sliders, Save, CheckCircle2, Calendar, Hash, Receipt, Building2, ShieldAlert
 } from 'lucide-react';
 import { useLanguage } from '@/Context/LanguageContext';
 
@@ -24,7 +23,8 @@ function ConfigSectionCard({ icon: Icon, title, children }) {
 }
 
 export default function Index({ config = {}, is_main_branch }) {
-    const { t } = useLanguage();
+    const { t, lang, toBn } = useLanguage();
+    const isBn = lang === 'bn';
     const { flash, auth } = usePage().props;
     const canManageConfig = is_main_branch ?? auth?.is_main_branch ?? true;
 
@@ -49,13 +49,25 @@ export default function Index({ config = {}, is_main_branch }) {
         receipt_footer_text: config.receipt_footer_text || '',
     });
 
+    const handleNumberFocus = (e) => {
+        if (e.target.value === '0' || e.target.value === '0.00') {
+            e.target.select();
+        }
+    };
+
     const months = [
-        { value: 1, label: 'January' }, { value: 2, label: 'February' },
-        { value: 3, label: 'March' }, { value: 4, label: 'April' },
-        { value: 5, label: 'May' }, { value: 6, label: 'June' },
-        { value: 7, label: 'July' }, { value: 8, label: 'August' },
-        { value: 9, label: 'September' }, { value: 10, label: 'October' },
-        { value: 11, label: 'November' }, { value: 12, label: 'December' },
+        { value: 1, label: isBn ? 'জানুয়ারি (January)' : 'January' },
+        { value: 2, label: isBn ? 'ফেব্রুয়ারি (February)' : 'February' },
+        { value: 3, label: isBn ? 'মার্চ (March)' : 'March' },
+        { value: 4, label: isBn ? 'এপ্রিল (April)' : 'April' },
+        { value: 5, label: isBn ? 'মে (May)' : 'May' },
+        { value: 6, label: isBn ? 'জুন (June)' : 'June' },
+        { value: 7, label: isBn ? 'জুলাই (July)' : 'July' },
+        { value: 8, label: isBn ? 'আগস্ট (August)' : 'August' },
+        { value: 9, label: isBn ? 'সেপ্টেম্বর (September)' : 'September' },
+        { value: 10, label: isBn ? 'অক্টোবর (October)' : 'October' },
+        { value: 11, label: isBn ? 'নভেম্বর (November)' : 'November' },
+        { value: 12, label: isBn ? 'ডিসেম্বর (December)' : 'December' },
     ];
 
     const handleSubmit = (e) => {
@@ -70,19 +82,19 @@ export default function Index({ config = {}, is_main_branch }) {
                 <div className="flex items-center justify-between">
                     <h2 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
                         <Sliders className="w-7 h-7" style={{ color: 'rgb(177, 118, 51)' }} />
-                        {t('accountConfig') || 'Account Configuration'}
+                        {t('accountConfig')}
                     </h2>
 
                     {!canManageConfig && (
                         <span className="px-3 py-1.5 bg-amber-50 text-amber-900 border border-amber-200 rounded-xl text-xs font-bold flex items-center gap-1.5">
                             <ShieldAlert className="w-4 h-4 text-amber-700" />
-                            Main Branch Edit Only
+                            {isBn ? 'শুধুমাত্র প্রধান কার্যালয় সম্পাদন করতে পারে' : 'Main Branch Edit Only'}
                         </span>
                     )}
                 </div>
             }
         >
-            <Head title="Account Configuration" />
+            <Head title={t('accountConfig')} />
 
             <form onSubmit={handleSubmit} className="max-w-4xl space-y-5">
                 {/* Flash Messages */}
@@ -103,12 +115,12 @@ export default function Index({ config = {}, is_main_branch }) {
                 {/* 1. Company Information Card */}
                 <ConfigSectionCard
                     icon={Building2}
-                    title="Company Information"
+                    title={isBn ? 'প্রতিষ্ঠানের তথ্য' : 'Company Information'}
                 >
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                                Company Name *
+                                {isBn ? 'প্রতিষ্ঠানের নাম *' : 'Company Name *'}
                             </label>
                             <input
                                 type="text"
@@ -123,7 +135,7 @@ export default function Index({ config = {}, is_main_branch }) {
 
                         <div>
                             <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                                Trade License No
+                                {isBn ? 'ট্রেড লাইসেন্স নম্বর' : 'Trade License No'}
                             </label>
                             <input
                                 type="text"
@@ -139,7 +151,7 @@ export default function Index({ config = {}, is_main_branch }) {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                                Hotline / Phone
+                                {isBn ? 'হটলাইন / ফোন নম্বর' : 'Hotline / Phone'}
                             </label>
                             <input
                                 type="text"
@@ -153,7 +165,7 @@ export default function Index({ config = {}, is_main_branch }) {
 
                         <div>
                             <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                                Official Email
+                                {isBn ? 'অফিসিয়াল ইমেইল' : 'Official Email'}
                             </label>
                             <input
                                 type="email"
@@ -169,7 +181,7 @@ export default function Index({ config = {}, is_main_branch }) {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                                Company Address
+                                {isBn ? 'প্রতিষ্ঠানের ঠিকানা' : 'Company Address'}
                             </label>
                             <input
                                 type="text"
@@ -183,7 +195,7 @@ export default function Index({ config = {}, is_main_branch }) {
 
                         <div>
                             <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                                Tagline / Slogan
+                                {isBn ? 'স্লোগান / ট্যাগলাইন' : 'Tagline / Slogan'}
                             </label>
                             <input
                                 type="text"
@@ -200,12 +212,12 @@ export default function Index({ config = {}, is_main_branch }) {
                 {/* 2. Financial & Tax Settings Card */}
                 <ConfigSectionCard
                     icon={Calendar}
-                    title="Financial & Tax Settings"
+                    title={isBn ? 'আর্থিক ও ভ্যাট সেটিংস' : 'Financial & Tax Settings'}
                 >
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
                             <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                                Financial Year Start *
+                                {isBn ? 'অর্থবছর শুরু *' : 'Financial Year Start *'}
                             </label>
                             <select
                                 value={data.financial_year_start}
@@ -222,7 +234,7 @@ export default function Index({ config = {}, is_main_branch }) {
 
                         <div>
                             <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                                Currency Symbol *
+                                {isBn ? 'মুদ্রার প্রতীক *' : 'Currency Symbol *'}
                             </label>
                             <input
                                 type="text"
@@ -237,18 +249,19 @@ export default function Index({ config = {}, is_main_branch }) {
 
                         <div>
                             <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                                Default VAT Rate (%) *
+                                {isBn ? 'ডিফল্ট ভ্যাট রেট (%) *' : 'Default VAT Rate (%) *'}
                             </label>
                             <input
                                 type="number"
-                                step="0.01"
+                                step="any"
                                 min="0"
                                 max="100"
                                 value={data.default_vat_rate}
+                                onFocus={handleNumberFocus}
                                 onChange={(e) => setData('default_vat_rate', e.target.value)}
                                 disabled={!canManageConfig}
                                 className="w-full text-sm font-bold text-gray-900 rounded-xl border-gray-300 focus:ring-amber-500 focus:border-amber-500 disabled:bg-gray-50 disabled:text-gray-500"
-                                placeholder="5.00"
+                                placeholder="0"
                                 required
                             />
                         </div>
@@ -258,12 +271,12 @@ export default function Index({ config = {}, is_main_branch }) {
                 {/* 3. Document Numbering Prefixes Card */}
                 <ConfigSectionCard
                     icon={Hash}
-                    title="Document Numbering Prefixes"
+                    title={isBn ? 'ডকুমেন্ট নম্বর প্রিফিক্স' : 'Document Numbering Prefixes'}
                 >
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                                Sales Invoice Prefix *
+                                {isBn ? 'বিক্রয় চালান প্রিফিক্স *' : 'Sales Invoice Prefix *'}
                             </label>
                             <input
                                 type="text"
@@ -278,7 +291,7 @@ export default function Index({ config = {}, is_main_branch }) {
 
                         <div>
                             <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                                Purchase Prefix *
+                                {isBn ? 'ক্রয় প্রিফিক্স *' : 'Purchase Prefix *'}
                             </label>
                             <input
                                 type="text"
@@ -293,7 +306,7 @@ export default function Index({ config = {}, is_main_branch }) {
 
                         <div>
                             <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                                Custom Order Prefix *
+                                {isBn ? 'কাস্টম অর্ডার প্রিফিক্স *' : 'Custom Order Prefix *'}
                             </label>
                             <input
                                 type="text"
@@ -308,7 +321,7 @@ export default function Index({ config = {}, is_main_branch }) {
 
                         <div>
                             <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                                Mortgage Loan Prefix *
+                                {isBn ? 'বন্ধকী ঋণ প্রিফিক্স *' : 'Mortgage Loan Prefix *'}
                             </label>
                             <input
                                 type="text"
@@ -326,11 +339,11 @@ export default function Index({ config = {}, is_main_branch }) {
                 {/* 4. Receipt Footer Card */}
                 <ConfigSectionCard
                     icon={Receipt}
-                    title="Invoice & Receipt Footer"
+                    title={isBn ? 'ইনভয়েস ও রসিদ ফুটার' : 'Invoice & Receipt Footer'}
                 >
                     <div>
                         <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                            Receipt Footer Terms / Note
+                            {isBn ? 'রসিদের ফুটার নোট / শর্তাবলী' : 'Receipt Footer Terms / Note'}
                         </label>
                         <textarea
                             value={data.receipt_footer_text}
@@ -338,7 +351,7 @@ export default function Index({ config = {}, is_main_branch }) {
                             disabled={!canManageConfig}
                             className="w-full rounded-xl border-gray-300 focus:ring-amber-500 focus:border-amber-500 text-sm p-3 disabled:bg-gray-50 disabled:text-gray-500"
                             rows="3"
-                            placeholder="e.g. Thank you for your purchase. Hallmarked gold guaranteed."
+                            placeholder={isBn ? 'যেমন: আমাদের দোকানে কেনাকাটা করার জন্য ধন্যবাদ। হলমার্কযুক্ত স্বর্ণের গ্যারান্টি প্রদান করা হয়।' : 'e.g. Thank you for your purchase. Hallmarked gold guaranteed.'}
                         />
                     </div>
                 </ConfigSectionCard>
@@ -353,13 +366,13 @@ export default function Index({ config = {}, is_main_branch }) {
                             style={{ backgroundColor: 'rgb(177, 118, 51)' }}
                         >
                             <Save className="w-4 h-4" />
-                            Save Configuration
+                            {isBn ? 'কনফিগারেশন সংরক্ষণ করুন' : 'Save Configuration'}
                         </button>
 
                         {(recentlySuccessful || flash?.success) && (
                             <span className="text-xs font-bold text-emerald-700 flex items-center gap-1 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
                                 <CheckCircle2 className="w-4 h-4" />
-                                Configuration Saved!
+                                {isBn ? 'কনফিগারেশন সংরক্ষিত হয়েছে!' : 'Configuration Saved!'}
                             </span>
                         )}
                     </div>

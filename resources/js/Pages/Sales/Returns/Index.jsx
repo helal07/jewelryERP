@@ -9,11 +9,15 @@ import {
     RotateCcw, Plus, Search, CheckCircle2, Clock, 
     Calendar, DollarSign, User, Receipt, X, AlertCircle, Eye, Filter, Trash2
 } from 'lucide-react';
+import { useLanguage } from '@/Context/LanguageContext';
 
 const fmtBDT = (val) =>
     Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function Index({ returns = {}, sales = [], filters = {} }) {
+    const { t, lang, toBn } = useLanguage();
+    const isBn = lang === 'bn';
+
     const [search, setSearch] = useState(filters.search || '');
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [selectedReturn, setSelectedReturn] = useState(null);
@@ -114,7 +118,7 @@ export default function Index({ returns = {}, sales = [], filters = {} }) {
                     <div>
                         <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                             <RotateCcw className="w-7 h-7 text-[#E88A1A]" />
-                            Sales Return
+                            {t('saleReturns') || 'Sales Return'}
                         </h2>
                     </div>
                     <button
@@ -122,12 +126,12 @@ export default function Index({ returns = {}, sales = [], filters = {} }) {
                         onClick={() => setIsCreateOpen(true)}
                         className="flex items-center gap-2 bg-[#E88A1A] hover:bg-amber-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md transition"
                     >
-                        <Plus className="w-4 h-4" /> New Return
+                        <Plus className="w-4 h-4" /> {t('New Return') || 'New Return'}
                     </button>
                 </div>
             }
         >
-            <Head title="Sale Returns" />
+            <Head title={t('saleReturns') || "Sale Returns"} />
 
             {/* Filter Search */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
@@ -153,14 +157,14 @@ export default function Index({ returns = {}, sales = [], filters = {} }) {
                     <table className="w-full text-sm text-left">
                         <thead className="bg-[#E88A1A] text-white">
                             <tr>
-                                <th className="px-4 py-3.5 font-bold rounded-tl-lg">Return #</th>
-                                <th className="px-4 py-3.5 font-bold">Return Date</th>
-                                <th className="px-4 py-3.5 font-bold">Sale Invoice</th>
-                                <th className="px-4 py-3.5 font-bold">Customer</th>
-                                <th className="px-4 py-3.5 font-bold text-right">Refund Amount</th>
-                                <th className="px-4 py-3.5 font-bold">Reason</th>
-                                <th className="px-4 py-3.5 font-bold text-center">Status</th>
-                                <th className="px-4 py-3.5 font-bold text-center rounded-tr-lg">Action</th>
+                                <th className="px-4 py-3.5 font-bold rounded-tl-lg">{t('Return #')}</th>
+                                <th className="px-4 py-3.5 font-bold">{t('Return Date')}</th>
+                                <th className="px-4 py-3.5 font-bold">{t('Sale Invoice')}</th>
+                                <th className="px-4 py-3.5 font-bold">{t('Customer')}</th>
+                                <th className="px-4 py-3.5 font-bold text-right">{t('Refund Amount')}</th>
+                                <th className="px-4 py-3.5 font-bold">{t('Reason')}</th>
+                                <th className="px-4 py-3.5 font-bold text-center">{t('Status')}</th>
+                                <th className="px-4 py-3.5 font-bold text-center rounded-tr-lg">{t('Action')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
@@ -168,27 +172,27 @@ export default function Index({ returns = {}, sales = [], filters = {} }) {
                                 returns.data.map((ret, idx) => (
                                     <tr key={ret.id} className="hover:bg-amber-50/40 transition-colors">
                                         <td className="px-4 py-3.5 font-bold text-amber-800 whitespace-nowrap">
-                                            {ret.return_no}
+                                            {isBn ? toBn(ret.return_no) : ret.return_no}
                                         </td>
                                         <td className="px-4 py-3.5 text-gray-700 font-medium whitespace-nowrap">
-                                            {ret.return_date ? String(ret.return_date).substring(0, 10) : '—'}
+                                            {ret.return_date ? (isBn ? toBn(String(ret.return_date).substring(0, 10)) : String(ret.return_date).substring(0, 10)) : '—'}
                                         </td>
                                         <td className="px-4 py-3.5 font-bold text-indigo-700 whitespace-nowrap">
-                                            {ret.sale?.invoice_no || '—'}
+                                            {isBn ? toBn(ret.sale?.invoice_no || '—') : (ret.sale?.invoice_no || '—')}
                                         </td>
                                         <td className="px-4 py-3.5 whitespace-nowrap">
-                                            <div className="font-bold text-gray-900">{ret.customer?.name || ret.sale?.customer?.name || 'Walk-in'}</div>
-                                            <div className="text-xs text-gray-500">{ret.customer?.phone || ret.sale?.customer?.phone || ''}</div>
+                                            <div className="font-bold text-gray-900">{ret.customer?.name || ret.sale?.customer?.name || (isBn ? 'সরাসরি ক্রেতা' : 'Walk-in')}</div>
+                                            <div className="text-xs text-gray-500">{isBn ? toBn(ret.customer?.phone || ret.sale?.customer?.phone || '') : (ret.customer?.phone || ret.sale?.customer?.phone || '')}</div>
                                         </td>
                                         <td className="px-4 py-3.5 text-right font-black text-rose-600 whitespace-nowrap">
-                                            ৳ {fmtBDT(ret.refund_amount)}
+                                            BDT {isBn ? toBn(fmtBDT(ret.refund_amount)) : fmtBDT(ret.refund_amount)}
                                         </td>
                                         <td className="px-4 py-3.5 text-gray-600 text-xs max-w-xs truncate">
-                                            {ret.reason || 'Customer Return'}
+                                            {t(ret.reason) || ret.reason || (isBn ? 'গ্রাহক ফেরত' : 'Customer Return')}
                                         </td>
                                         <td className="px-4 py-3.5 text-center whitespace-nowrap">
                                             <span className="px-2.5 py-0.5 text-xs font-bold text-emerald-700 bg-emerald-50 rounded-full border border-emerald-200">
-                                                Completed
+                                                {t('Completed')}
                                             </span>
                                         </td>
                                         <td className="px-4 py-3.5 text-center whitespace-nowrap">
@@ -212,10 +216,8 @@ export default function Index({ returns = {}, sales = [], filters = {} }) {
                                                         onClick={() => openViewModal(ret)}
                                                         className="w-full text-left px-3.5 py-2 text-gray-800 hover:bg-amber-50 flex items-center gap-2 cursor-pointer"
                                                     >
-                                                        <Eye className="w-4 h-4 text-gray-500" /> View
+                                                        <Eye className="w-4 h-4 text-gray-500" /> {t('View')}
                                                     </button>
-
-
 
                                                     {/* Delete */}
                                                     <button
@@ -223,7 +225,7 @@ export default function Index({ returns = {}, sales = [], filters = {} }) {
                                                         onClick={() => handleDeleteReturn(ret.id)}
                                                         className="w-full text-left px-3.5 py-2 text-rose-600 hover:bg-rose-50 flex items-center gap-2 border-t border-gray-100 cursor-pointer"
                                                     >
-                                                        <Trash2 className="w-4 h-4 text-rose-500" /> Delete
+                                                        <Trash2 className="w-4 h-4 text-rose-500" /> {t('Delete')}
                                                     </button>
                                                 </Dropdown.Content>
                                             </Dropdown>
@@ -233,7 +235,7 @@ export default function Index({ returns = {}, sales = [], filters = {} }) {
                             ) : (
                                 <tr>
                                     <td colSpan="8" className="px-4 py-12 text-center text-gray-400 font-semibold">
-                                        No sale return vouchers found.
+                                        {t('No sale return vouchers found.')}
                                     </td>
                                 </tr>
                             )}

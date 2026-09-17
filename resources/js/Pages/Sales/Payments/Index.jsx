@@ -4,6 +4,7 @@ import { Head, useForm, router } from '@inertiajs/react';
 import Pagination from '@/Components/Pagination';
 import Modal from '@/Components/Modal';
 import Dropdown from '@/Components/Dropdown';
+import { useLanguage } from '@/Context/LanguageContext';
 import { 
     CreditCard, Plus, Search, DollarSign, Calendar, 
     CheckCircle2, Clock, Trash2, X, Receipt, Building,
@@ -14,6 +15,9 @@ const fmtBDT = (val) =>
     Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function Index({ payments = {}, dueSales = [], stats = {}, filters = {} }) {
+    const { t, lang, toBn } = useLanguage();
+    const isBn = lang === 'bn';
+
     const [search, setSearch] = useState(filters.search || '');
     const [historyDate, setHistoryDate] = useState(filters.date || '');
     
@@ -92,7 +96,7 @@ export default function Index({ payments = {}, dueSales = [], stats = {}, filter
         setData({
             ...data,
             sale_id: saleId,
-            amount: due > 0 ? due.toFixed(2) : '',
+            amount: due > 0 ? (Number.isInteger(due) ? String(due) : String(Number(due.toFixed(2)))) : '',
         });
     };
 
@@ -128,14 +132,14 @@ export default function Index({ payments = {}, dueSales = [], stats = {}, filter
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
                         <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                            <CreditCard className="w-7 h-7 text-[#E88A1A]" />
-                            Due Collection
+                            <CreditCard className="w-7 h-7 text-[#b17633]" />
+                            {t('dueCollection') || t('Due Collection')}
                         </h2>
                     </div>
                 </div>
             }
         >
-            <Head title="Due Collection" />
+            <Head title={t('dueCollection') || t('Due Collection')} />
 
             <div className="flex flex-col xl:flex-row gap-6 mb-10 items-start">
                 
@@ -145,19 +149,19 @@ export default function Index({ payments = {}, dueSales = [], stats = {}, filter
                     {/* Stats Summary (Compact) */}
                     <div className="grid grid-cols-2 gap-3">
                         <div className="bg-white p-3.5 rounded-xl border border-rose-100 shadow-sm">
-                            <span className="text-[10px] font-bold uppercase text-gray-500 block mb-0.5">Total Outstanding Due</span>
-                            <span className="text-lg font-black text-rose-600">৳ {fmtBDT(stats?.outstanding_due)}</span>
+                            <span className="text-[10px] font-bold uppercase text-gray-500 block mb-0.5">{t('Total Outstanding Due')}</span>
+                            <span className="text-lg font-black text-rose-600">৳ {isBn ? toBn(fmtBDT(stats?.outstanding_due)) : fmtBDT(stats?.outstanding_due)}</span>
                         </div>
                         <div className="bg-white p-3.5 rounded-xl border border-emerald-100 shadow-sm">
-                            <span className="text-[10px] font-bold uppercase text-gray-500 block mb-0.5">Total Collected</span>
-                            <span className="text-lg font-black text-emerald-700">৳ {fmtBDT(stats?.total_collected)}</span>
+                            <span className="text-[10px] font-bold uppercase text-gray-500 block mb-0.5">{t('Total Collected')}</span>
+                            <span className="text-lg font-black text-emerald-700">৳ {isBn ? toBn(fmtBDT(stats?.total_collected)) : fmtBDT(stats?.total_collected)}</span>
                         </div>
                     </div>
 
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                        <div className="bg-amber-50 px-5 py-4 border-b border-amber-100 flex items-center gap-2">
-                            <CreditCard className="w-5 h-5 text-amber-700" />
-                            <h3 className="font-bold text-amber-900 text-lg">Receive Due Payment</h3>
+                        <div className="bg-amber-50/70 px-5 py-4 border-b border-amber-100 flex items-center gap-2">
+                            <CreditCard className="w-5 h-5 text-[#b17633]" />
+                            <h3 className="font-bold text-amber-950 text-lg">{t('Receive Due Payment')}</h3>
                         </div>
                         
                         <form onSubmit={handleSubmit} className="p-5 space-y-5">
@@ -165,7 +169,7 @@ export default function Index({ payments = {}, dueSales = [], stats = {}, filter
                             {/* 1. Search & Select Customer */}
                             <div className="space-y-3 relative">
                                 <div>
-                                    <label className="block text-xs font-bold uppercase text-gray-700 mb-1">Search Customer / Invoice</label>
+                                    <label className="block text-xs font-bold uppercase text-gray-700 mb-1">{t('Search Customer / Invoice')}</label>
                                     <div className="relative">
                                         <Search className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
                                         <input
@@ -181,8 +185,8 @@ export default function Index({ payments = {}, dueSales = [], stats = {}, filter
                                             }}
                                             onFocus={() => setIsDropdownOpen(true)}
                                             onBlur={() => setTimeout(() => setIsDropdownOpen(false), 200)}
-                                            placeholder="Mobile, Name, Address, or Invoice No..."
-                                            className="w-full pl-9 text-sm rounded-xl border-gray-300 focus:border-amber-500 py-2 transition-all"
+                                            placeholder={t('Mobile, Name, Address, or Invoice No...')}
+                                            className="w-full pl-9 text-sm rounded-xl border-gray-300 focus:border-[#b17633] focus:ring-[#b17633]/20 py-2 transition-all"
                                         />
                                         
                                         {/* Autocomplete Dropdown */}
@@ -202,21 +206,21 @@ export default function Index({ payments = {}, dueSales = [], stats = {}, filter
                                                             {c.photo ? (
                                                                 <img src={`/storage/${c.photo}`} alt={c.name} className="w-10 h-10 rounded-full object-cover border border-gray-200" />
                                                             ) : (
-                                                                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 font-bold border border-amber-200">
+                                                                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-800 font-bold border border-amber-200">
                                                                     {c.name ? c.name.charAt(0).toUpperCase() : 'C'}
                                                                 </div>
                                                             )}
                                                             <div>
                                                                 <div className="font-bold text-gray-900">{c.name}</div>
                                                                 <div className="text-xs text-gray-500 flex items-center gap-2 mt-0.5">
-                                                                    <span className="flex items-center"><Phone className="w-3 h-3 mr-0.5"/>{c.phone || 'N/A'}</span>
+                                                                    <span className="flex items-center"><Phone className="w-3 h-3 mr-0.5"/>{c.phone ? (isBn ? toBn(c.phone) : c.phone) : 'N/A'}</span>
                                                                     <span className="flex items-center"><MapPin className="w-3 h-3 mr-0.5"/>{c.address || 'N/A'}</span>
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     ))
                                                 ) : (
-                                                    <div className="px-4 py-3 text-sm text-gray-500">No matching customers found.</div>
+                                                    <div className="px-4 py-3 text-sm text-gray-500">{t('No matching customers found.')}</div>
                                                 )}
                                             </div>
                                         )}
@@ -232,14 +236,14 @@ export default function Index({ payments = {}, dueSales = [], stats = {}, filter
                                             {selectedCustomer.photo ? (
                                                 <img src={`/storage/${selectedCustomer.photo}`} alt={selectedCustomer.name} className="w-12 h-12 rounded-full object-cover border border-gray-200" />
                                             ) : (
-                                                <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 font-bold border border-amber-200 text-lg flex-shrink-0">
+                                                <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-800 font-bold border border-amber-200 text-lg flex-shrink-0">
                                                     {selectedCustomer.name ? selectedCustomer.name.charAt(0).toUpperCase() : 'C'}
                                                 </div>
                                             )}
                                             <div className="text-sm">
-                                                <span className="font-bold text-gray-900 block">{selectedCustomer.name || 'Walk-in'}</span>
+                                                <span className="font-bold text-gray-900 block">{selectedCustomer.name || t('Walk-in')}</span>
                                                 <span className="text-gray-500 flex items-center gap-1 text-xs mt-0.5">
-                                                    <Phone className="w-3 h-3" /> {selectedCustomer.phone || 'N/A'}
+                                                    <Phone className="w-3 h-3" /> {selectedCustomer.phone ? (isBn ? toBn(selectedCustomer.phone) : selectedCustomer.phone) : 'N/A'}
                                                 </span>
                                                 <span className="text-gray-500 flex items-start gap-1 text-xs mt-0.5">
                                                     <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" /> <span className="line-clamp-2 leading-tight">{selectedCustomer.address || 'N/A'}</span>
@@ -247,23 +251,23 @@ export default function Index({ payments = {}, dueSales = [], stats = {}, filter
                                             </div>
                                         </div>
                                         <div className="text-right flex-shrink-0">
-                                            <span className="text-[10px] font-bold text-gray-500 uppercase block">Total Due</span>
-                                            <span className="font-black text-rose-600 text-lg">৳ {fmtBDT(customerTotalDue)}</span>
+                                            <span className="text-[10px] font-bold text-gray-500 uppercase block">{t('Total Due')}</span>
+                                            <span className="font-black text-rose-600 text-lg">৳ {isBn ? toBn(fmtBDT(customerTotalDue)) : fmtBDT(customerTotalDue)}</span>
                                         </div>
                                     </div>
 
                                     <div className="mt-2">
-                                        <label className="block text-xs font-bold uppercase text-gray-700 mb-1">Select Invoice to Pay *</label>
+                                        <label className="block text-xs font-bold uppercase text-gray-700 mb-1">{t('Select Invoice to Pay *')}</label>
                                         <select
                                             required
                                             value={data.sale_id}
                                             onChange={(e) => handleSelectSale(e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm font-semibold text-gray-800 focus:ring-2 focus:ring-amber-500/20"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm font-semibold text-gray-800 focus:ring-2 focus:ring-[#b17633]/20 focus:border-[#b17633]"
                                         >
-                                            <option value="">-- Choose Invoice --</option>
+                                            <option value="">{t('-- Choose Invoice --')}</option>
                                             {customerDueSales.map((s) => (
                                                 <option key={s.id} value={s.id}>
-                                                    {s.invoice_no} (Due: ৳{fmtBDT(s.due_amount)})
+                                                    {isBn ? toBn(s.invoice_no) : s.invoice_no} ({t('Due')}: ৳{isBn ? toBn(fmtBDT(s.due_amount)) : fmtBDT(s.due_amount)})
                                                 </option>
                                             ))}
                                         </select>
@@ -274,8 +278,8 @@ export default function Index({ payments = {}, dueSales = [], stats = {}, filter
                                     {/* Show specific invoice details if selected */}
                                     {selectedSale && (
                                         <div className="flex items-center justify-between pt-3 border-t border-gray-200 mt-3">
-                                            <span className="text-sm font-bold text-gray-700">Invoice {selectedSale.invoice_no} Due:</span>
-                                            <span className="font-black text-rose-600 text-lg">৳ {fmtBDT(selectedSale.due_amount)}</span>
+                                            <span className="text-sm font-bold text-gray-700">{t('Invoice')} {isBn ? toBn(selectedSale.invoice_no) : selectedSale.invoice_no} {t('Due')}:</span>
+                                            <span className="font-black text-rose-600 text-lg">৳ {isBn ? toBn(fmtBDT(selectedSale.due_amount)) : fmtBDT(selectedSale.due_amount)}</span>
                                         </div>
                                     )}
                                 </div>
@@ -284,25 +288,37 @@ export default function Index({ payments = {}, dueSales = [], stats = {}, filter
                             {/* Payment Form Fields */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold uppercase text-gray-700 mb-1">Payment Date *</label>
+                                    <label className="block text-xs font-bold uppercase text-gray-700 mb-1">{t('Payment Date *')}</label>
                                     <input
                                         type="date"
                                         required
                                         value={data.payment_date}
                                         onChange={(e) => setData('payment_date', e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm font-semibold text-gray-800"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm font-semibold text-gray-800 focus:border-[#b17633] focus:ring-[#b17633]/20"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold uppercase text-emerald-700 mb-1">Amount (৳) *</label>
+                                    <label className="block text-xs font-bold uppercase text-emerald-700 mb-1">{t('Amount (৳) *')}</label>
                                     <input
                                         type="number"
-                                        step="0.01"
+                                        step="any"
                                         required
                                         value={data.amount}
-                                        onChange={(e) => setData('amount', e.target.value)}
-                                        placeholder="0.00"
-                                        className="w-full px-3 py-2 border border-emerald-300 rounded-xl text-sm font-bold text-emerald-900 focus:ring-emerald-500"
+                                        onFocus={(e) => {
+                                            if (e.target.value === '0' || e.target.value === '0.00' || e.target.value === '০') {
+                                                setData('amount', '');
+                                            }
+                                        }}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val.startsWith('0') && val.length > 1 && !val.startsWith('0.')) {
+                                                setData('amount', val.replace(/^0+/, ''));
+                                            } else {
+                                                setData('amount', val);
+                                            }
+                                        }}
+                                        placeholder={isBn ? '০' : '0'}
+                                        className="w-full px-3 py-2 border border-emerald-300 rounded-xl text-sm font-bold text-emerald-900 focus:ring-emerald-500 focus:border-emerald-500"
                                     />
                                     {errors.amount && <p className="text-[10px] text-rose-500 mt-1">{errors.amount}</p>}
                                 </div>
@@ -310,48 +326,51 @@ export default function Index({ payments = {}, dueSales = [], stats = {}, filter
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold uppercase text-gray-700 mb-1">Method *</label>
+                                    <label className="block text-xs font-bold uppercase text-gray-700 mb-1">{t('Method *')}</label>
                                     <select
                                         value={data.payment_method}
                                         onChange={(e) => setData('payment_method', e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm font-semibold text-gray-800"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm font-semibold text-gray-800 focus:border-[#b17633] focus:ring-[#b17633]/20"
                                     >
-                                        <option value="cash">Cash</option>
-                                        <option value="bank">Bank Transfer</option>
-                                        <option value="card">Card / POS</option>
-                                        <option value="mobile_money">Mobile Money</option>
+                                        <option value="cash">{t('Cash')}</option>
+                                        <option value="bank">{t('Bank Transfer')}</option>
+                                        <option value="card">{t('Card / POS')}</option>
+                                        <option value="mobile_money">{t('Mobile Money')}</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold uppercase text-gray-700 mb-1">Reference / Trx ID</label>
+                                    <label className="block text-xs font-bold uppercase text-gray-700 mb-1">{t('Reference / Trx ID')}</label>
                                     <input
                                         type="text"
                                         value={data.reference_no}
                                         onChange={(e) => setData('reference_no', e.target.value)}
-                                        placeholder="Optional"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm text-gray-800"
+                                        placeholder={t('Optional')}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm text-gray-800 focus:border-[#b17633] focus:ring-[#b17633]/20"
                                     />
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold uppercase text-gray-700 mb-1">Notes</label>
+                                <label className="block text-xs font-bold uppercase text-gray-700 mb-1">{t('Notes')}</label>
                                 <textarea
                                     rows="2"
                                     value={data.notes}
                                     onChange={(e) => setData('notes', e.target.value)}
-                                    placeholder="Remarks..."
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm text-gray-800"
+                                    placeholder={t('Remarks...')}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm text-gray-800 focus:border-[#b17633] focus:ring-[#b17633]/20"
                                 />
                             </div>
 
                             <button
                                 type="submit"
                                 disabled={processing || !data.sale_id}
-                                className="w-full py-3 bg-[#E88A1A] hover:bg-amber-600 text-white rounded-xl text-sm font-black shadow-md transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                style={{ backgroundColor: 'rgb(177, 118, 51)' }}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgb(155, 100, 40)'}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgb(177, 118, 51)'}
+                                className="w-full py-3 text-white rounded-xl text-sm font-black shadow-md transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
                                 <CheckCircle2 className="w-5 h-5" />
-                                {processing ? 'Recording...' : 'Record Payment'}
+                                {processing ? t('Recording...') : t('Record Payment')}
                             </button>
                         </form>
                     </div>
@@ -370,8 +389,8 @@ export default function Index({ payments = {}, dueSales = [], stats = {}, filter
                                         type="text"
                                         value={search}
                                         onChange={(e) => setSearch(e.target.value)}
-                                        placeholder="Search history by name, mobile, address..."
-                                        className="w-full pl-9 text-sm rounded-xl border-gray-300 focus:border-[#E88A1A] py-2"
+                                        placeholder={t('Search history by name, mobile, address...')}
+                                        className="w-full pl-9 text-sm rounded-xl border-gray-300 focus:border-[#b17633] focus:ring-[#b17633]/20 py-2"
                                     />
                                 </div>
                             </div>
@@ -380,20 +399,20 @@ export default function Index({ payments = {}, dueSales = [], stats = {}, filter
                                     type="date"
                                     value={historyDate}
                                     onChange={(e) => setHistoryDate(e.target.value)}
-                                    className="w-full text-sm rounded-xl border-gray-300 focus:border-[#E88A1A] py-2"
+                                    className="w-full text-sm rounded-xl border-gray-300 focus:border-[#b17633] focus:ring-[#b17633]/20 py-2"
                                 />
                             </div>
                             <button
                                 type="submit"
                                 className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-xl text-sm font-semibold transition cursor-pointer"
                             >
-                                Filter
+                                {t('Filter')}
                             </button>
                             <button
                                 type="button"
                                 onClick={handleReset}
                                 className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-xl text-sm font-semibold transition cursor-pointer"
-                                title="Reset Filter"
+                                title={t('Reset Filter')}
                             >
                                 <RotateCcw className="w-4 h-4" />
                             </button>
@@ -404,7 +423,7 @@ export default function Index({ payments = {}, dueSales = [], stats = {}, filter
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 flex-1 pb-32">
                         <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
                             <Clock className="w-5 h-5 text-gray-400" />
-                            Payment Receive History
+                            {t('Payment Receive History')}
                         </h3>
                         
                         {/* Mobile Responsive Overflow wrapper */}
@@ -412,44 +431,44 @@ export default function Index({ payments = {}, dueSales = [], stats = {}, filter
                                 <table className="w-full text-sm text-left">
                                     <thead className="bg-gray-50 text-gray-700">
                                         <tr>
-                                            <th className="px-4 py-3 font-bold rounded-tl-lg">Date</th>
-                                            <th className="px-4 py-3 font-bold">Invoice</th>
-                                            <th className="px-4 py-3 font-bold">Customer Detail</th>
-                                            <th className="px-4 py-3 font-bold text-right">Collected</th>
-                                            <th className="px-4 py-3 font-bold text-right">Balance Due</th>
-                                            <th className="px-4 py-3 font-bold text-center rounded-tr-lg">Action</th>
+                                            <th className="px-4 py-3 font-bold rounded-tl-lg">{t('Date')}</th>
+                                            <th className="px-4 py-3 font-bold">{t('Invoice')}</th>
+                                            <th className="px-4 py-3 font-bold">{t('Customer Detail')}</th>
+                                            <th className="px-4 py-3 font-bold text-right">{t('Collected')}</th>
+                                            <th className="px-4 py-3 font-bold text-right">{t('Balance Due')}</th>
+                                            <th className="px-4 py-3 font-bold text-center rounded-tr-lg">{t('Action')}</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
                                         {payments.data && payments.data.length > 0 ? (
                                             payments.data.map((pay, idx) => {
-                                                const customerName = pay.customer?.name || pay.sale?.customer?.name || 'Walk-in';
+                                                const customerName = pay.customer?.name || pay.sale?.customer?.name || t('Walk-in');
                                                 const customerPhone = pay.customer?.phone || pay.sale?.customer?.phone || '—';
                                                 const currentDue = Number(pay.sale?.due_amount || 0);
 
                                                 return (
                                                     <tr key={pay.id} className="hover:bg-gray-50/50 transition-colors">
                                                         <td className="px-4 py-3 text-gray-700 font-medium whitespace-nowrap">
-                                                            {pay.payment_date ? String(pay.payment_date).substring(0, 10) : '—'}
+                                                            {pay.payment_date ? (isBn ? toBn(String(pay.payment_date).substring(0, 10)) : String(pay.payment_date).substring(0, 10)) : '—'}
                                                         </td>
                                                         <td className="px-4 py-3 font-bold text-indigo-700 whitespace-nowrap">
-                                                            {pay.sale?.invoice_no || '—'}
+                                                            {pay.sale?.invoice_no ? (isBn ? toBn(pay.sale.invoice_no) : pay.sale.invoice_no) : '—'}
                                                         </td>
                                                         <td className="px-4 py-3 whitespace-nowrap">
                                                             <div className="font-bold text-gray-900">{customerName}</div>
-                                                            <div className="text-xs text-gray-500 font-mono">{customerPhone}</div>
+                                                            <div className="text-xs text-gray-500 font-mono">{customerPhone !== '—' && isBn ? toBn(customerPhone) : customerPhone}</div>
                                                         </td>
                                                         <td className="px-4 py-3 text-right font-black text-emerald-700 whitespace-nowrap">
-                                                            ৳ {fmtBDT(pay.amount)}
+                                                            ৳ {isBn ? toBn(fmtBDT(pay.amount)) : fmtBDT(pay.amount)}
                                                         </td>
                                                         <td className="px-4 py-3 text-right whitespace-nowrap">
                                                             {currentDue > 0 ? (
                                                                 <span className="font-black text-rose-600">
-                                                                    ৳ {fmtBDT(currentDue)}
+                                                                    ৳ {isBn ? toBn(fmtBDT(currentDue)) : fmtBDT(currentDue)}
                                                                 </span>
                                                             ) : (
                                                                 <span className="px-2 py-0.5 text-[10px] font-bold text-emerald-800 bg-emerald-100 rounded-full">
-                                                                    Paid
+                                                                    {t('Paid')}
                                                                 </span>
                                                             )}
                                                         </td>
@@ -458,30 +477,30 @@ export default function Index({ payments = {}, dueSales = [], stats = {}, filter
                                                                 <Dropdown.Trigger>
                                                                     <button
                                                                         type="button"
-                                                                        className="inline-flex items-center px-3 py-1 border border-amber-300 rounded-xl text-xs font-bold text-amber-800 bg-white hover:bg-amber-50 cursor-pointer shadow-xs"
+                                                                        className="inline-flex items-center px-3 py-1 border border-[#00b4d8] rounded-full text-[13px] font-medium text-[#00b4d8] bg-white hover:bg-[#00b4d8]/10 focus:outline-none transition ease-in-out duration-150 cursor-pointer"
                                                                     >
-                                                                        Options
-                                                                        <svg className="ml-1 -mr-0.5 h-3.5 w-3.5 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                                                        {t('Actions')}
+                                                                        <svg className="ml-1.5 -mr-0.5 h-3.5 w-3.5 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                                                                             <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                                                                         </svg>
                                                                     </button>
                                                                 </Dropdown.Trigger>
 
-                                                                <Dropdown.Content align="right" className="w-40 py-1 bg-white border border-gray-200 shadow-xl z-[9999]">
+                                                                <Dropdown.Content align="right" width="48">
                                                                     <button
                                                                         type="button"
                                                                         onClick={(e) => { e.stopPropagation(); openReceiptModal(pay); }}
-                                                                        className="w-full text-left px-3.5 py-2 text-gray-800 hover:bg-amber-50 flex items-center gap-2 cursor-pointer font-semibold text-xs"
+                                                                        className="block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 hover:bg-gray-100 focus:outline-none flex items-center gap-2 cursor-pointer font-semibold"
                                                                     >
-                                                                        <Eye className="w-4 h-4 text-gray-500" /> View Receipt
+                                                                        <Eye className="w-4 h-4 text-gray-500" /> {t('View Receipt')}
                                                                     </button>
 
                                                                     <button
                                                                         type="button"
                                                                         onClick={(e) => { e.stopPropagation(); handleDeletePayment(pay.id); }}
-                                                                        className="w-full text-left px-3.5 py-2 text-rose-600 hover:bg-rose-50 flex items-center gap-2 border-t border-gray-100 cursor-pointer font-semibold text-xs"
+                                                                        className="block w-full px-4 py-2 text-start text-sm leading-5 text-rose-600 hover:bg-rose-50 focus:outline-none flex items-center gap-2 border-t border-gray-100 cursor-pointer font-semibold"
                                                                     >
-                                                                        <Trash2 className="w-4 h-4 text-rose-500" /> Delete
+                                                                        <Trash2 className="w-4 h-4 text-rose-500" /> {t('Delete')}
                                                                     </button>
                                                                 </Dropdown.Content>
                                                             </Dropdown>
@@ -492,7 +511,7 @@ export default function Index({ payments = {}, dueSales = [], stats = {}, filter
                                         ) : (
                                             <tr>
                                                 <td colSpan="6" className="px-4 py-12 text-center text-gray-400 font-semibold">
-                                                    No history found.
+                                                    {t('No history found.')}
                                                 </td>
                                             </tr>
                                         )}
@@ -518,7 +537,7 @@ export default function Index({ payments = {}, dueSales = [], stats = {}, filter
                             <div className="flex items-center gap-2">
                                 <Receipt className="w-5 h-5 text-emerald-600" />
                                 <h3 className="text-base font-black text-gray-900">
-                                    Due Collection Receipt
+                                    {t('Due Collection Receipt')}
                                 </h3>
                             </div>
                             <button
@@ -532,48 +551,48 @@ export default function Index({ payments = {}, dueSales = [], stats = {}, filter
 
                         <div className="bg-amber-50/60 p-4 rounded-2xl border border-amber-200 space-y-2">
                             <div className="flex justify-between">
-                                <span className="text-gray-500 font-bold">Payment Date:</span>
-                                <span className="font-extrabold text-gray-900">{selectedPayment.payment_date ? String(selectedPayment.payment_date).substring(0, 10) : '—'}</span>
+                                <span className="text-gray-500 font-bold">{t('Payment Date:')}</span>
+                                <span className="font-extrabold text-gray-900">{selectedPayment.payment_date ? (isBn ? toBn(String(selectedPayment.payment_date).substring(0, 10)) : String(selectedPayment.payment_date).substring(0, 10)) : '—'}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-500 font-bold">Invoice No:</span>
-                                <span className="font-extrabold text-indigo-700">{selectedPayment.sale?.invoice_no || '—'}</span>
+                                <span className="text-gray-500 font-bold">{t('Invoice No:')}</span>
+                                <span className="font-extrabold text-indigo-700">{selectedPayment.sale?.invoice_no ? (isBn ? toBn(selectedPayment.sale.invoice_no) : selectedPayment.sale.invoice_no) : '—'}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-500 font-bold">Customer Name:</span>
-                                <span className="font-bold text-gray-900">{selectedPayment.customer?.name || selectedPayment.sale?.customer?.name || 'Walk-in'}</span>
+                                <span className="text-gray-500 font-bold">{t('Customer Name:')}</span>
+                                <span className="font-bold text-gray-900">{selectedPayment.customer?.name || selectedPayment.sale?.customer?.name || t('Walk-in')}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-500 font-bold">Mobile:</span>
-                                <span className="font-mono text-gray-700">{selectedPayment.customer?.phone || selectedPayment.sale?.customer?.phone || '—'}</span>
+                                <span className="text-gray-500 font-bold">{t('Mobile:')}</span>
+                                <span className="font-mono text-gray-700">{(selectedPayment.customer?.phone || selectedPayment.sale?.customer?.phone) ? (isBn ? toBn(selectedPayment.customer?.phone || selectedPayment.sale?.customer?.phone) : (selectedPayment.customer?.phone || selectedPayment.sale?.customer?.phone)) : '—'}</span>
                             </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">
                             <div className="bg-gray-50 p-3 rounded-xl border border-gray-200">
-                                <span className="text-gray-500 font-bold block mb-0.5">Total Invoice Bill:</span>
-                                <span className="font-black text-gray-900 text-sm">৳ {fmtBDT(selectedPayment.sale?.grand_total)}</span>
+                                <span className="text-gray-500 font-bold block mb-0.5">{t('Total Invoice Bill:')}</span>
+                                <span className="font-black text-gray-900 text-sm">৳ {isBn ? toBn(fmtBDT(selectedPayment.sale?.grand_total)) : fmtBDT(selectedPayment.sale?.grand_total)}</span>
                             </div>
                             <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200">
-                                <span className="text-emerald-700 font-bold block mb-0.5">Collected Amount:</span>
-                                <span className="font-black text-emerald-800 text-sm">৳ {fmtBDT(selectedPayment.amount)}</span>
+                                <span className="text-emerald-700 font-bold block mb-0.5">{t('Collected Amount:')}</span>
+                                <span className="font-black text-emerald-800 text-sm">৳ {isBn ? toBn(fmtBDT(selectedPayment.amount)) : fmtBDT(selectedPayment.amount)}</span>
                             </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-3 text-xs">
                             <div className="bg-gray-50 p-3 rounded-xl border border-gray-200">
-                                <span className="text-gray-500 font-bold block">Payment Method:</span>
-                                <span className="font-extrabold text-gray-900 capitalize">{selectedPayment.payment_method?.replace('_', ' ')}</span>
+                                <span className="text-gray-500 font-bold block">{t('Payment Method:')}</span>
+                                <span className="font-extrabold text-gray-900 capitalize">{t(selectedPayment.payment_method?.replace('_', ' '))}</span>
                             </div>
                             <div className="bg-rose-50 p-3 rounded-xl border border-rose-200">
-                                <span className="text-rose-600 font-bold block">Remaining Due:</span>
-                                <span className="font-black text-rose-700">৳ {fmtBDT(selectedPayment.sale?.due_amount)}</span>
+                                <span className="text-rose-600 font-bold block">{t('Remaining Due:')}</span>
+                                <span className="font-black text-rose-700">৳ {isBn ? toBn(fmtBDT(selectedPayment.sale?.due_amount)) : fmtBDT(selectedPayment.sale?.due_amount)}</span>
                             </div>
                         </div>
 
                         {selectedPayment.reference_no && (
                             <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-200 text-xs">
-                                <span className="text-gray-500 font-bold">Reference / Trx: </span>
+                                <span className="text-gray-500 font-bold">{t('Reference / Trx:')} </span>
                                 <span className="font-bold text-gray-800">{selectedPayment.reference_no}</span>
                             </div>
                         )}
@@ -584,7 +603,7 @@ export default function Index({ payments = {}, dueSales = [], stats = {}, filter
                                 onClick={() => setIsReceiptOpen(false)}
                                 className="px-4 py-2 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 cursor-pointer"
                             >
-                                Close
+                                {t('Close')}
                             </button>
                         </div>
                     </div>

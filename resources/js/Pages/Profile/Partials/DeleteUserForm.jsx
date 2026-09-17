@@ -48,9 +48,9 @@ export default function DeleteUserForm({ className = '' }) {
                 <div>
                     <h3 className="text-sm font-bold text-rose-700 flex items-center gap-1.5">
                         <AlertTriangle className="w-4 h-4" />
-                        Danger Zone
+                        {t('dangerZone')}
                     </h3>
-                    <p className="text-xs text-gray-500 mt-0.5">Permanently delete your account and access</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{t('permanentlyDeleteAccount')}</p>
                 </div>
 
                 <button
@@ -59,18 +59,18 @@ export default function DeleteUserForm({ className = '' }) {
                     className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
                 >
                     <Trash2 className="w-4 h-4" />
-                    Delete Account
+                    {t('deleteAccount')}
                 </button>
             </div>
 
             <Modal show={confirmingUserDeletion} onClose={closeModal}>
                 <form onSubmit={deleteUser} className="p-6">
                     <h3 className="text-base font-bold text-gray-900">
-                        Confirm Account Deletion
+                        {t('confirmAccountDeletion')}
                     </h3>
 
                     <p className="mt-1 text-xs text-gray-500">
-                        Please enter your password to permanently delete your account.
+                        {t('enterPasswordToDelete')}
                     </p>
 
                     <div className="mt-4">
@@ -82,7 +82,7 @@ export default function DeleteUserForm({ className = '' }) {
                             value={data.password}
                             onChange={(e) => setData('password', e.target.value)}
                             className="w-full text-sm rounded-xl border-gray-300 focus:ring-rose-500 focus:border-rose-500"
-                            placeholder="Current Password"
+                            placeholder={t('currentPassword')}
                             required
                         />
                         {errors.password && <p className="text-xs text-rose-600 mt-1">{errors.password}</p>}
@@ -94,7 +94,7 @@ export default function DeleteUserForm({ className = '' }) {
                             onClick={closeModal}
                             className="px-4 py-2 text-xs font-bold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl transition cursor-pointer"
                         >
-                            Cancel
+                            {t('cancel')}
                         </button>
 
                         <button
@@ -102,7 +102,7 @@ export default function DeleteUserForm({ className = '' }) {
                             disabled={processing}
                             className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition shadow-sm cursor-pointer disabled:opacity-50"
                         >
-                            Delete Account
+                            {t('deleteAccount')}
                         </button>
                     </div>
                 </form>

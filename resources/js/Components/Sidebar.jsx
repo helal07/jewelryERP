@@ -74,7 +74,7 @@ const SidebarSubItem = ({ label, href, active }) => {
 };
 
 export default function Sidebar({ className = '' }) {
-    const { t } = useLanguage();
+    const { t, lang } = useLanguage();
     const scrollContainerRef = useRef(null);
 
     // Helper to gracefully check active routes without crashing if route is missing
@@ -155,7 +155,7 @@ export default function Sidebar({ className = '' }) {
                 ref={scrollContainerRef}
                 className="flex-1 overflow-y-auto overflow-x-hidden p-2.5 custom-scrollbar"
             >
-                <nav className="space-y-1">
+                <nav key={lang} className="space-y-1">
                     {/* 1. Dashboard */}
                     <SidebarItem 
                         icon={Home} 

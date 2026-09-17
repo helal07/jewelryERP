@@ -34,6 +34,11 @@ import VoriGramCalculator from '@/Components/VoriGramCalculator';
 
 // Gold Ribbon Stat Card Component (Reference Screenshot Style)
 const GoldRibbonCard = ({ value, title, subtitle }) => {
+    const { t, formatNumber, toBn, lang } = useLanguage();
+    const isBn = lang === 'bn';
+
+    const displayValue = isBn ? toBn(value) : value;
+
     return (
         <div className="bg-white rounded-md shadow-sm border border-gray-200/90 relative p-4 pl-14 flex flex-col justify-center min-h-[96px] hover:shadow-md transition-shadow">
             {/* Gold Ribbon Graphic on Left */}
@@ -48,14 +53,14 @@ const GoldRibbonCard = ({ value, title, subtitle }) => {
             {/* Card Content */}
             <div className="z-10 pl-2">
                 <div className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight leading-tight">
-                    {value}
+                    {displayValue}
                 </div>
                 <div className="text-xs font-bold text-gray-600 mt-1 uppercase tracking-wide">
-                    {title}
+                    {t(title)}
                 </div>
                 {subtitle && (
                     <div className="text-[10px] text-gray-400 font-medium mt-0.5">
-                        {subtitle}
+                        {t(subtitle)}
                     </div>
                 )}
             </div>
@@ -120,7 +125,7 @@ export default function Dashboard({ customers = [], products = [], branches = []
                         <GoldRibbonCard title="Total POS Sale" value="30,739,180.97" subtitle={isBn ? "২৮ টি মেমো" : "28 Invoices"} />
                         <GoldRibbonCard title="POS Sales Return" value="5,669,905.60" subtitle={isBn ? "৩ টি ফেরত" : "3 Returned Items"} />
                         <GoldRibbonCard title="Total Customer Order" value="24,532,648.91" subtitle={isBn ? "১৫ টি অর্ডার" : "15 Custom Orders"} />
-                        <GoldRibbonCard title="Stock Valuation (Metal)" value="92,599,532.63" subtitle={isBn ? "ভল্ট মেটাল" : "Vault Metal & Jewelry"} />
+                        <GoldRibbonCard title="Stock Valuation (Metal)" value="92,599,532.63" subtitle={isBn ? "ভল্ট মেটাল ও গহনা" : "Vault Metal & Jewelry"} />
                     </div>
                 </div>
 
@@ -158,11 +163,11 @@ export default function Dashboard({ customers = [], products = [], branches = []
                             <table className="w-full text-xs text-left text-gray-600">
                                 <thead className="bg-[#FEF9E7] text-gray-800 font-bold border-b border-gray-200">
                                     <tr>
-                                        <th className="py-2 px-3">Date</th>
-                                        <th className="py-2 px-3">Invoice No</th>
-                                        <th className="py-2 px-3">Customer</th>
-                                        <th className="py-2 px-3">Total Bill</th>
-                                        <th className="py-2 px-3">Status</th>
+                                        <th className="py-2 px-3">{t('date') || 'Date'}</th>
+                                        <th className="py-2 px-3">{t('invoiceNo') || 'Invoice No'}</th>
+                                        <th className="py-2 px-3">{t('customer') || 'Customer'}</th>
+                                        <th className="py-2 px-3">{t('grandTotal') || 'Total Bill'}</th>
+                                        <th className="py-2 px-3">{t('status') || 'Status'}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -197,11 +202,11 @@ export default function Dashboard({ customers = [], products = [], branches = []
                             <table className="w-full text-xs text-left text-gray-600">
                                 <thead className="bg-[#FEF9E7] text-gray-800 font-bold border-b border-gray-200">
                                     <tr>
-                                        <th className="py-2 px-3">Date</th>
-                                        <th className="py-2 px-3">Order No</th>
-                                        <th className="py-2 px-3">Customer</th>
-                                        <th className="py-2 px-3">Total Bill</th>
-                                        <th className="py-2 px-3">Due</th>
+                                        <th className="py-2 px-3">{t('date') || 'Date'}</th>
+                                        <th className="py-2 px-3">{t('orderNo') || 'Order No'}</th>
+                                        <th className="py-2 px-3">{t('customer') || 'Customer'}</th>
+                                        <th className="py-2 px-3">{t('grandTotal') || 'Total Bill'}</th>
+                                        <th className="py-2 px-3">{t('due') || 'Due'}</th>
                                     </tr>
                                 </thead>
                                 <tbody>

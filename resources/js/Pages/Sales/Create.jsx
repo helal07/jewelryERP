@@ -8,8 +8,19 @@ import {
     Scale, CreditCard, Coins, CheckCircle2, ShieldCheck, Printer
 } from 'lucide-react';
 import Modal from '@/Components/Modal';
+import { useLanguage } from '@/Context/LanguageContext';
+
+const cleanNumber = (val) => {
+    if (val === null || val === undefined) return '';
+    let str = String(val);
+    if (/^0+[0-9]/.test(str)) {
+        str = str.replace(/^0+/, '');
+    }
+    return str;
+};
 
 export default function Create({ customers = [], products = [], branches = [], autoInvoiceNo, defaultVatRate = 5, latestMetalPrices = {} }) {
+    const { t, lang, formatNumber, toBn } = useLanguage();
     // Local state for dynamic customer & product lists (allowing inline pop-up additions)
     const [customerList, setCustomerList] = useState(customers);
     const [productList, setProductList] = useState(products);
@@ -42,9 +53,9 @@ export default function Create({ customers = [], products = [], branches = [], a
         sku: '',
         purity_name: '22K Gold',
         gross_weight: '',
-        stone_weight: '0',
+        stone_weight: '',
         selling_price: '',
-        making_charge: '0',
+        making_charge: '',
     });
 
     const { data, setData, post, processing, errors } = useForm({
@@ -57,28 +68,29 @@ export default function Create({ customers = [], products = [], branches = [], a
             {
                 product_id: '',
                 gross_weight: '',
-                stone_weight: 0,
+                stone_weight: '',
                 net_weight: '',
                 rate_per_gram: '',
+                rate_per_vori: '',
                 making_charge_type: 'fixed',
-                making_charge: 0,
-                stone_charge: 0,
-                hallmark_charge: 0,
+                making_charge: '',
+                stone_charge: '',
+                hallmark_charge: '',
                 quantity: 1,
                 total_amount: 0,
             }
         ],
         subtotal: 0,
-        discount: 0,
+        discount: '',
         vat_type: 'percent',
         vat_rate: defaultVatRate,
         tax: 0,
         total_making_charge: 0,
         total_stone_charge: 0,
         total_hallmark_charge: 0,
-        old_gold_exchange_value: 0,
+        old_gold_exchange_value: '',
         grand_total: 0,
-        paid_amount: 0,
+        paid_amount: '',
     });
 
     const addItem = () => {
@@ -87,13 +99,14 @@ export default function Create({ customers = [], products = [], branches = [], a
             {
                 product_id: '',
                 gross_weight: '',
-                stone_weight: 0,
+                stone_weight: '',
                 net_weight: '',
                 rate_per_gram: '',
+                rate_per_vori: '',
                 making_charge_type: 'fixed',
-                making_charge: 0,
-                stone_charge: 0,
-                hallmark_charge: 0,
+                making_charge: '',
+                stone_charge: '',
+                hallmark_charge: '',
                 quantity: 1,
                 total_amount: 0,
             }
@@ -106,18 +119,21 @@ export default function Create({ customers = [], products = [], branches = [], a
         const net = Math.max(0, gross - stone);
         const rate = Number(prod.selling_price || 11500);
         const making = Number(prod.making_charge || 0);
-        const total = (net * rate) + making;
+        const stoneChg = Number(prod.stone_charge || 0);
+        const hallmarkChg = Number(prod.hallmark_charge || 0);
+        const total = (net * rate) + making + stoneChg + hallmarkChg;
 
         const newItem = {
             product_id: prod.id,
-            gross_weight: gross,
-            stone_weight: stone,
-            net_weight: net,
+            gross_weight: gross > 0 ? gross : '',
+            stone_weight: stone > 0 ? stone : '',
+            net_weight: net > 0 ? net : '',
             rate_per_gram: rate,
+            rate_per_vori: (rate * 11.664).toFixed(2),
             making_charge_type: 'fixed',
-            making_charge: making,
-            stone_charge: Number(prod.stone_charge || 0),
-            hallmark_charge: 0,
+            making_charge: making > 0 ? making : '',
+            stone_charge: stoneChg > 0 ? stoneChg : '',
+            hallmark_charge: hallmarkChg > 0 ? hallmarkChg : '',
             quantity: 1,
             total_amount: total,
         };
@@ -134,13 +150,14 @@ export default function Create({ customers = [], products = [], branches = [], a
             setData('items', [{
                 product_id: '',
                 gross_weight: '',
-                stone_weight: 0,
+                stone_weight: '',
                 net_weight: '',
                 rate_per_gram: '',
+                rate_per_vori: '',
                 making_charge_type: 'fixed',
-                making_charge: 0,
-                stone_charge: 0,
-                hallmark_charge: 0,
+                making_charge: '',
+                stone_charge: '',
+                hallmark_charge: '',
                 quantity: 1,
                 total_amount: 0,
             }]);
@@ -171,7 +188,7 @@ export default function Create({ customers = [], products = [], branches = [], a
             const making = Number(prod.making_charge_value || prod.making_charge || 0);
             const calculatedMaking = makingType === 'per_gram' ? (making * gross) : making;
             const stoneChg = Number(prod.stone_charge || 0);
-            const hallmarkChg = Number(prod.hallmark_charge || 0); // Assuming product might have it
+            const hallmarkChg = Number(prod.hallmark_charge || 0);
             
             const total = (net * ratePerGram) + calculatedMaking + stoneChg + hallmarkChg;
 
@@ -184,9 +201,9 @@ export default function Create({ customers = [], products = [], branches = [], a
                 rate_per_vori: ratePerVori > 0 ? ratePerVori.toFixed(2) : '',
                 rate_per_gram: ratePerGram,
                 making_charge_type: makingType,
-                making_charge: making,
-                stone_charge: stoneChg,
-                hallmark_charge: hallmarkChg,
+                making_charge: making > 0 ? making : '',
+                stone_charge: stoneChg > 0 ? stoneChg : '',
+                hallmark_charge: hallmarkChg > 0 ? hallmarkChg : '',
                 quantity: 1,
                 total_amount: total,
             };
@@ -197,7 +214,8 @@ export default function Create({ customers = [], products = [], branches = [], a
         setData('items', newItems);
     };
 
-    const handleVARPChange = (index, field, value) => {
+    const handleVARPChange = (index, field, rawValue) => {
+        const value = cleanNumber(rawValue);
         const newItems = [...data.items];
         newItems[index][field] = value;
 
@@ -215,7 +233,7 @@ export default function Create({ customers = [], products = [], branches = [], a
         const gross = Number(newItems[index].gross_weight || 0);
         const stone = Number(newItems[index].stone_weight || 0);
         const net = Math.max(0, gross - stone);
-        newItems[index].net_weight = net;
+        newItems[index].net_weight = net > 0 ? net : '';
 
         const rate = Number(newItems[index].rate_per_gram || 0);
         const makingType = newItems[index].making_charge_type || 'fixed';
@@ -230,7 +248,8 @@ export default function Create({ customers = [], products = [], branches = [], a
         setData('items', newItems);
     };
 
-    const handleItemChange = (index, field, value) => {
+    const handleItemChange = (index, field, rawValue) => {
+        const value = cleanNumber(rawValue);
         const newItems = [...data.items];
         newItems[index][field] = value;
 
@@ -242,13 +261,13 @@ export default function Create({ customers = [], products = [], branches = [], a
         }
 
         if (field === 'rate_per_vori') {
-            newItems[index].rate_per_gram = Number(value) / 11.664;
+            newItems[index].rate_per_gram = value ? (Number(value) / 11.664) : 0;
         }
 
         const gross = Number(newItems[index].gross_weight || 0);
         const stone = Number(newItems[index].stone_weight || 0);
         const net = Math.max(0, gross - stone);
-        newItems[index].net_weight = net;
+        newItems[index].net_weight = net > 0 ? net : '';
 
         const rate = Number(newItems[index].rate_per_gram || 0);
         const makingType = newItems[index].making_charge_type || 'fixed';
@@ -429,20 +448,28 @@ export default function Create({ customers = [], products = [], branches = [], a
             items: [{
                 product_id: '',
                 gross_weight: '',
-                stone_weight: '0',
+                stone_weight: '',
                 net_weight: '',
                 rate_per_gram: '',
-                making_charge: '0',
+                rate_per_vori: '',
+                making_charge_type: 'fixed',
+                making_charge: '',
+                stone_charge: '',
+                hallmark_charge: '',
                 quantity: 1,
                 total_amount: 0
             }],
             subtotal: 0,
-            discount: 0,
-            vat_percent: defaultVatRate || 5,
+            discount: '',
+            vat_type: 'percent',
+            vat_rate: defaultVatRate || 5,
             tax: 0,
-            old_gold_exchange_value: 0,
+            total_making_charge: 0,
+            total_stone_charge: 0,
+            total_hallmark_charge: 0,
+            old_gold_exchange_value: '',
             grand_total: 0,
-            paid_amount: 0
+            paid_amount: ''
         });
     };
 
@@ -461,8 +488,8 @@ export default function Create({ customers = [], products = [], branches = [], a
                     <div className="flex items-center gap-2">
                         <ShoppingBag className="w-5 h-5 text-amber-700" />
                         <div>
-                            <h2 className="text-lg font-black text-gray-900 tracking-tight">Add Sale</h2>
-                            <p className="text-[11px] text-gray-500 font-medium">Issue POS multi-product sales invoice</p>
+                            <h2 className="text-lg font-black text-gray-900 tracking-tight">{t('Add Sale')}</h2>
+                            <p className="text-[11px] text-gray-500 font-medium">{t('Issue POS multi-product sales invoice')}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -470,13 +497,13 @@ export default function Create({ customers = [], products = [], branches = [], a
                             href={route('sales.index')}
                             className="px-3 py-1.5 bg-white hover:bg-amber-50 border border-amber-200 text-gray-700 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
                         >
-                            <ArrowLeft className="w-3.5 h-3.5" /> Back to Sales List
+                            <ArrowLeft className="w-3.5 h-3.5" /> {t('Back to Sales List')}
                         </Link>
                     </div>
                 </div>
             }
         >
-            <Head title="Add Sale" />
+            <Head title={t('Add Sale')} />
 
             <div className="-m-6 p-4 sm:p-6 bg-[#FEF9E7] min-h-screen">
                 <div className="flex flex-col xl:flex-row gap-5 pb-20 items-start">
@@ -489,7 +516,7 @@ export default function Create({ customers = [], products = [], branches = [], a
                             <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
                                 {/* Invoice No */}
                                 <div>
-                                    <label className="block font-bold text-gray-700 mb-1">Invoice Number *</label>
+                                    <label className="block font-bold text-gray-700 mb-1">{t('Invoice / Bill No')} *</label>
                                     <input
                                         type="text"
                                         value={data.invoice_no}
@@ -501,7 +528,7 @@ export default function Create({ customers = [], products = [], branches = [], a
 
                                 {/* Date */}
                                 <div>
-                                    <label className="block font-bold text-gray-700 mb-1">Sale Date *</label>
+                                    <label className="block font-bold text-gray-700 mb-1">{t('Sale Date')} *</label>
                                     <input
                                         type="date"
                                         value={data.sale_date}
@@ -513,7 +540,7 @@ export default function Create({ customers = [], products = [], branches = [], a
 
                                 {/* Branch */}
                                 <div>
-                                    <label className="block font-bold text-gray-700 mb-1">Branch *</label>
+                                    <label className="block font-bold text-gray-700 mb-1">{t('Branch *')}</label>
                                     <select
                                         value={data.branch_id}
                                         onChange={(e) => setData('branch_id', e.target.value)}
@@ -528,7 +555,7 @@ export default function Create({ customers = [], products = [], branches = [], a
 
                                 {/* Customer Select + Add Customer Icon Button */}
                                 <div>
-                                    <label className="block font-bold text-gray-700 mb-1">Customer *</label>
+                                    <label className="block font-bold text-gray-700 mb-1">{t('Customer *')}</label>
                                     <div className="flex items-center gap-1.5">
                                         <select
                                             value={data.customer_id}
@@ -536,7 +563,7 @@ export default function Create({ customers = [], products = [], branches = [], a
                                             className="w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 text-xs py-1.5 font-medium"
                                             required
                                         >
-                                            <option value="">Select Customer</option>
+                                            <option value="">{t('Select Customer')}</option>
                                             {customerList.map(c => (
                                                 <option key={c.id} value={c.id}>{c.name} ({c.phone || 'No Phone'})</option>
                                             ))}
@@ -545,7 +572,7 @@ export default function Create({ customers = [], products = [], branches = [], a
                                             type="button"
                                             onClick={() => setIsCustomerModalOpen(true)}
                                             className="p-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors shadow-sm flex items-center justify-center flex-shrink-0 cursor-pointer"
-                                            title="Add New Customer Pop-Up"
+                                            title={t('Add New Customer')}
                                         >
                                             <UserPlus className="w-4 h-4" />
                                         </button>
@@ -561,7 +588,7 @@ export default function Create({ customers = [], products = [], branches = [], a
                                         onClick={addItem}
                                         className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1 rounded-lg text-xs font-bold transition-colors flex items-center gap-1 shadow-sm cursor-pointer"
                                     >
-                                        <Plus className="w-3.5 h-3.5" /> Add Row
+                                        <Plus className="w-3.5 h-3.5" /> {t('Add Row')}
                                     </button>
                                 </div>
 
@@ -579,7 +606,7 @@ export default function Create({ customers = [], products = [], branches = [], a
                                                         className="w-full rounded-lg border-gray-300 focus:border-amber-500 text-xs py-1.5 font-bold text-gray-900 bg-white"
                                                         required
                                                     >
-                                                        <option value="">Select Product Item *</option>
+                                                        <option value="">{t('Select Product Item *')}</option>
                                                         {productList.map(p => (
                                                             <option key={p.id} value={p.id}>{p.name} ({p.purity?.name || '22K'}) - ৳{Number(p.selling_price || 11500).toLocaleString()}/g</option>
                                                         ))}
@@ -588,7 +615,7 @@ export default function Create({ customers = [], products = [], branches = [], a
                                                         type="button"
                                                         onClick={() => setIsProductModalOpen(true)}
                                                         className="p-1.5 text-amber-700 bg-white hover:bg-amber-100 rounded-lg border border-amber-300 flex-shrink-0 cursor-pointer shadow-2xs"
-                                                        title="Add New Product Pop-Up"
+                                                        title={t('Add New Product')}
                                                     >
                                                         <PackagePlus className="w-4 h-4" />
                                                     </button>
@@ -597,8 +624,8 @@ export default function Create({ customers = [], products = [], branches = [], a
                                                 <button
                                                     type="button"
                                                     onClick={() => removeItem(idx)}
-                                                    className="p-1.5 text-gray-400 hover:text-rose-600 transition-colors rounded-lg hover:bg-rose-50"
-                                                    title="Remove Item"
+                                                    className="p-1.5 text-gray-400 hover:text-rose-600 transition-colors rounded-lg hover:bg-rose-50 cursor-pointer"
+                                                    title={t('Delete')}
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
@@ -608,44 +635,49 @@ export default function Create({ customers = [], products = [], branches = [], a
                                             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs bg-white p-2.5 rounded-lg border border-gray-200/80">
                                                 <div className="col-span-2 sm:col-span-2">
                                                     <label className="block text-[10px] font-bold text-gray-500 uppercase mb-0.5 flex justify-between">
-                                                        <span>Wt(V-A-R-P)</span>
-                                                        <span className="text-amber-700">Gross | Net(g)</span>
+                                                        <span>{t('Wt(V-A-R-P)')}</span>
+                                                        <span className="text-amber-700">{t('Gross | Net(g)')}</span>
                                                     </label>
                                                     <div className="flex gap-0.5">
-                                                        <input type="number" step="1" value={item.weight_vori||''} onChange={(e)=>handleVARPChange(idx,'weight_vori',e.target.value)} placeholder="V" className="w-[14%] rounded border-gray-300 py-1 text-center font-bold text-[10px] px-0.5" />
-                                                        <input type="number" step="1" value={item.weight_ana||''} onChange={(e)=>handleVARPChange(idx,'weight_ana',e.target.value)} placeholder="A" className="w-[14%] rounded border-gray-300 py-1 text-center font-bold text-[10px] px-0.5" />
-                                                        <input type="number" step="1" value={item.weight_roti||''} onChange={(e)=>handleVARPChange(idx,'weight_roti',e.target.value)} placeholder="R" className="w-[14%] rounded border-gray-300 py-1 text-center font-bold text-[10px] px-0.5" />
-                                                        <input type="number" step="1" value={item.weight_point||''} onChange={(e)=>handleVARPChange(idx,'weight_point',e.target.value)} placeholder="P" className="w-[14%] rounded border-gray-300 py-1 text-center font-bold text-[10px] px-0.5" />
-                                                        <input type="number" step="0.001" value={item.gross_weight} onChange={(e)=>handleItemChange(idx,'gross_weight',e.target.value)} placeholder="Gross" className="w-[22%] rounded border-amber-300 bg-amber-50 py-1 text-center font-black text-[10px] px-0.5" required />
-                                                        <input type="number" value={item.net_weight} readOnly placeholder="Net" className="w-[22%] rounded border-gray-200 bg-gray-50 text-gray-800 py-1 text-center font-bold text-[10px] px-0.5" />
+                                                        <input type="number" step="any" value={item.weight_vori ?? ''} onChange={(e)=>handleVARPChange(idx,'weight_vori',e.target.value)} onFocus={(e)=>e.target.select()} placeholder="V" className="w-[14%] rounded border-gray-300 py-1 text-center font-bold text-[10px] px-0.5" />
+                                                        <input type="number" step="any" value={item.weight_ana ?? ''} onChange={(e)=>handleVARPChange(idx,'weight_ana',e.target.value)} onFocus={(e)=>e.target.select()} placeholder="A" className="w-[14%] rounded border-gray-300 py-1 text-center font-bold text-[10px] px-0.5" />
+                                                        <input type="number" step="any" value={item.weight_roti ?? ''} onChange={(e)=>handleVARPChange(idx,'weight_roti',e.target.value)} onFocus={(e)=>e.target.select()} placeholder="R" className="w-[14%] rounded border-gray-300 py-1 text-center font-bold text-[10px] px-0.5" />
+                                                        <input type="number" step="any" value={item.weight_point ?? ''} onChange={(e)=>handleVARPChange(idx,'weight_point',e.target.value)} onFocus={(e)=>e.target.select()} placeholder="P" className="w-[14%] rounded border-gray-300 py-1 text-center font-bold text-[10px] px-0.5" />
+                                                        <input type="number" step="any" value={item.gross_weight ?? ''} onChange={(e)=>handleItemChange(idx,'gross_weight',e.target.value)} onFocus={(e)=>e.target.select()} placeholder="Gross" className="w-[22%] rounded border-amber-300 bg-amber-50 py-1 text-center font-black text-[10px] px-0.5" required />
+                                                        <input type="number" value={item.net_weight ?? ''} readOnly placeholder="Net" className="w-[22%] rounded border-gray-200 bg-gray-50 text-gray-800 py-1 text-center font-bold text-[10px] px-0.5" />
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-0.5">Rate/Vori *</label>
+                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-0.5">{t('Rate/Vori *')}</label>
                                                     <input
                                                         type="number"
-                                                        step="0.01"
-                                                        value={item.rate_per_vori}
+                                                        step="any"
+                                                        value={item.rate_per_vori ?? ''}
                                                         onChange={(e) => handleItemChange(idx, 'rate_per_vori', e.target.value)}
+                                                        onFocus={(e) => e.target.select()}
+                                                        placeholder="0"
                                                         className="w-full rounded-md border-gray-300 focus:border-amber-500 text-xs font-bold py-1 text-right"
                                                         required
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-0.5">Qty *</label>
+                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-0.5">{t('Qty *')}</label>
                                                     <input
                                                         type="number"
                                                         min="1"
-                                                        value={item.quantity}
+                                                        step="1"
+                                                        value={item.quantity ?? ''}
                                                         onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
+                                                        onFocus={(e) => e.target.select()}
+                                                        placeholder="1"
                                                         className="w-full rounded-md border-gray-300 focus:border-amber-500 text-xs font-bold text-center py-1"
                                                         required
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-[10px] font-bold text-amber-900 uppercase mb-0.5 text-right">Total (BDT)</label>
+                                                    <label className="block text-[10px] font-bold text-amber-900 uppercase mb-0.5 text-right">{t('Total (BDT)')}</label>
                                                     <div className="py-1 px-2 bg-amber-50 rounded-md border border-amber-200 text-right font-black text-gray-900 text-xs truncate">
-                                                        ৳ {Number(item.total_amount || 0).toLocaleString('en-US', {minimumFractionDigits: 0})}
+                                                        ৳ {formatNumber(item.total_amount || 0, {minimumFractionDigits: 0})}
                                                     </div>
                                                 </div>
                                             </div>
@@ -653,43 +685,49 @@ export default function Create({ customers = [], products = [], branches = [], a
                                             {/* ROW 3: Extra Charges (Mk Type, Making, Stone, Hallmark) */}
                                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-white p-2.5 rounded-lg border border-gray-200/80">
                                                 <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-0.5">Mk. Type</label>
+                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-0.5">{t('Mk. Type')}</label>
                                                     <select
                                                         value={item.making_charge_type}
                                                         onChange={(e) => handleItemChange(idx, 'making_charge_type', e.target.value)}
                                                         className="w-full rounded-md border-gray-300 focus:border-amber-500 text-xs py-1"
                                                     >
-                                                        <option value="fixed">Fixed</option>
-                                                        <option value="per_gram">Per Gram</option>
+                                                        <option value="fixed">{t('Fixed')}</option>
+                                                        <option value="per_gram">{t('Per Gram')}</option>
                                                     </select>
                                                 </div>
                                                 <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-0.5">Making (BDT)</label>
+                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-0.5">{t('Making (BDT)')}</label>
                                                     <input
                                                         type="number"
-                                                        step="0.01"
-                                                        value={item.making_charge}
+                                                        step="any"
+                                                        value={item.making_charge ?? ''}
                                                         onChange={(e) => handleItemChange(idx, 'making_charge', e.target.value)}
+                                                        onFocus={(e) => e.target.select()}
+                                                        placeholder="0"
                                                         className="w-full rounded-md border-gray-300 focus:border-amber-500 text-xs py-1 text-right"
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-0.5">Stone (BDT)</label>
+                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-0.5">{t('Stone (BDT)')}</label>
                                                     <input
                                                         type="number"
-                                                        step="0.01"
-                                                        value={item.stone_charge}
+                                                        step="any"
+                                                        value={item.stone_charge ?? ''}
                                                         onChange={(e) => handleItemChange(idx, 'stone_charge', e.target.value)}
+                                                        onFocus={(e) => e.target.select()}
+                                                        placeholder="0"
                                                         className="w-full rounded-md border-gray-300 focus:border-amber-500 text-xs py-1 text-right"
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-0.5">Hallmark (BDT)</label>
+                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-0.5">{t('Hallmark (BDT)')}</label>
                                                     <input
                                                         type="number"
-                                                        step="0.01"
-                                                        value={item.hallmark_charge}
+                                                        step="any"
+                                                        value={item.hallmark_charge ?? ''}
                                                         onChange={(e) => handleItemChange(idx, 'hallmark_charge', e.target.value)}
+                                                        onFocus={(e) => e.target.select()}
+                                                        placeholder="0"
                                                         className="w-full rounded-md border-gray-300 focus:border-amber-500 text-xs py-1 text-right"
                                                     />
                                                 </div>
@@ -705,36 +743,39 @@ export default function Create({ customers = [], products = [], branches = [], a
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="space-y-3">
                                         <div>
-                                            <label className="block font-semibold text-gray-700 mb-1">Old Gold Exchange Value (BDT)</label>
+                                            <label className="block font-semibold text-gray-700 mb-1">{t('Old Gold Exchange Value (BDT)')}</label>
                                             <input
                                                 type="number"
-                                                step="0.01"
-                                                value={data.old_gold_exchange_value}
-                                                onChange={(e) => setData('old_gold_exchange_value', e.target.value)}
+                                                step="any"
+                                                value={data.old_gold_exchange_value ?? ''}
+                                                onChange={(e) => setData('old_gold_exchange_value', cleanNumber(e.target.value))}
+                                                onFocus={(e) => e.target.select()}
                                                 className="w-full rounded-lg border-gray-300 focus:border-amber-500 text-xs font-bold text-amber-700 py-1.5"
-                                                placeholder="0.00"
+                                                placeholder="0"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block font-semibold text-gray-700 mb-1">Discount (BDT)</label>
+                                            <label className="block font-semibold text-gray-700 mb-1">{t('Discount (BDT)')}</label>
                                             <input
                                                 type="number"
-                                                step="0.01"
-                                                value={data.discount}
-                                                onChange={(e) => setData('discount', e.target.value)}
+                                                step="any"
+                                                value={data.discount ?? ''}
+                                                onChange={(e) => setData('discount', cleanNumber(e.target.value))}
+                                                onFocus={(e) => e.target.select()}
                                                 className="w-full rounded-lg border-gray-300 focus:border-amber-500 text-xs font-bold text-right py-1.5"
+                                                placeholder="0"
                                             />
                                         </div>
                                     </div>
 
                                     <div className="bg-[#FEF9E7] p-3.5 rounded-xl border border-amber-200/90 space-y-2.5">
                                         <div className="flex justify-between text-xs">
-                                            <span className="text-gray-600 font-semibold">Total Metal Price:</span>
-                                            <span className="font-bold text-gray-900">BDT {Number(Math.max(0, data.subtotal - data.total_making_charge - data.total_stone_charge - data.total_hallmark_charge)).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                                            <span className="text-gray-600 font-semibold">{t('Total Metal Price:')}</span>
+                                            <span className="font-bold text-gray-900">{lang === 'bn' ? '৳ ' : 'BDT '}{formatNumber(Math.max(0, data.subtotal - data.total_making_charge - data.total_stone_charge - data.total_hallmark_charge), {minimumFractionDigits: 2})}</span>
                                         </div>
                                         <div className="flex justify-between items-center text-xs">
                                             <div className="flex flex-col gap-1 w-1/2">
-                                                <span className="text-gray-700 font-bold">VAT On Metal:</span>
+                                                <span className="text-gray-700 font-bold">{t('VAT On Metal:')}</span>
                                                 <div className="flex items-center gap-1">
                                                     <select 
                                                         value={data.vat_type} 
@@ -742,53 +783,57 @@ export default function Create({ customers = [], products = [], branches = [], a
                                                         className="w-20 rounded-md border-amber-300 text-[10px] py-0.5 px-1"
                                                     >
                                                         <option value="percent">%</option>
-                                                        <option value="fixed_per_vori">Fixed/Vori</option>
+                                                        <option value="fixed_per_vori">{t('Fixed/Vori')}</option>
                                                     </select>
                                                     <input
                                                         type="number"
-                                                        step="0.01"
+                                                        step="any"
                                                         min="0"
-                                                        value={data.vat_rate}
-                                                        onChange={(e) => setData('vat_rate', e.target.value)}
+                                                        value={data.vat_rate ?? ''}
+                                                        onChange={(e) => setData('vat_rate', cleanNumber(e.target.value))}
+                                                        onFocus={(e) => e.target.select()}
+                                                        placeholder="0"
                                                         className="w-16 rounded-md border-amber-300 focus:border-amber-500 text-xs font-bold text-right py-0.5 px-1"
                                                     />
                                                 </div>
                                             </div>
                                             <div className="text-right w-1/2">
-                                                <span className="font-bold text-gray-900">BDT {Number(data.tax).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                                                <span className="font-bold text-gray-900">{lang === 'bn' ? '৳ ' : 'BDT '}{formatNumber(data.tax, {minimumFractionDigits: 2})}</span>
                                             </div>
                                         </div>
                                         <div className="flex justify-between text-xs">
-                                            <span className="text-gray-600 font-semibold">Stone:</span>
-                                            <span className="font-bold text-gray-900">BDT {Number(data.total_stone_charge).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                                            <span className="text-gray-600 font-semibold">{t('Stone:')}</span>
+                                            <span className="font-bold text-gray-900">{lang === 'bn' ? '৳ ' : 'BDT '}{formatNumber(data.total_stone_charge, {minimumFractionDigits: 2})}</span>
                                         </div>
                                         <div className="flex justify-between text-xs">
-                                            <span className="text-gray-600 font-semibold">Mk. Charge:</span>
-                                            <span className="font-bold text-gray-900">BDT {Number(data.total_making_charge).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                                            <span className="text-gray-600 font-semibold">{t('Mk. Charge:')}</span>
+                                            <span className="font-bold text-gray-900">{lang === 'bn' ? '৳ ' : 'BDT '}{formatNumber(data.total_making_charge, {minimumFractionDigits: 2})}</span>
                                         </div>
                                         <div className="flex justify-between text-xs">
-                                            <span className="text-gray-600 font-semibold">Hallmark:</span>
-                                            <span className="font-bold text-gray-900">BDT {Number(data.total_hallmark_charge).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                                            <span className="text-gray-600 font-semibold">{t('Hallmark:')}</span>
+                                            <span className="font-bold text-gray-900">{lang === 'bn' ? '৳ ' : 'BDT '}{formatNumber(data.total_hallmark_charge, {minimumFractionDigits: 2})}</span>
                                         </div>
                                         
                                         <div className="flex justify-between border-t border-amber-200 pt-2 text-sm font-black text-amber-900">
-                                            <span>Receivable Amount:</span>
-                                            <span>BDT {Number(data.grand_total).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                                            <span>{t('Receivable Amount:')}</span>
+                                            <span>{lang === 'bn' ? '৳ ' : 'BDT '}{formatNumber(data.grand_total, {minimumFractionDigits: 2})}</span>
                                         </div>
                                         <div className="flex justify-between items-center pt-1">
-                                            <span className="text-gray-700 font-bold">Paid Amount:</span>
+                                            <span className="text-gray-700 font-bold">{t('Paid Amount:')}</span>
                                             <input
                                                 type="number"
-                                                step="0.01"
-                                                value={data.paid_amount}
-                                                onChange={(e) => setData('paid_amount', e.target.value)}
+                                                step="any"
+                                                value={data.paid_amount ?? ''}
+                                                onChange={(e) => setData('paid_amount', cleanNumber(e.target.value))}
+                                                onFocus={(e) => e.target.select()}
+                                                placeholder="0"
                                                 className="w-28 rounded-lg border-amber-300 text-xs font-bold text-emerald-700 text-right py-1"
                                                 required
                                             />
                                         </div>
                                         <div className="flex justify-between text-xs font-bold text-rose-700 border-t border-amber-200/80 pt-1">
-                                            <span>Due Balance:</span>
-                                            <span>BDT {Number(Math.max(0, data.grand_total - data.paid_amount)).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                                            <span>{t('Due Balance:')}</span>
+                                            <span>{lang === 'bn' ? '৳ ' : 'BDT '}{formatNumber(Math.max(0, data.grand_total - data.paid_amount), {minimumFractionDigits: 2})}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -797,8 +842,9 @@ export default function Create({ customers = [], products = [], branches = [], a
                                     type="submit"
                                     disabled={processing}
                                     className="w-full mt-4 bg-amber-600 hover:bg-amber-700 text-white py-3.5 rounded-xl font-black text-base transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer uppercase tracking-wider"
+                                    style={{ backgroundColor: 'rgb(177,118,51)' }}
                                 >
-                                    <ShoppingBag className="w-5 h-5" /> Sale
+                                    <ShoppingBag className="w-5 h-5" /> {t('Sale')}
                                 </button>
                             </div>
 
@@ -817,7 +863,7 @@ export default function Create({ customers = [], products = [], branches = [], a
                                         type="text"
                                         value={productSearch}
                                         onChange={(e) => setProductSearch(e.target.value)}
-                                        placeholder="Search jewelry by name or SKU..."
+                                        placeholder={t('Search jewelry by name or SKU...')}
                                         className="w-full pl-8 text-xs rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 py-1.5"
                                     />
                                 </div>
@@ -835,7 +881,7 @@ export default function Create({ customers = [], products = [], branches = [], a
                                                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                             }`}
                                         >
-                                            {cat}
+                                            {cat === 'ALL' ? t('ALL') : cat}
                                         </button>
                                     ))}
                                 </div>
@@ -845,7 +891,7 @@ export default function Create({ customers = [], products = [], branches = [], a
                             <div className="grid grid-cols-2 gap-2.5 max-h-[520px] overflow-y-auto pr-1 custom-scrollbar">
                                 {filteredProducts.length === 0 ? (
                                     <div className="col-span-2 py-8 text-center text-gray-400 text-xs font-medium">
-                                        No products found matching "{productSearch}"
+                                        {t('No records found')}
                                     </div>
                                 ) : (
                                     filteredProducts.map(prod => (
@@ -882,12 +928,12 @@ export default function Create({ customers = [], products = [], branches = [], a
                                                     {prod.name}
                                                 </h4>
                                                 <div className="flex justify-between items-center text-[10px] text-gray-500 font-medium">
-                                                    <span>Wt: {prod.gross_weight || prod.weight || 10}g</span>
+                                                    <span>{t('Gross')}: {formatNumber(prod.gross_weight || prod.weight || 10, {maximumFractionDigits: 3})}g</span>
                                                     <span>SKU: {prod.sku || 'N/A'}</span>
                                                 </div>
                                                 <div className="flex justify-between items-center pt-1 border-t border-gray-100">
                                                     <span className="font-black text-amber-900 text-xs">
-                                                        ৳ {Number(prod.selling_price || 11500).toLocaleString()}
+                                                        ৳ {formatNumber(prod.selling_price || 11500, {minimumFractionDigits: 0})}
                                                     </span>
                                                     <span className="p-1 bg-amber-50 group-hover:bg-amber-600 group-hover:text-white text-amber-700 rounded transition-colors">
                                                         <Plus className="w-3.5 h-3.5" />
@@ -972,10 +1018,11 @@ export default function Create({ customers = [], products = [], branches = [], a
                                 <label className="block font-bold text-gray-700 mb-1">Opening Balance (BDT)</label>
                                 <input 
                                     type="number" 
-                                    step="0.01"
+                                    step="any"
                                     value={newCustomer.opening_balance}
-                                    onChange={(e) => setNewCustomer({...newCustomer, opening_balance: e.target.value})}
-                                    placeholder="0.00" 
+                                    onChange={(e) => setNewCustomer({...newCustomer, opening_balance: cleanNumber(e.target.value)})}
+                                    onFocus={(e) => e.target.select()}
+                                    placeholder="0" 
                                     className="w-full text-xs rounded-lg border-gray-300 focus:border-amber-500 py-2"
                                 />
                             </div>
@@ -984,10 +1031,11 @@ export default function Create({ customers = [], products = [], branches = [], a
                                 <label className="block font-bold text-gray-700 mb-1">Credit Limit (BDT)</label>
                                 <input 
                                     type="number" 
-                                    step="0.01"
+                                    step="any"
                                     value={newCustomer.credit_limit}
-                                    onChange={(e) => setNewCustomer({...newCustomer, credit_limit: e.target.value})}
-                                    placeholder="50000.00" 
+                                    onChange={(e) => setNewCustomer({...newCustomer, credit_limit: cleanNumber(e.target.value)})}
+                                    onFocus={(e) => e.target.select()}
+                                    placeholder="50000" 
                                     className="w-full text-xs rounded-lg border-gray-300 focus:border-amber-500 py-2"
                                 />
                             </div>
@@ -1081,10 +1129,11 @@ export default function Create({ customers = [], products = [], branches = [], a
                                 <label className="block font-bold text-gray-700 mb-1">Gross Weight (g) *</label>
                                 <input 
                                     type="number" 
-                                    step="0.001"
+                                    step="any"
                                     required
                                     value={newProduct.gross_weight}
-                                    onChange={(e) => setNewProduct({...newProduct, gross_weight: e.target.value})}
+                                    onChange={(e) => setNewProduct({...newProduct, gross_weight: cleanNumber(e.target.value)})}
+                                    onFocus={(e) => e.target.select()}
                                     placeholder="11.664" 
                                     className="w-full text-xs rounded-lg border-gray-300 focus:border-amber-500 py-2 font-bold text-center"
                                 />
@@ -1094,10 +1143,11 @@ export default function Create({ customers = [], products = [], branches = [], a
                                 <label className="block font-bold text-gray-700 mb-1">Stone Weight (g)</label>
                                 <input 
                                     type="number" 
-                                    step="0.001"
+                                    step="any"
                                     value={newProduct.stone_weight}
-                                    onChange={(e) => setNewProduct({...newProduct, stone_weight: e.target.value})}
-                                    placeholder="0.000" 
+                                    onChange={(e) => setNewProduct({...newProduct, stone_weight: cleanNumber(e.target.value)})}
+                                    onFocus={(e) => e.target.select()}
+                                    placeholder="0" 
                                     className="w-full text-xs rounded-lg border-gray-300 focus:border-amber-500 py-2 text-center"
                                 />
                             </div>
@@ -1106,10 +1156,11 @@ export default function Create({ customers = [], products = [], branches = [], a
                                 <label className="block font-bold text-gray-700 mb-1">Selling Rate/g (BDT) *</label>
                                 <input 
                                     type="number" 
-                                    step="0.01"
+                                    step="any"
                                     required
                                     value={newProduct.selling_price}
-                                    onChange={(e) => setNewProduct({...newProduct, selling_price: e.target.value})}
+                                    onChange={(e) => setNewProduct({...newProduct, selling_price: cleanNumber(e.target.value)})}
+                                    onFocus={(e) => e.target.select()}
                                     placeholder="11500" 
                                     className="w-full text-xs rounded-lg border-gray-300 focus:border-amber-500 py-2 font-bold text-right"
                                 />
@@ -1119,10 +1170,11 @@ export default function Create({ customers = [], products = [], branches = [], a
                                 <label className="block font-bold text-gray-700 mb-1">Making Charge (BDT)</label>
                                 <input 
                                     type="number" 
-                                    step="0.01"
+                                    step="any"
                                     value={newProduct.making_charge}
-                                    onChange={(e) => setNewProduct({...newProduct, making_charge: e.target.value})}
-                                    placeholder="2000" 
+                                    onChange={(e) => setNewProduct({...newProduct, making_charge: cleanNumber(e.target.value)})}
+                                    onFocus={(e) => e.target.select()}
+                                    placeholder="0" 
                                     className="w-full text-xs rounded-lg border-gray-300 focus:border-amber-500 py-2 text-right"
                                 />
                             </div>

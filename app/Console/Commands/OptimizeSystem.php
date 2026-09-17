@@ -44,11 +44,10 @@ class OptimizeSystem extends Command
                 $this->info('  ✓ SQLite WAL mode enabled, database vacuumed & optimized.');
             } elseif (in_array($driver, ['mysql', 'mariadb'])) {
                 $tables = DB::select('SHOW TABLES');
-                $dbName = config('database.connections.mysql.database');
-                $prop = "Tables_in_" . $dbName;
 
                 foreach ($tables as $t) {
-                    $tableName = $t->$prop ?? reset($t);
+                    $arr = (array)$t;
+                    $tableName = !empty($arr) ? reset($arr) : null;
                     if ($tableName) {
                         DB::statement("OPTIMIZE TABLE `{$tableName}`");
                     }

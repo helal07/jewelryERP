@@ -1,17 +1,16 @@
 import React from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, Save } from 'lucide-react';
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import TextInput from '@/Components/TextInput';
-import PrimaryButton from '@/Components/PrimaryButton';
-import SelectInput from '@/Components/SelectInput';
+import { ArrowLeft, Save, CalendarCheck } from 'lucide-react';
+import { useLanguage } from '@/Context/LanguageContext';
 
-export default function Create({ auth, staffs, branches }) {
+export default function Create({ auth, staffs = [], branches = [] }) {
+    const { t, lang, toBn } = useLanguage();
+    const isBn = lang === 'bn';
+
     const { data, setData, post, processing, errors } = useForm({
         staff_id: '',
-        branch_id: '',
+        branch_id: branches.length > 0 ? branches[0].id : '',
         attendance_date: new Date().toISOString().split('T')[0],
         check_in: '',
         check_out: '',
@@ -27,147 +26,175 @@ export default function Create({ auth, staffs, branches }) {
     return (
         <AuthenticatedLayout
             user={auth.user}
-            header={<h2 className="font-semibold text-xl text-gray-800 leading-tight">Mark Attendance</h2>}
-        >
-            <Head title="Mark Attendance" />
-
-            <div className="py-12">
-                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    
-                    <div className="mb-6">
-                        <Link href={route('hrm.attendance.index')} className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-gray-700">
-                            <ArrowLeft className="w-4 h-4 mr-1" />
-                            Back to Attendance
-                        </Link>
-                    </div>
-
-                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                        <div className="p-6 text-gray-900">
-                            <form onSubmit={submit} className="space-y-6 max-w-2xl">
-                                
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {/* Staff */}
-                                    <div className="md:col-span-2">
-                                        <InputLabel htmlFor="staff_id" value="Staff Member *" />
-                                        <SelectInput
-                                            id="staff_id"
-                                            value={data.staff_id}
-                                            onChange={(e) => {
-                                                const staffId = e.target.value;
-                                                const staff = staffs.find(s => s.id == staffId);
-                                                setData(prev => ({ ...prev, staff_id: staffId, branch_id: staff ? staff.branch_id : prev.branch_id }));
-                                            }}
-                                            className="mt-1 block w-full"
-                                            required
-                                        >
-                                            <option value="">Select Staff</option>
-                                            {staffs.map(staff => (
-                                                <option key={staff.id} value={staff.id}>{staff.name} ({staff.employee_code})</option>
-                                            ))}
-                                        </SelectInput>
-                                        <InputError message={errors.staff_id} className="mt-2" />
-                                    </div>
-
-                                    {/* Branch */}
-                                    <div>
-                                        <InputLabel htmlFor="branch_id" value="Branch *" />
-                                        <SelectInput
-                                            id="branch_id"
-                                            value={data.branch_id}
-                                            onChange={(e) => setData('branch_id', e.target.value)}
-                                            className="mt-1 block w-full bg-gray-50"
-                                            required
-                                        >
-                                            <option value="">Select Branch</option>
-                                            {branches.map(branch => (
-                                                <option key={branch.id} value={branch.id}>{branch.name}</option>
-                                            ))}
-                                        </SelectInput>
-                                        <InputError message={errors.branch_id} className="mt-2" />
-                                    </div>
-
-                                    {/* Date */}
-                                    <div>
-                                        <InputLabel htmlFor="attendance_date" value="Date *" />
-                                        <TextInput
-                                            id="attendance_date"
-                                            type="date"
-                                            value={data.attendance_date}
-                                            onChange={(e) => setData('attendance_date', e.target.value)}
-                                            className="mt-1 block w-full"
-                                            required
-                                        />
-                                        <InputError message={errors.attendance_date} className="mt-2" />
-                                    </div>
-
-                                    {/* Status */}
-                                    <div className="md:col-span-2">
-                                        <InputLabel htmlFor="status" value="Status *" />
-                                        <SelectInput
-                                            id="status"
-                                            value={data.status}
-                                            onChange={(e) => setData('status', e.target.value)}
-                                            className="mt-1 block w-full"
-                                            required
-                                        >
-                                            <option value="present">Present</option>
-                                            <option value="absent">Absent</option>
-                                            <option value="half_day">Half Day</option>
-                                            <option value="leave">Leave</option>
-                                            <option value="holiday">Holiday</option>
-                                        </SelectInput>
-                                        <InputError message={errors.status} className="mt-2" />
-                                    </div>
-
-                                    {/* Check In */}
-                                    <div>
-                                        <InputLabel htmlFor="check_in" value="Check In Time" />
-                                        <TextInput
-                                            id="check_in"
-                                            type="time"
-                                            value={data.check_in}
-                                            onChange={(e) => setData('check_in', e.target.value)}
-                                            className="mt-1 block w-full"
-                                        />
-                                        <InputError message={errors.check_in} className="mt-2" />
-                                    </div>
-
-                                    {/* Check Out */}
-                                    <div>
-                                        <InputLabel htmlFor="check_out" value="Check Out Time" />
-                                        <TextInput
-                                            id="check_out"
-                                            type="time"
-                                            value={data.check_out}
-                                            onChange={(e) => setData('check_out', e.target.value)}
-                                            className="mt-1 block w-full"
-                                        />
-                                        <InputError message={errors.check_out} className="mt-2" />
-                                    </div>
-                                    
-                                    {/* Remarks */}
-                                    <div className="md:col-span-2">
-                                        <InputLabel htmlFor="remarks" value="Remarks" />
-                                        <TextInput
-                                            id="remarks"
-                                            value={data.remarks}
-                                            onChange={(e) => setData('remarks', e.target.value)}
-                                            className="mt-1 block w-full"
-                                        />
-                                        <InputError message={errors.remarks} className="mt-2" />
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center justify-end mt-4">
-                                    <PrimaryButton className="ml-4 bg-indigo-600 hover:bg-indigo-700" disabled={processing}>
-                                        <Save className="w-4 h-4 mr-2" />
-                                        Save Attendance
-                                    </PrimaryButton>
-                                </div>
-                            </form>
+            header={
+                <div className="flex items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-amber-50 rounded-xl" style={{ color: 'rgb(177,118,51)' }}>
+                            <CalendarCheck className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-black text-gray-900 leading-tight">
+                                {isBn ? 'উপস্থিতি রেকর্ড করুন' : 'Mark Attendance'}
+                            </h2>
+                            <p className="text-xs text-gray-500">
+                                {isBn ? 'কর্মীর আগমন, প্রস্থান ও উপস্থিতির তথ্য সংরক্ষণ করুন' : 'Record employee check-in, check-out times and daily status'}
+                            </p>
                         </div>
                     </div>
+                    <Link
+                        href={route('hrm.attendance.index')}
+                        className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-colors cursor-pointer"
+                    >
+                        <ArrowLeft className="w-4 h-4" />
+                        <span>{isBn ? 'তালিকায় ফিরুন' : 'Back to Attendance'}</span>
+                    </Link>
                 </div>
+            }
+        >
+            <Head title={isBn ? 'উপস্থিতি রেকর্ড' : 'Mark Attendance'} />
+
+            <div className="max-w-3xl mx-auto pb-12 mt-4">
+                <form onSubmit={submit} className="bg-white shadow-sm rounded-2xl border border-gray-100 p-6 md:p-8 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Staff */}
+                        <div className="md:col-span-2">
+                            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                                {isBn ? 'কর্মী' : 'Staff Member'} <span className="text-rose-500">*</span>
+                            </label>
+                            <select
+                                value={data.staff_id}
+                                onChange={(e) => {
+                                    const staffId = e.target.value;
+                                    const staff = staffs.find(s => String(s.id) === String(staffId));
+                                    setData(prev => ({
+                                        ...prev,
+                                        staff_id: staffId,
+                                        branch_id: staff ? (staff.branch_id || prev.branch_id) : prev.branch_id
+                                    }));
+                                }}
+                                className="w-full rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500 text-xs bg-gray-50 py-2.5 px-3"
+                                required
+                            >
+                                <option value="">{isBn ? 'কর্মী নির্বাচন করুন' : 'Select Staff Member'}</option>
+                                {staffs.map(staff => (
+                                    <option key={staff.id} value={staff.id}>
+                                        {staff.name} {staff.employee_code ? `(${staff.employee_code})` : ''}
+                                    </option>
+                                ))}
+                            </select>
+                            {errors.staff_id && <p className="text-xs text-rose-600 mt-1">{errors.staff_id}</p>}
+                        </div>
+
+                        {/* Branch */}
+                        <div>
+                            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                                {isBn ? 'শাখা' : 'Branch'} <span className="text-rose-500">*</span>
+                            </label>
+                            <select
+                                value={data.branch_id}
+                                onChange={(e) => setData('branch_id', e.target.value)}
+                                className="w-full rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500 text-xs bg-gray-50 py-2.5 px-3"
+                                required
+                            >
+                                <option value="">{isBn ? 'শাখা নির্বাচন করুন' : 'Select Branch'}</option>
+                                {branches.map(branch => (
+                                    <option key={branch.id} value={branch.id}>{branch.name}</option>
+                                ))}
+                            </select>
+                            {errors.branch_id && <p className="text-xs text-rose-600 mt-1">{errors.branch_id}</p>}
+                        </div>
+
+                        {/* Date */}
+                        <div>
+                            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                                {isBn ? 'তারিখ' : 'Date'} <span className="text-rose-500">*</span>
+                            </label>
+                            <input
+                                type="date"
+                                value={data.attendance_date}
+                                onChange={(e) => setData('attendance_date', e.target.value)}
+                                className="w-full rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500 text-xs bg-gray-50 py-2.5 px-3"
+                                required
+                            />
+                            {errors.attendance_date && <p className="text-xs text-rose-600 mt-1">{errors.attendance_date}</p>}
+                        </div>
+
+                        {/* Status */}
+                        <div className="md:col-span-2">
+                            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                                {isBn ? 'উপস্থিতির অবস্থা' : 'Attendance Status'} <span className="text-rose-500">*</span>
+                            </label>
+                            <select
+                                value={data.status}
+                                onChange={(e) => setData('status', e.target.value)}
+                                className="w-full rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500 text-xs bg-gray-50 py-2.5 px-3"
+                                required
+                            >
+                                <option value="present">{isBn ? 'উপস্থিত (Present)' : 'Present'}</option>
+                                <option value="absent">{isBn ? 'অনুপস্থিত (Absent)' : 'Absent'}</option>
+                                <option value="half_day">{isBn ? 'হাফ ডে (Half Day)' : 'Half Day'}</option>
+                                <option value="leave">{isBn ? 'অনুমোদিত ছুটি (Leave)' : 'Leave'}</option>
+                                <option value="holiday">{isBn ? 'সরকারি/সাপ্তাহিক ছুটি (Holiday)' : 'Holiday'}</option>
+                            </select>
+                            {errors.status && <p className="text-xs text-rose-600 mt-1">{errors.status}</p>}
+                        </div>
+
+                        {/* Check In */}
+                        <div>
+                            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                                {isBn ? 'প্রবেশের সময় (Check In)' : 'Check In Time'}
+                            </label>
+                            <input
+                                type="time"
+                                value={data.check_in}
+                                onChange={(e) => setData('check_in', e.target.value)}
+                                className="w-full rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500 text-xs bg-gray-50 py-2.5 px-3"
+                            />
+                            {errors.check_in && <p className="text-xs text-rose-600 mt-1">{errors.check_in}</p>}
+                        </div>
+
+                        {/* Check Out */}
+                        <div>
+                            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                                {isBn ? 'প্রস্থানের সময় (Check Out)' : 'Check Out Time'}
+                            </label>
+                            <input
+                                type="time"
+                                value={data.check_out}
+                                onChange={(e) => setData('check_out', e.target.value)}
+                                className="w-full rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500 text-xs bg-gray-50 py-2.5 px-3"
+                            />
+                            {errors.check_out && <p className="text-xs text-rose-600 mt-1">{errors.check_out}</p>}
+                        </div>
+
+                        {/* Remarks */}
+                        <div className="md:col-span-2">
+                            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                                {isBn ? 'মন্তব্য' : 'Remarks'}
+                            </label>
+                            <input
+                                type="text"
+                                value={data.remarks}
+                                onChange={(e) => setData('remarks', e.target.value)}
+                                className="w-full rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500 text-xs bg-gray-50 py-2.5 px-3"
+                                placeholder={isBn ? 'প্রয়োজনে অতিরিক্ত মন্তব্য লিখুন' : 'Optional notes or remarks'}
+                            />
+                            {errors.remarks && <p className="text-xs text-rose-600 mt-1">{errors.remarks}</p>}
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end pt-4 border-t border-gray-100">
+                        <button
+                            type="submit"
+                            disabled={processing}
+                            style={{ backgroundColor: 'rgb(177,118,51)' }}
+                            className="text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-sm transition-all hover:opacity-90 disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                        >
+                            <Save className="w-4 h-4" />
+                            <span>{processing ? (isBn ? 'সংরক্ষণ হচ্ছে…' : 'Saving...') : (isBn ? 'উপস্থিতি সংরক্ষণ করুন' : 'Save Attendance')}</span>
+                        </button>
+                    </div>
+                </form>
             </div>
         </AuthenticatedLayout>
     );

@@ -7,11 +7,20 @@ import {
     Printer, Building2, Gem, CheckCircle2
 } from 'lucide-react';
 import Modal from '@/Components/Modal';
+import { useLanguage } from '@/Context/LanguageContext';
 
-const fmtBDT = (val) =>
-    Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const cleanNumber = (val) => {
+    if (val === null || val === undefined) return '';
+    let str = String(val);
+    if (/^0+[0-9]/.test(str)) {
+        str = str.replace(/^0+/, '');
+    }
+    return str;
+};
 
 export default function WholesaleCreate({ customers = [], products = [], branches = [], autoInvoiceNo, latestMetalPrices = {} }) {
+    const { t, lang, formatNumber, toBn } = useLanguage();
+    const fmtBDT = (val) => formatNumber(val || 0, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const [customerList, setCustomerList] = useState(customers);
     const [productList, setProductList] = useState(products);
 
@@ -37,16 +46,16 @@ export default function WholesaleCreate({ customers = [], products = [], branche
         sku: '',
         purity_name: '22K Gold',
         gross_weight: '',
-        stone_weight: '0',
+        stone_weight: '',
         selling_price: '',
-        making_charge: '0',
-        stone_charge: '0',
+        making_charge: '',
+        stone_charge: '',
         stock_quantity: '1',
         description: ''
     });
 
     const { data, setData, post, processing, errors } = useForm({
-        invoice_no: autoInvoiceNo || `WS-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-0001`,
+        invoice_no: autoInvoiceNo || `WHL-${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,'0')}-${Math.floor(1000 + Math.random() * 9000)}`,
         sale_date: new Date().toISOString().split('T')[0],
         branch_id: branches[0]?.id || '',
         customer_id: customers[0]?.id || '',
@@ -55,19 +64,20 @@ export default function WholesaleCreate({ customers = [], products = [], branche
             {
                 product_id: '',
                 gross_weight: '',
-                stone_weight: '0',
+                stone_weight: '',
                 net_weight: '',
                 rate_per_gram: '',
+                rate_per_vori: '',
                 making_charge_type: 'fixed',
-                making_charge: '0',
-                stone_charge: '0',
-                hallmark_charge: '0',
+                making_charge: '',
+                stone_charge: '',
+                hallmark_charge: '',
                 quantity: 1,
                 total_amount: 0
             }
         ],
         subtotal: 0,
-        discount: 0,
+        discount: '',
         vat_type: 'percent',
         vat_rate: 5,
         tax: 0,
@@ -75,7 +85,7 @@ export default function WholesaleCreate({ customers = [], products = [], branche
         total_stone_charge: 0,
         total_hallmark_charge: 0,
         grand_total: 0,
-        paid_amount: 0,
+        paid_amount: '',
         notes: ''
     });
 
@@ -108,7 +118,7 @@ export default function WholesaleCreate({ customers = [], products = [], branche
 
             return {
                 ...item,
-                net_weight: net.toFixed(3),
+                net_weight: net > 0 ? net.toFixed(3) : '',
                 total_amount: itemTotal
             };
         });
@@ -139,7 +149,8 @@ export default function WholesaleCreate({ customers = [], products = [], branche
         };
     };
 
-    const handleVARPChange = (index, field, value) => {
+    const handleVARPChange = (index, field, rawValue) => {
+        const value = cleanNumber(rawValue);
         const newItems = [...data.items];
         newItems[index] = {
             ...newItems[index],
@@ -170,7 +181,8 @@ export default function WholesaleCreate({ customers = [], products = [], branche
         }));
     };
 
-    const handleItemChange = (index, field, value) => {
+    const handleItemChange = (index, field, rawValue) => {
+        const value = (field === 'making_charge' || field === 'stone_charge' || field === 'hallmark_charge' || field === 'gross_weight' || field === 'stone_weight' || field === 'quantity' || field === 'rate_per_vori') ? cleanNumber(rawValue) : rawValue;
         const newItems = [...data.items];
         newItems[index] = {
             ...newItems[index],
@@ -185,7 +197,7 @@ export default function WholesaleCreate({ customers = [], products = [], branche
         }
 
         if (field === 'rate_per_vori') {
-            newItems[index].rate_per_gram = Number(value) / 11.664;
+            newItems[index].rate_per_gram = value ? (Number(value) / 11.664) : 0;
         }
 
         if (field === 'product_id') {
@@ -199,12 +211,15 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                 }
                 const ratePerVori = ratePerGram * 11.664;
 
+                const mkVal = parseFloat(selectedProduct.making_charge || 0);
+                const stVal = parseFloat(selectedProduct.stone_charge || 0);
+
                 newItems[index].gross_weight = selectedProduct.gross_weight || '';
-                newItems[index].stone_weight = selectedProduct.stone_weight || '0';
+                newItems[index].stone_weight = selectedProduct.stone_weight > 0 ? selectedProduct.stone_weight : '';
                 newItems[index].rate_per_vori = ratePerVori > 0 ? ratePerVori.toFixed(2) : '';
                 newItems[index].rate_per_gram = ratePerGram;
-                newItems[index].making_charge = selectedProduct.making_charge || '0';
-                newItems[index].stone_charge = selectedProduct.stone_charge || '0';
+                newItems[index].making_charge = mkVal > 0 ? mkVal : '';
+                newItems[index].stone_charge = stVal > 0 ? stVal : '';
             }
         }
 
@@ -223,10 +238,11 @@ export default function WholesaleCreate({ customers = [], products = [], branche
     };
 
     const handleDiscountChange = (val) => {
-        const calc = recalculateAll(data.items, val, data.vat_type, data.vat_rate);
+        const cleanVal = cleanNumber(val);
+        const calc = recalculateAll(data.items, cleanVal, data.vat_type, data.vat_rate);
         setData(prev => ({
             ...prev,
-            discount: val,
+            discount: cleanVal,
             subtotal: calc.subtotal,
             tax: calc.tax,
             grand_total: calc.grand_total,
@@ -235,12 +251,13 @@ export default function WholesaleCreate({ customers = [], products = [], branche
     };
 
     const handleVatChange = (field, val) => {
-        const vatType = field === 'vat_type' ? val : data.vat_type;
-        const vatRate = field === 'vat_rate' ? val : data.vat_rate;
+        const cleanVal = field === 'vat_rate' ? cleanNumber(val) : val;
+        const vatType = field === 'vat_type' ? cleanVal : data.vat_type;
+        const vatRate = field === 'vat_rate' ? cleanVal : data.vat_rate;
         const calc = recalculateAll(data.items, data.discount, vatType, vatRate);
         setData(prev => ({
             ...prev,
-            [field]: val,
+            [field]: cleanVal,
             tax: calc.tax,
             grand_total: calc.grand_total,
             paid_amount: calc.grand_total
@@ -253,13 +270,14 @@ export default function WholesaleCreate({ customers = [], products = [], branche
             {
                 product_id: '',
                 gross_weight: '',
-                stone_weight: '0',
+                stone_weight: '',
                 net_weight: '',
                 rate_per_gram: '',
+                rate_per_vori: '',
                 making_charge_type: 'fixed',
-                making_charge: '0',
-                stone_charge: '0',
-                hallmark_charge: '0',
+                making_charge: '',
+                stone_charge: '',
+                hallmark_charge: '',
                 quantity: 1,
                 total_amount: 0
             }
@@ -446,18 +464,18 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                 <div className="flex justify-between items-center">
                     <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
                         <Building2 className="w-6 h-6 text-amber-700" />
-                        Wholesale Sale
+                        {t('Wholesale')}
                     </h2>
                     <Link
                         href={route('sales.wholesale')}
                         className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
                     >
-                        <ArrowLeft className="w-4 h-4" /> Back to Wholesales
+                        <ArrowLeft className="w-4 h-4" /> {t('Back to Wholesales')}
                     </Link>
                 </div>
             }
         >
-            <Head title="Wholesale Sale" />
+            <Head title={t('Wholesale')} />
 
             {/* UNIFIED SINGLE SECTION CONTAINER */}
             <div className="max-w-7xl mx-auto">
@@ -466,7 +484,7 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                     {/* Top Row: Invoice No, Customer (+ Icon), Date, Branch */}
                     <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs font-semibold">
                         <div>
-                            <label className="block text-gray-700 mb-1 font-bold">Invoice #</label>
+                            <label className="block text-gray-700 mb-1 font-bold">{t('Invoice / Bill No')}</label>
                             <input
                                 type="text"
                                 value={data.invoice_no}
@@ -478,12 +496,12 @@ export default function WholesaleCreate({ customers = [], products = [], branche
 
                         <div>
                             <div className="flex items-center justify-between mb-1">
-                                <label className="block text-gray-700 font-bold">Customer *</label>
+                                <label className="block text-gray-700 font-bold">{t('Customer *')}</label>
                                 <button
                                     type="button"
                                     onClick={() => setIsCustomerModalOpen(true)}
                                     className="p-1 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-lg transition-colors cursor-pointer flex items-center justify-center"
-                                    title="Add Customer"
+                                    title={t('Add Customer')}
                                 >
                                     <Plus className="w-3.5 h-3.5" />
                                 </button>
@@ -503,7 +521,7 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                         </div>
 
                         <div>
-                            <label className="block text-gray-700 mb-1 font-bold">Date *</label>
+                            <label className="block text-gray-700 mb-1 font-bold">{t('Sale Date')} *</label>
                             <input
                                 type="date"
                                 value={data.sale_date}
@@ -514,7 +532,7 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                         </div>
 
                         <div>
-                            <label className="block text-gray-700 mb-1 font-bold">Branch *</label>
+                            <label className="block text-gray-700 mb-1 font-bold">{t('Branch *')}</label>
                             <select
                                 value={data.branch_id}
                                 onChange={(e) => setData('branch_id', e.target.value)}
@@ -534,12 +552,12 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                             <div key={idx} className="p-3.5 bg-gray-50/80 rounded-xl border border-gray-200 grid grid-cols-1 sm:grid-cols-12 gap-3 items-end text-xs font-semibold">
                                 <div className="sm:col-span-3">
                                     <div className="flex items-center justify-between mb-1">
-                                        <label className="block text-gray-700 font-bold">Product *</label>
+                                        <label className="block text-gray-700 font-bold">{t('Product Name *')}</label>
                                         <button
                                             type="button"
                                             onClick={() => setIsProductModalOpen(true)}
                                             className="p-1 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-lg transition-colors cursor-pointer flex items-center justify-center"
-                                            title="Add Product"
+                                            title={t('Add Product')}
                                         >
                                             <Plus className="w-3.5 h-3.5" />
                                         </button>
@@ -550,7 +568,7 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                                         className="w-full rounded-xl border-gray-300 py-1.5 font-bold text-[10px] xl:text-xs"
                                         required
                                     >
-                                        <option value="">Select Product...</option>
+                                        <option value="">{t('Select Product Item')}</option>
                                         {productList.map(p => (
                                             <option key={p.id} value={p.id}>
                                                 {p.name} ({p.purity?.name || '22K'})
@@ -562,85 +580,96 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                                 <div className="sm:col-span-3">
                                     <label className="block text-gray-700 mb-1 text-[10px] uppercase">
                                         <span className="flex justify-between">
-                                            <span>Wt (V-A-R-P)</span>
-                                            <span className="text-amber-700">Gross | Net</span>
+                                            <span>{t('Wt(V-A-R-P)')}</span>
+                                            <span className="text-amber-700">{t('Gross | Net(g)')}</span>
                                         </span>
                                     </label>
                                     <div className="flex gap-0.5">
-                                        <input type="number" step="1" value={item.weight_vori||''} onChange={(e)=>handleVARPChange(idx,'weight_vori',e.target.value)} placeholder="V" className="w-[14%] rounded border-gray-300 py-1.5 text-center font-bold text-[10px] px-0.5" />
-                                        <input type="number" step="1" value={item.weight_ana||''} onChange={(e)=>handleVARPChange(idx,'weight_ana',e.target.value)} placeholder="A" className="w-[14%] rounded border-gray-300 py-1.5 text-center font-bold text-[10px] px-0.5" />
-                                        <input type="number" step="1" value={item.weight_roti||''} onChange={(e)=>handleVARPChange(idx,'weight_roti',e.target.value)} placeholder="R" className="w-[14%] rounded border-gray-300 py-1.5 text-center font-bold text-[10px] px-0.5" />
-                                        <input type="number" step="1" value={item.weight_point||''} onChange={(e)=>handleVARPChange(idx,'weight_point',e.target.value)} placeholder="P" className="w-[14%] rounded border-gray-300 py-1.5 text-center font-bold text-[10px] px-0.5" />
+                                        <input type="number" step="any" value={item.weight_vori ?? ''} onChange={(e)=>handleVARPChange(idx,'weight_vori',e.target.value)} onFocus={(e)=>e.target.select()} placeholder="V" className="w-[14%] rounded border-gray-300 py-1.5 text-center font-bold text-[10px] px-0.5" />
+                                        <input type="number" step="any" value={item.weight_ana ?? ''} onChange={(e)=>handleVARPChange(idx,'weight_ana',e.target.value)} onFocus={(e)=>e.target.select()} placeholder="A" className="w-[14%] rounded border-gray-300 py-1.5 text-center font-bold text-[10px] px-0.5" />
+                                        <input type="number" step="any" value={item.weight_roti ?? ''} onChange={(e)=>handleVARPChange(idx,'weight_roti',e.target.value)} onFocus={(e)=>e.target.select()} placeholder="R" className="w-[14%] rounded border-gray-300 py-1.5 text-center font-bold text-[10px] px-0.5" />
+                                        <input type="number" step="any" value={item.weight_point ?? ''} onChange={(e)=>handleVARPChange(idx,'weight_point',e.target.value)} onFocus={(e)=>e.target.select()} placeholder="P" className="w-[14%] rounded border-gray-300 py-1.5 text-center font-bold text-[10px] px-0.5" />
                                         
-                                        <input type="number" step="0.001" value={item.gross_weight} onChange={(e)=>handleItemChange(idx,'gross_weight',e.target.value)} placeholder="Gross" className="w-[22%] rounded border-amber-300 bg-amber-50 py-1.5 text-center font-black text-[10px] px-0.5" required />
+                                        <input type="number" step="any" value={item.gross_weight ?? ''} onChange={(e)=>handleItemChange(idx,'gross_weight',e.target.value)} onFocus={(e)=>e.target.select()} placeholder="Gross" className="w-[22%] rounded border-amber-300 bg-amber-50 py-1.5 text-center font-black text-[10px] px-0.5" required />
                                         
-                                        <input type="number" value={item.net_weight} readOnly placeholder="Net" className="w-[22%] rounded border-gray-200 bg-gray-100 py-1.5 text-center font-bold text-[10px] px-0.5" />
+                                        <input type="number" value={item.net_weight ?? ''} readOnly placeholder="Net" className="w-[22%] rounded border-gray-200 bg-gray-100 py-1.5 text-center font-bold text-[10px] px-0.5" />
                                     </div>
                                 </div>
 
                                 <div className="sm:col-span-1">
-                                    <label className="block text-gray-700 mb-1 text-[10px] uppercase">Rate/Vori (৳)</label>
+                                    <label className="block text-gray-700 mb-1 text-[10px] uppercase">{t('Rate/Vori')} (৳)</label>
                                     <input
                                         type="number"
-                                        step="0.01"
-                                        value={item.rate_per_vori}
+                                        step="any"
+                                        value={item.rate_per_vori ?? ''}
                                         onChange={(e) => handleItemChange(idx, 'rate_per_vori', e.target.value)}
+                                        onFocus={(e) => e.target.select()}
+                                        placeholder="0"
                                         className="w-full rounded-xl border-gray-300 py-1.5 text-right font-bold text-[10px] px-1"
                                         required
                                     />
                                 </div>
 
                                 <div className="sm:col-span-2">
-                                    <label className="block text-gray-700 mb-1 text-[10px] uppercase">Mk Type & Charge (৳)</label>
+                                    <label className="block text-gray-700 mb-1 text-[10px] uppercase">{t('Mk. Type')} & {t('Making (BDT)')}</label>
                                     <div className="flex gap-1">
                                         <select
                                             value={item.making_charge_type}
                                             onChange={(e) => handleItemChange(idx, 'making_charge_type', e.target.value)}
                                             className="w-1/2 rounded-xl border-gray-300 py-1.5 text-[10px] px-1"
                                         >
-                                            <option value="fixed">Fixed</option>
-                                            <option value="per_gram">Per/g</option>
+                                            <option value="fixed">{t('Fixed')}</option>
+                                            <option value="per_gram">{t('Per Gram')}</option>
                                         </select>
                                         <input
                                             type="number"
-                                            step="0.01"
-                                            value={item.making_charge}
+                                            step="any"
+                                            value={item.making_charge ?? ''}
                                             onChange={(e) => handleItemChange(idx, 'making_charge', e.target.value)}
+                                            onFocus={(e) => e.target.select()}
+                                            placeholder="0"
                                             className="w-1/2 rounded-xl border-gray-300 py-1.5 text-right font-bold text-[10px] px-1"
                                         />
                                     </div>
                                 </div>
                                 
                                 <div className="sm:col-span-1">
-                                    <label className="block text-gray-700 mb-1 text-[10px] uppercase">Stone</label>
+                                    <label className="block text-gray-700 mb-1 text-[10px] uppercase">{t('Stone (BDT)')}</label>
                                     <input
                                         type="number"
-                                        step="0.01"
-                                        value={item.stone_charge}
+                                        step="any"
+                                        value={item.stone_charge ?? ''}
                                         onChange={(e) => handleItemChange(idx, 'stone_charge', e.target.value)}
+                                        onFocus={(e) => e.target.select()}
+                                        placeholder="0"
                                         className="w-full rounded-xl border-gray-300 py-1.5 text-right font-bold text-[10px] px-1"
                                     />
                                 </div>
 
                                 <div className="sm:col-span-1">
-                                    <label className="block text-gray-700 mb-1 text-[10px] uppercase">Hallmark</label>
+                                    <label className="block text-gray-700 mb-1 text-[10px] uppercase">{t('Hallmark (BDT)')}</label>
                                     <input
                                         type="number"
-                                        step="0.01"
-                                        value={item.hallmark_charge}
+                                        step="any"
+                                        value={item.hallmark_charge ?? ''}
                                         onChange={(e) => handleItemChange(idx, 'hallmark_charge', e.target.value)}
+                                        onFocus={(e) => e.target.select()}
+                                        placeholder="0"
                                         className="w-full rounded-xl border-gray-300 py-1.5 text-right font-bold text-[10px] px-1"
                                     />
                                 </div>
 
                                 <div className="sm:col-span-1 flex flex-col items-center justify-between h-full">
-                                    <label className="block text-gray-700 mb-1 text-[10px] uppercase text-center w-full">Qty</label>
+                                    <label className="block text-gray-700 mb-1 text-[10px] uppercase text-center w-full">{t('Qty *')}</label>
                                     <div className="flex items-center gap-1 w-full justify-center">
                                         <input
                                             type="number"
                                             min="1"
-                                            value={item.quantity}
+                                            step="1"
+                                            value={item.quantity ?? ''}
                                             onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
+                                            onFocus={(e) => e.target.select()}
+                                            placeholder="1"
                                             className="w-full rounded-xl border-gray-300 py-1.5 text-center font-bold text-[10px] px-1"
                                             required
                                         />
@@ -648,7 +677,8 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                                             <button
                                                 type="button"
                                                 onClick={() => removeItemRow(idx)}
-                                                className="text-rose-600 hover:text-rose-800 p-1 flex-shrink-0"
+                                                className="text-rose-600 hover:text-rose-800 p-1 flex-shrink-0 cursor-pointer"
+                                                title={t('Delete')}
                                             >
                                                 <Trash2 className="w-3.5 h-3.5" />
                                             </button>
@@ -663,7 +693,7 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                             onClick={addItemRow}
                             className="w-full py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-dashed border-amber-300 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                         >
-                            <Plus className="w-4 h-4 text-amber-700" /> Add Item
+                            <Plus className="w-4 h-4 text-amber-700" /> {t('Add Row')}
                         </button>
                     </div>
 
@@ -671,12 +701,12 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                     <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 text-xs font-semibold items-end pt-2">
                         <div className="sm:col-span-6 space-y-3">
                             <div>
-                                <label className="block text-gray-700 mb-1 font-bold">Notes</label>
+                                <label className="block text-gray-700 mb-1 font-bold">{t('Description / Notes')}</label>
                                 <input
                                     type="text"
                                     value={data.notes}
                                     onChange={(e) => setData('notes', e.target.value)}
-                                    placeholder="Wholesale order notes..."
+                                    placeholder={t('Wholesale order notes...')}
                                     className="w-full text-xs rounded-xl border-gray-300 py-2"
                                 />
                             </div>
@@ -684,13 +714,13 @@ export default function WholesaleCreate({ customers = [], products = [], branche
 
                         <div className="sm:col-span-6 bg-amber-50/60 p-4 rounded-xl border border-amber-200 space-y-2.5">
                             <div className="flex justify-between text-gray-700">
-                                <span>Total Metal Price:</span>
+                                <span>{t('Total Metal Price:')}</span>
                                 <span className="font-bold text-gray-900">৳ {fmtBDT(Math.max(0, data.subtotal - data.total_making_charge - data.total_stone_charge - data.total_hallmark_charge))}</span>
                             </div>
 
                             <div className="flex justify-between items-center text-xs">
                                 <div className="flex flex-col gap-1 w-1/2">
-                                    <span className="text-gray-700 font-bold">VAT On Metal:</span>
+                                    <span className="text-gray-700 font-bold">{t('VAT On Metal:')}</span>
                                     <div className="flex items-center gap-1">
                                         <select 
                                             value={data.vat_type} 
@@ -698,14 +728,16 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                                             className="w-20 rounded-md border-gray-300 text-[10px] py-1 px-1"
                                         >
                                             <option value="percent">%</option>
-                                            <option value="fixed_per_vori">Fixed/Vori</option>
+                                            <option value="fixed_per_vori">{t('Fixed/Vori')}</option>
                                         </select>
                                         <input
                                             type="number"
-                                            step="0.01"
+                                            step="any"
                                             min="0"
-                                            value={data.vat_rate}
+                                            value={data.vat_rate ?? ''}
                                             onChange={(e) => handleVatChange('vat_rate', e.target.value)}
+                                            onFocus={(e) => e.target.select()}
+                                            placeholder="0"
                                             className="w-16 rounded-md border-gray-300 text-xs font-bold text-right py-1 px-1"
                                         />
                                     </div>
@@ -716,48 +748,52 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                             </div>
                             
                             <div className="flex justify-between text-gray-700 text-xs">
-                                <span>Stone:</span>
+                                <span>{t('Stone:')}</span>
                                 <span className="font-bold text-gray-900">৳ {fmtBDT(data.total_stone_charge)}</span>
                             </div>
                             <div className="flex justify-between text-gray-700 text-xs">
-                                <span>Mk. Charge:</span>
+                                <span>{t('Mk. Charge:')}</span>
                                 <span className="font-bold text-gray-900">৳ {fmtBDT(data.total_making_charge)}</span>
                             </div>
                             <div className="flex justify-between text-gray-700 text-xs">
-                                <span>Hallmark:</span>
+                                <span>{t('Hallmark:')}</span>
                                 <span className="font-bold text-gray-900">৳ {fmtBDT(data.total_hallmark_charge)}</span>
                             </div>
 
                             <div className="flex justify-between items-center pt-2">
-                                <span className="text-gray-700 font-bold">Discount (৳):</span>
+                                <span className="text-gray-700 font-bold">{t('Discount (BDT)')}:</span>
                                 <input
                                     type="number"
-                                    step="0.01"
-                                    value={data.discount}
+                                    step="any"
+                                    value={data.discount ?? ''}
                                     onChange={(e) => handleDiscountChange(e.target.value)}
+                                    onFocus={(e) => e.target.select()}
+                                    placeholder="0"
                                     className="w-32 rounded-lg border-gray-300 text-xs font-bold text-right py-1"
                                 />
                             </div>
 
                             <div className="flex justify-between text-sm font-black text-amber-900 border-t border-b border-amber-300 py-1.5">
-                                <span>Receivable Amount:</span>
+                                <span>{t('Receivable Amount:')}</span>
                                 <span>৳ {fmtBDT(data.grand_total)}</span>
                             </div>
 
                             <div className="flex justify-between items-center">
-                                <span className="text-gray-700 font-bold">Received (৳):</span>
+                                <span className="text-gray-700 font-bold">{t('Paid Amount:')}</span>
                                 <input
                                     type="number"
-                                    step="0.01"
-                                    value={data.paid_amount}
-                                    onChange={(e) => setData('paid_amount', e.target.value)}
+                                    step="any"
+                                    value={data.paid_amount ?? ''}
+                                    onChange={(e) => setData('paid_amount', cleanNumber(e.target.value))}
+                                    onFocus={(e) => e.target.select()}
+                                    placeholder="0"
                                     className="w-32 rounded-lg border-amber-300 text-xs font-black text-emerald-700 text-right py-1"
                                     required
                                 />
                             </div>
 
                             <div className="flex justify-between text-xs font-bold text-rose-700 border-t border-amber-200 pt-1">
-                                <span>Due:</span>
+                                <span>{t('Due Balance:')}</span>
                                 <span>৳ {fmtBDT(Math.max(0, data.grand_total - data.paid_amount))}</span>
                             </div>
 
@@ -765,8 +801,9 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                                 type="submit"
                                 disabled={processing}
                                 className="w-full mt-3 bg-amber-600 hover:bg-amber-700 text-white py-3 rounded-xl font-black text-sm transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer uppercase tracking-wider"
+                                style={{ backgroundColor: 'rgb(177,118,51)' }}
                             >
-                                <ShoppingBag className="w-4 h-4" /> Sale
+                                <ShoppingBag className="w-4 h-4" /> {t('Sale')}
                             </button>
                         </div>
                     </div>
@@ -852,10 +889,11 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                                 <label className="block text-gray-700 mb-1 font-bold">Opening Balance (BDT)</label>
                                 <input
                                     type="number"
-                                    step="0.01"
+                                    step="any"
                                     value={newCustomer.opening_balance}
-                                    onChange={(e) => setNewCustomer({ ...newCustomer, opening_balance: e.target.value })}
-                                    placeholder="0.00"
+                                    onFocus={(e) => e.target.select()}
+                                    onChange={(e) => setNewCustomer({ ...newCustomer, opening_balance: cleanNumber(e.target.value) })}
+                                    placeholder="0"
                                     className="w-full text-xs rounded-xl border-gray-300 py-2 font-bold text-emerald-700"
                                 />
                             </div>
@@ -873,8 +911,8 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                         </div>
 
                         <div className="flex justify-end gap-2.5 pt-3 border-t border-gray-100">
-                            <button type="button" onClick={() => setIsCustomerModalOpen(false)} className="px-4 py-2 bg-gray-100 rounded-xl font-bold">Cancel</button>
-                            <button type="submit" className="px-5 py-2 bg-amber-600 text-white rounded-xl font-bold shadow-md cursor-pointer">Save Customer</button>
+                            <button type="button" onClick={() => setIsCustomerModalOpen(false)} className="px-4 py-2 bg-gray-100 rounded-xl font-bold cursor-pointer">{t('Cancel')}</button>
+                            <button type="submit" className="px-5 py-2 bg-amber-600 text-white rounded-xl font-bold shadow-md cursor-pointer">{t('Save Customer')}</button>
                         </div>
                     </form>
                 </div>
@@ -886,7 +924,7 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                     <div className="flex justify-between items-center border-b border-gray-200 pb-3">
                         <div className="flex items-center gap-2">
                             <PackagePlus className="w-5 h-5 text-amber-700" />
-                            <h3 className="text-base font-black text-gray-900">Add Product</h3>
+                            <h3 className="text-base font-black text-gray-900">{t('Add Product')}</h3>
                         </div>
                         <button type="button" onClick={() => setIsProductModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-1">
                             <X className="w-5 h-5" />
@@ -896,7 +934,7 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                     <form onSubmit={handleSaveProduct} className="space-y-3.5 text-xs font-semibold">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div className="sm:col-span-2">
-                                <label className="block text-gray-700 mb-1 font-bold">Product Name *</label>
+                                <label className="block text-gray-700 mb-1 font-bold">{t('Product Name *')}</label>
                                 <input
                                     type="text"
                                     value={newProduct.name}
@@ -908,7 +946,7 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                             </div>
 
                             <div>
-                                <label className="block text-gray-700 mb-1 font-bold">SKU / Item Code</label>
+                                <label className="block text-gray-700 mb-1 font-bold">{t('SKU / Item Code')}</label>
                                 <input
                                     type="text"
                                     value={newProduct.sku}
@@ -919,7 +957,7 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                             </div>
 
                             <div>
-                                <label className="block text-gray-700 mb-1 font-bold">Gold Purity / Karat *</label>
+                                <label className="block text-gray-700 mb-1 font-bold">{t('Gold Purity / Karat *')}</label>
                                 <select
                                     value={newProduct.purity_name}
                                     onChange={(e) => setNewProduct({ ...newProduct, purity_name: e.target.value })}
@@ -935,82 +973,90 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                             </div>
 
                             <div>
-                                <label className="block text-gray-700 mb-1 font-bold">Gross Wt (g) *</label>
+                                <label className="block text-gray-700 mb-1 font-bold">{t('Gross Wt (g) *')}</label>
                                 <input
                                     type="number"
-                                    step="0.001"
+                                    step="any"
                                     value={newProduct.gross_weight}
-                                    onChange={(e) => setNewProduct({ ...newProduct, gross_weight: e.target.value })}
-                                    placeholder="11.664"
+                                    onFocus={(e) => e.target.select()}
+                                    onChange={(e) => setNewProduct({ ...newProduct, gross_weight: cleanNumber(e.target.value) })}
+                                    placeholder="0"
                                     className="w-full text-xs rounded-xl border-gray-300 py-2 font-bold"
                                     required
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-gray-700 mb-1 font-bold">Stone Wt (g)</label>
+                                <label className="block text-gray-700 mb-1 font-bold">{t('Stone Wt (g)')}</label>
                                 <input
                                     type="number"
-                                    step="0.001"
+                                    step="any"
                                     value={newProduct.stone_weight}
-                                    onChange={(e) => setNewProduct({ ...newProduct, stone_weight: e.target.value })}
-                                    placeholder="0.000"
+                                    onFocus={(e) => e.target.select()}
+                                    onChange={(e) => setNewProduct({ ...newProduct, stone_weight: cleanNumber(e.target.value) })}
+                                    placeholder="0"
                                     className="w-full text-xs rounded-xl border-gray-300 py-2 font-bold text-gray-600"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-gray-700 mb-1 font-bold">Rate / Gram (BDT) *</label>
+                                <label className="block text-gray-700 mb-1 font-bold">{t('Rate / Gram (BDT) *')}</label>
                                 <input
                                     type="number"
-                                    step="0.01"
+                                    step="any"
                                     value={newProduct.selling_price}
-                                    onChange={(e) => setNewProduct({ ...newProduct, selling_price: e.target.value })}
-                                    placeholder="11500"
+                                    onFocus={(e) => e.target.select()}
+                                    onChange={(e) => setNewProduct({ ...newProduct, selling_price: cleanNumber(e.target.value) })}
+                                    placeholder="0"
                                     className="w-full text-xs rounded-xl border-gray-300 py-2 font-bold text-emerald-700"
                                     required
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-gray-700 mb-1 font-bold">Making / Labor Charge (BDT)</label>
+                                <label className="block text-gray-700 mb-1 font-bold">{t('Making / Labor Charge (BDT)')}</label>
                                 <input
                                     type="number"
-                                    step="0.01"
+                                    step="any"
                                     value={newProduct.making_charge}
-                                    onChange={(e) => setNewProduct({ ...newProduct, making_charge: e.target.value })}
-                                    placeholder="2000"
+                                    onFocus={(e) => e.target.select()}
+                                    onChange={(e) => setNewProduct({ ...newProduct, making_charge: cleanNumber(e.target.value) })}
+                                    placeholder="0"
                                     className="w-full text-xs rounded-xl border-gray-300 py-2 font-bold"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-gray-700 mb-1 font-bold">Stone Charge (BDT)</label>
+                                <label className="block text-gray-700 mb-1 font-bold">{t('Stone Charge (BDT)')}</label>
                                 <input
                                     type="number"
-                                    step="0.01"
+                                    step="any"
                                     value={newProduct.stone_charge}
-                                    onChange={(e) => setNewProduct({ ...newProduct, stone_charge: e.target.value })}
-                                    placeholder="0.00"
+                                    onFocus={(e) => e.target.select()}
+                                    onChange={(e) => setNewProduct({ ...newProduct, stone_charge: cleanNumber(e.target.value) })}
+                                    placeholder="0"
                                     className="w-full text-xs rounded-xl border-gray-300 py-2 font-bold"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-gray-700 mb-1 font-bold">Stock Quantity *</label>
+                                <label className="block text-gray-700 mb-1 font-bold">{t('Stock Quantity *')}</label>
                                 <input
                                     type="number"
                                     min="1"
+                                    step="any"
                                     value={newProduct.stock_quantity}
-                                    onChange={(e) => setNewProduct({ ...newProduct, stock_quantity: e.target.value })}
-                                    className="w-full text-xs rounded-xl border-gray-300 py-2 text-center font-bold"
+                                    onFocus={(e) => e.target.select()}
+                                    onChange={(e) => setNewProduct({ ...newProduct, stock_quantity: cleanNumber(e.target.value) })}
+                                    placeholder="1"
+                                    className="w-full text-xs rounded-xl border-gray-300 py-2 font-bold"
                                     required
                                 />
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-gray-700 mb-1 font-bold">Description / Notes</label>
+                            <label className="block text-gray-700 mb-1 font-bold">{t('Description / Notes')}</label>
                             <textarea
                                 value={newProduct.description}
                                 onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
@@ -1021,8 +1067,8 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                         </div>
 
                         <div className="flex justify-end gap-2.5 pt-3 border-t border-gray-100">
-                            <button type="button" onClick={() => setIsProductModalOpen(false)} className="px-4 py-2 bg-gray-100 rounded-xl font-bold">Cancel</button>
-                            <button type="submit" className="px-5 py-2 bg-amber-600 text-white rounded-xl font-bold shadow-md cursor-pointer">Save Product</button>
+                            <button type="button" onClick={() => setIsProductModalOpen(false)} className="px-4 py-2 bg-gray-100 rounded-xl font-bold cursor-pointer">{t('Cancel')}</button>
+                            <button type="submit" className="px-5 py-2 bg-amber-600 text-white rounded-xl font-bold shadow-md cursor-pointer">{t('Save')}</button>
                         </div>
                     </form>
                 </div>
@@ -1037,9 +1083,9 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                                 <ShoppingBag className="w-5 h-5 text-amber-700" />
                                 <div>
                                     <h3 className="text-base font-black text-gray-900 uppercase">
-                                        Wholesale Invoice #{completedSale.invoice_no}
+                                        {t('Wholesale')} {t('Invoice / Bill No')} #{completedSale.invoice_no}
                                     </h3>
-                                    <p className="text-[11px] text-emerald-700 font-bold">Wholesale sale created successfully</p>
+                                    <p className="text-[11px] text-emerald-700 font-bold">{t('Wholesale sale created successfully')}</p>
                                 </div>
                             </div>
 
@@ -1070,24 +1116,24 @@ export default function WholesaleCreate({ customers = [], products = [], branche
 
                                 <div className="text-[10px] space-y-0.5 border-b border-dashed border-gray-400 pb-2">
                                     <div className="flex justify-between">
-                                        <span className="text-gray-600">INV NO:</span>
+                                        <span className="text-gray-600">{t('Invoice / Bill No')}:</span>
                                         <span className="font-bold text-gray-900">{completedSale.invoice_no}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-gray-600">DATE:</span>
+                                        <span className="text-gray-600">{t('Date')}:</span>
                                         <span>{new Date(completedSale.sale_date || Date.now()).toLocaleDateString()}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-gray-600">CUSTOMER:</span>
+                                        <span className="text-gray-600">{t('Customer')}:</span>
                                         <span className="font-bold">{completedSale.customer?.name || 'Client'}</span>
                                     </div>
                                 </div>
 
                                 <div className="space-y-2 border-b-2 border-dashed border-gray-400 pb-2.5">
                                     <div className="grid grid-cols-12 font-bold border-b border-gray-300 pb-1 text-[9px] uppercase text-gray-700">
-                                        <span className="col-span-6">ITEM</span>
-                                        <span className="col-span-2 text-center">QTY</span>
-                                        <span className="col-span-4 text-right">TOTAL</span>
+                                        <span className="col-span-6">{t('Product Name *')}</span>
+                                        <span className="col-span-2 text-center">{t('Qty')}</span>
+                                        <span className="col-span-4 text-right">{t('Total')}</span>
                                     </div>
 
                                     {completedSale.items?.map((item, idx) => (
@@ -1096,15 +1142,15 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                                                 {item.product?.name || 'Gold Item'}
                                             </div>
                                             <div className="text-[9px] text-gray-600">
-                                                Net: {Number(item.net_weight || 0).toFixed(3)}g | Rate: ৳{Number(item.rate_per_gram || 0).toLocaleString()}
+                                                Net: {formatNumber(item.net_weight || 0, { maximumFractionDigits: 3 })}g | Rate: ৳{formatNumber(item.rate_per_gram || 0)}
                                             </div>
                                             <div className="grid grid-cols-12 text-[9px] text-gray-700">
                                                 <span className="col-span-6 text-gray-500">
-                                                    Mk: ৳{Number(item.making_charge || 0).toLocaleString()}
+                                                    Mk: ৳{formatNumber(item.making_charge || 0)}
                                                 </span>
-                                                <span className="col-span-2 text-center font-bold">{item.quantity || 1}</span>
+                                                <span className="col-span-2 text-center font-bold">{formatNumber(item.quantity || 1)}</span>
                                                 <span className="col-span-4 text-right font-bold text-gray-900">
-                                                    ৳{Number(item.total_amount || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}
+                                                    ৳{formatNumber(item.total_amount || 0, {minimumFractionDigits: 2})}
                                                 </span>
                                             </div>
                                         </div>
@@ -1113,23 +1159,23 @@ export default function WholesaleCreate({ customers = [], products = [], branche
 
                                 <div className="space-y-1 text-[10px] border-b-2 border-dashed border-gray-400 pb-2.5">
                                     <div className="flex justify-between text-xs font-black text-gray-900 border-t-2 border-black pt-1 pb-0.5">
-                                        <span>GRAND TOTAL:</span>
-                                        <span>৳{Number(completedSale.grand_total || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                                        <span>{t('Grand Total')}:</span>
+                                        <span>৳{formatNumber(completedSale.grand_total || 0, {minimumFractionDigits: 2})}</span>
                                     </div>
 
                                     <div className="flex justify-between font-bold text-emerald-800">
-                                        <span>PAID AMOUNT:</span>
-                                        <span>৳{Number(completedSale.paid_amount || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                                        <span>{t('Paid Amount')}:</span>
+                                        <span>৳{formatNumber(completedSale.paid_amount || 0, {minimumFractionDigits: 2})}</span>
                                     </div>
 
                                     {completedSale.due_amount > 0 ? (
                                         <div className="flex justify-between font-bold text-rose-700 text-[10px] border-t border-rose-200 pt-0.5">
-                                            <span>DUE BALANCE:</span>
-                                            <span>৳{completedSale.due_amount.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                                            <span>{t('Due Balance')}:</span>
+                                            <span>৳{formatNumber(completedSale.due_amount, {minimumFractionDigits: 2})}</span>
                                         </div>
                                     ) : (
                                         <div className="text-center font-black text-emerald-800 text-[9px] uppercase bg-emerald-50 py-0.5 rounded border border-emerald-200 mt-0.5">
-                                            *** PAID IN FULL ***
+                                            *** {t('PAID IN FULL')} ***
                                         </div>
                                     )}
                                 </div>
@@ -1142,14 +1188,14 @@ export default function WholesaleCreate({ customers = [], products = [], branche
                                 onClick={() => window.print()}
                                 className="flex-1 py-3 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
                             >
-                                <Printer className="w-4 h-4" /> Print
+                                <Printer className="w-4 h-4" /> {t('Print')}
                             </button>
                             <button
                                 type="button"
                                 onClick={handleNewSale}
                                 className="flex-1 py-3 bg-gray-900 hover:bg-gray-800 text-white font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
                             >
-                                <ArrowLeft className="w-4 h-4" /> Back (For New Sale)
+                                <ArrowLeft className="w-4 h-4" /> {t('Back (For New Sale)')}
                             </button>
                         </div>
                     </div>
