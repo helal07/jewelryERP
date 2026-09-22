@@ -130,6 +130,11 @@ Route::middleware('auth')->group(function () {
     // Business & Financial Reports
     Route::prefix('reports')->name('reports.')->group(function () {
         Route::get('accounts', [App\Http\Controllers\Report\ReportController::class, 'accountsReport'])->name('accounts');
+        Route::get('day-book', [App\Http\Controllers\Report\ReportController::class, 'dayBookReport'])->name('day-book');
+        Route::get('cash-book', [App\Http\Controllers\Report\ReportController::class, 'cashBookReport'])->name('cash-book');
+        Route::get('consol-bank-book', [App\Http\Controllers\Report\ReportController::class, 'consolBankBookReport'])->name('consol-bank-book');
+        Route::get('mobile-bank-book', [App\Http\Controllers\Report\ReportController::class, 'mobileBankBookReport'])->name('mobile-bank-book');
+        Route::get('profit-loss', [App\Http\Controllers\Report\ReportController::class, 'profitLossReport'])->name('profit-loss');
         Route::get('sales', [App\Http\Controllers\Report\ReportController::class, 'salesReport'])->name('sales');
         Route::get('wholesale', [App\Http\Controllers\Report\ReportController::class, 'wholesaleReport'])->name('wholesale');
         Route::get('purchase', [App\Http\Controllers\Report\ReportController::class, 'purchaseReport'])->name('purchase');

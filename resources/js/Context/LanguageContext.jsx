@@ -241,6 +241,14 @@ export const translations = {
 
         // Sidebar Sub-Items - Reports
         accountsReport: "Accounts Report",
+        dayBook: "Day Book",
+        cashBook: "Cash Book",
+        consolBankBook: "Consol Bank Book",
+        mobileBankBook: "Mobile Bank Book",
+        profitLoss: "P&L",
+        profitLossFull: "Profit & Loss Statement",
+        accountReports: "Account Reports",
+        operationalReports: "Operational Reports",
         salesReport: "Sales Report",
         wholesaleReport: "Wholesale Report",
         purchaseReport: "Purchase Report",
@@ -592,6 +600,14 @@ export const translations = {
 
         // Sidebar Sub-Items - Reports
         accountsReport: "হিসাবের রিপোর্ট",
+        dayBook: "ডে বুক",
+        cashBook: "ক্যাশ বুক",
+        consolBankBook: "কনসোল ব্যাংক বুক",
+        mobileBankBook: "মোবাইল ব্যাংক বুক",
+        profitLoss: "P&L",
+        profitLossFull: "লাভ-ক্ষতি বিবরণী (P&L)",
+        accountReports: "হিসাব রিপোর্ট",
+        operationalReports: "কার্যক্রম রিপোর্ট",
         salesReport: "বিক্রয় রিপোর্ট",
         wholesaleReport: "পাইকারি রিপোর্ট",
         purchaseReport: "ক্রয় রিপোর্ট",
