@@ -73,8 +73,38 @@ const SidebarSubItem = ({ label, href, active }) => {
     );
 };
 
+const SidebarSubGroup = ({ label, active, isOpen, onToggle, children }) => {
+    return (
+        <div className="mb-0.5">
+            <button 
+                type="button"
+                onClick={(e) => {
+                    e.preventDefault();
+                    onToggle();
+                }}
+                className={`w-full flex items-center justify-between px-2.5 py-1.5 text-[11px] font-semibold rounded-md transition-colors duration-200 cursor-pointer ${
+                    active 
+                        ? "text-white font-bold bg-white/20 shadow-2xs" 
+                        : isOpen 
+                            ? "text-white bg-black/15 font-semibold" 
+                            : "text-white/80 hover:text-white hover:bg-black/10"
+                }`}
+            >
+                <span className="truncate">{label}</span>
+                <ChevronDown className={`h-3 w-3 flex-shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {isOpen && (
+                <div className="ml-3 mt-0.5 space-y-0.5 border-l border-white/25 pl-2">
+                    {children}
+                </div>
+            )}
+        </div>
+    );
+};
+
 export default function Sidebar({ className = '' }) {
-    const { t } = useLanguage();
+    const { t, lang } = useLanguage();
     const scrollContainerRef = useRef(null);
 
     // Helper to gracefully check active routes without crashing if route is missing
@@ -94,7 +124,15 @@ export default function Sidebar({ className = '' }) {
         }
     };
 
-    // Auto-folding Accordion State (only one group open at a time)
+    const isAccountsReportActive = 
+        isActive('reports.accounts') ||
+        isActive('reports.day-book') || 
+        isActive('reports.cash-book') || 
+        isActive('reports.consol-bank-book') || 
+        isActive('reports.mobile-bank-book') || 
+        isActive('reports.profit-loss');
+
+    // Auto-folding Accordion State (only one main group open at a time)
     const [openGroup, setOpenGroup] = useState(() => {
         // First check session storage for persistence across navigations
         const saved = sessionStorage.getItem('sidebar_open_group');
@@ -116,10 +154,25 @@ export default function Sidebar({ className = '' }) {
         return null;
     });
 
+    // Nested dropdown state
+    const [openNestedGroup, setOpenNestedGroup] = useState(() => {
+        const saved = sessionStorage.getItem('sidebar_open_nested_group');
+        if (saved !== null && saved !== 'null') return saved;
+        return isAccountsReportActive ? 'accounts_report' : null;
+    });
+
     const toggleGroup = (groupKey) => {
         setOpenGroup(prev => {
             const next = prev === groupKey ? null : groupKey;
             sessionStorage.setItem('sidebar_open_group', next);
+            return next;
+        });
+    };
+
+    const toggleNestedGroup = (nestedKey) => {
+        setOpenNestedGroup(prev => {
+            const next = prev === nestedKey ? null : nestedKey;
+            sessionStorage.setItem('sidebar_open_nested_group', next);
             return next;
         });
     };
@@ -155,7 +208,7 @@ export default function Sidebar({ className = '' }) {
                 ref={scrollContainerRef}
                 className="flex-1 overflow-y-auto overflow-x-hidden p-2.5 custom-scrollbar"
             >
-                <nav className="space-y-1">
+                <nav key={lang} className="space-y-1">
                     {/* 1. Dashboard */}
                     <SidebarItem 
                         icon={Home} 
@@ -329,7 +382,20 @@ export default function Sidebar({ className = '' }) {
                         isOpen={openGroup === 'reports'}
                         onToggle={() => toggleGroup('reports')}
                     >
-                        <SidebarSubItem label={t('accountsReport')} href={route('reports.accounts')} active={isActive('reports.accounts')} />
+                        {/* Accounts Report Dropdown Submenu */}
+                        <SidebarSubGroup
+                            label={t('accountsReport') || 'Accounts Report'}
+                            active={isAccountsReportActive}
+                            isOpen={openNestedGroup === 'accounts_report' || isAccountsReportActive}
+                            onToggle={() => toggleNestedGroup('accounts_report')}
+                        >
+                            <SidebarSubItem label={t('dayBook')} href={route('reports.day-book')} active={isActive('reports.day-book')} />
+                            <SidebarSubItem label={t('cashBook')} href={route('reports.cash-book')} active={isActive('reports.cash-book')} />
+                            <SidebarSubItem label={t('consolBankBook')} href={route('reports.consol-bank-book')} active={isActive('reports.consol-bank-book')} />
+                            <SidebarSubItem label={t('mobileBankBook')} href={route('reports.mobile-bank-book')} active={isActive('reports.mobile-bank-book')} />
+                            <SidebarSubItem label={t('profitLoss')} href={route('reports.profit-loss')} active={isActive('reports.profit-loss') || isActive('reports.accounts')} />
+                        </SidebarSubGroup>
+
                         <SidebarSubItem label={t('salesReport')} href={route('reports.sales')} active={isActive('reports.sales')} />
                         <SidebarSubItem label={t('wholesaleReport')} href={route('reports.wholesale')} active={isActive('reports.wholesale')} />
                         <SidebarSubItem label={t('purchaseReport')} href={route('reports.purchase')} active={isActive('reports.purchase')} />

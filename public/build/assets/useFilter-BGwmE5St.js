@@ -1,0 +1,1 @@
+import{r as u,c as o}from"./app-B9KZ6li4.js";function f(s,t,n=400){const r=u.useRef(!0);u.useEffect(()=>{if(r.current){r.current=!1;return}const c=setTimeout(()=>{const i=Object.fromEntries(Object.entries(t).filter(([l,e])=>e!==""&&e!==null&&e!==void 0));o.get(s,i,{preserveState:!0,preserveScroll:!0,replace:!0})},n);return()=>clearTimeout(c)},Object.values(t))}export{f as u};

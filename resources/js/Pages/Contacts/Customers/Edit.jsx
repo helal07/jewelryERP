@@ -3,13 +3,29 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { useLanguage } from '@/Context/LanguageContext';
 import { 
-    User, Phone, MapPin, CreditCard, 
-    Wallet, FileText, Image as ImageIcon, 
-    Paperclip, CheckCircle, ArrowLeft, Save
+    User, Phone, MapPin, Mail,
+    CreditCard, Wallet, FileText, Image as ImageIcon, 
+    Paperclip, ArrowLeft, Save, Users
 } from 'lucide-react';
 
 export default function Edit({ customer }) {
-    const { t } = useLanguage();
+    const { t, lang, toBn } = useLanguage();
+    const isBn = lang === 'bn';
+
+    const handleNumberFocus = (e) => {
+        if (e.target.value === '0' || e.target.value === '0.00' || e.target.value === '০') {
+            e.target.value = '';
+        }
+    };
+
+    const cleanNumber = (val) => {
+        if (val === null || val === undefined) return '';
+        let str = String(val);
+        if (/^0+[0-9]/.test(str)) {
+            str = str.replace(/^0+/, '');
+        }
+        return str;
+    };
 
     const { data, setData, post, processing, errors } = useForm({
         _method: 'put',
@@ -51,191 +67,176 @@ export default function Edit({ customer }) {
     return (
         <AuthenticatedLayout
             header={
-                <div className="flex justify-between items-center">
-                    <h2 className="font-bold text-2xl bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
-                        {t('editCustomer', 'Edit Customer')}
-                    </h2>
+                <div className="flex items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-amber-50 rounded-xl" style={{ color: 'rgb(177,118,51)' }}>
+                            <Users className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-black text-gray-900 leading-tight">
+                                {isBn ? 'গ্রাহক সম্পাদনা' : 'Edit Customer'} - {customer.name}
+                            </h2>
+                            <p className="text-xs text-gray-500">
+                                {isBn ? 'গ্রাহকের তথ্য ও ক্রেডিট লিমিট আপডেট করুন' : 'Update the customer profile and limits'}
+                            </p>
+                        </div>
+                    </div>
                     <Link 
                         href={route('customers.index')}
-                        className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-indigo-600 transition-colors shadow-sm"
+                        className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-colors cursor-pointer"
                     >
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        {t('back', 'Back')}
+                        <ArrowLeft className="w-4 h-4" />
+                        <span>{isBn ? 'তালিকায় ফিরুন' : 'Back to List'}</span>
                     </Link>
                 </div>
             }
         >
-            <Head title={`Edit Customer - ${customer.name}`} />
+            <Head title={`${isBn ? 'গ্রাহক সম্পাদনা' : 'Edit Customer'} - ${customer.name}`} />
 
-            <div className="max-w-5xl mx-auto pb-12">
-                <form onSubmit={submit} className="space-y-8">
-                    
-                    <div className="bg-white shadow-sm rounded-2xl border border-gray-200 overflow-hidden">
+            <div className="max-w-5xl mx-auto pb-12 mt-4">
+                <form onSubmit={submit} className="space-y-6">
+                    <div className="bg-white shadow-sm rounded-2xl border border-gray-100 overflow-hidden">
                         <div className="p-6 md:p-8">
-                            
-                            {/* General & Financial Details */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Name */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Contact Name <span className="text-red-500">*</span>
+                                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                                        {isBn ? 'গ্রাহকের নাম' : 'Customer Name'} <span className="text-rose-500">*</span>
                                     </label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <User className="h-5 w-5 text-gray-400" />
+                                            <User className="h-4 w-4 text-gray-400" />
                                         </div>
                                         <input
                                             type="text"
                                             value={data.name}
                                             onChange={e => setData('name', e.target.value)}
-                                            style={{ paddingLeft: '2.75rem' }}
-                                            className={`block w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white transition-colors ${errors.name ? 'border-red-500' : ''}`}
-                                            placeholder="Enter contact name"
+                                            style={{ paddingLeft: '2.5rem' }}
+                                            className={`block w-full rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500 text-xs bg-gray-50/50 py-2.5 transition-colors ${errors.name ? 'border-rose-500' : ''}`}
+                                            placeholder={isBn ? 'গ্রাহকের নাম লিখুন' : 'Enter customer name'}
                                             required
                                         />
                                     </div>
-                                    {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+                                    {errors.name && <p className="mt-1 text-xs text-rose-600">{errors.name}</p>}
                                 </div>
 
                                 {/* Phone */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Contact Number <span className="text-red-500">*</span>
+                                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                                        {isBn ? 'মোবাইল নম্বর' : 'Contact Number'} <span className="text-rose-500">*</span>
                                     </label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <Phone className="h-5 w-5 text-gray-400" />
+                                            <Phone className="h-4 w-4 text-gray-400" />
                                         </div>
                                         <input
                                             type="text"
                                             value={data.phone}
                                             onChange={e => setData('phone', e.target.value)}
-                                            style={{ paddingLeft: '2.75rem' }}
-                                            className={`block w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white transition-colors ${errors.phone ? 'border-red-500' : ''}`}
-                                            placeholder="Enter contact number"
+                                            style={{ paddingLeft: '2.5rem' }}
+                                            className={`block w-full rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500 text-xs bg-gray-50/50 py-2.5 transition-colors ${errors.phone ? 'border-rose-500' : ''}`}
+                                            placeholder={isBn ? 'মোবাইল নম্বর লিখুন' : 'Enter phone number'}
                                             required
                                         />
                                     </div>
-                                    {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
-                                </div>
-
-                                {/* Opening Balance */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Opening Balance
-                                    </label>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                            <span className="text-gray-500 sm:text-sm font-medium">BDT </span>
-                                        </div>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            value={data.opening_balance}
-                                            onChange={e => setData('opening_balance', e.target.value)}
-                                            style={{ paddingLeft: '2.5rem' }}
-                                            className="block w-full rounded-lg border-gray-300 focus:border-teal-500 focus:ring-teal-500 sm:text-sm bg-white transition-colors"
-                                            placeholder="0.00"
-                                        />
-                                    </div>
-                                    {errors.opening_balance && <p className="mt-1 text-sm text-red-600">{errors.opening_balance}</p>}
-                                </div>
-
-                                {/* Credit Limit */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Credit Limit
-                                    </label>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <CreditCard className="h-5 w-5 text-gray-400" />
-                                        </div>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            value={data.credit_limit}
-                                            onChange={e => setData('credit_limit', e.target.value)}
-                                            style={{ paddingLeft: '2.75rem' }}
-                                            className="block w-full rounded-lg border-gray-300 focus:border-teal-500 focus:ring-teal-500 sm:text-sm bg-white transition-colors"
-                                            placeholder="0.00"
-                                        />
-                                    </div>
-                                    {errors.credit_limit && <p className="mt-1 text-sm text-red-600">{errors.credit_limit}</p>}
+                                    {errors.phone && <p className="mt-1 text-xs text-rose-600">{errors.phone}</p>}
                                 </div>
 
                                 {/* Email */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Email Address
+                                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                                        {isBn ? 'ইমেইল অ্যাড্রেস' : 'Email Address'}
                                     </label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <MapPin className="h-5 w-5 text-gray-400" />
+                                            <Mail className="h-4 w-4 text-gray-400" />
                                         </div>
                                         <input
                                             type="email"
                                             value={data.email}
                                             onChange={e => setData('email', e.target.value)}
-                                            style={{ paddingLeft: '2.75rem' }}
-                                            className="block w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white transition-colors"
-                                            placeholder="Optional email"
+                                            style={{ paddingLeft: '2.5rem' }}
+                                            className="block w-full rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500 text-xs bg-gray-50/50 py-2.5 transition-colors"
+                                            placeholder={isBn ? 'ইমেইল লিখুন (যদি থাকে)' : 'customer@example.com'}
                                         />
                                     </div>
-                                    {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+                                    {errors.email && <p className="mt-1 text-xs text-rose-600">{errors.email}</p>}
                                 </div>
 
-                                {/* NID/Passport */}
+                                {/* NID */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        NID / Passport No
+                                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                                        {isBn ? 'এনআইডি / পাসপোর্ট নং' : 'NID / Passport No'}
                                     </label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <FileText className="h-5 w-5 text-gray-400" />
+                                            <FileText className="h-4 w-4 text-gray-400" />
                                         </div>
                                         <input
                                             type="text"
                                             value={data.nid_number}
                                             onChange={e => setData('nid_number', e.target.value)}
-                                            style={{ paddingLeft: '2.75rem' }}
-                                            className="block w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white transition-colors"
-                                            placeholder="National ID or Passport"
+                                            style={{ paddingLeft: '2.5rem' }}
+                                            className="block w-full rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500 text-xs bg-gray-50/50 py-2.5 transition-colors"
+                                            placeholder={isBn ? 'জাতীয় পরিচয়পত্র নম্বর' : 'National ID number'}
                                         />
                                     </div>
-                                    {errors.nid_number && <p className="mt-1 text-sm text-red-600">{errors.nid_number}</p>}
+                                    {errors.nid_number && <p className="mt-1 text-xs text-rose-600">{errors.nid_number}</p>}
+                                </div>
+
+                                {/* Credit Limit */}
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                                        {isBn ? 'ক্রেডিট লিমিট (BDT)' : 'Credit Limit (BDT)'}
+                                    </label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <CreditCard className="h-4 w-4 text-gray-400" />
+                                        </div>
+                                        <input
+                                            type="number"
+                                            step="any"
+                                            value={data.credit_limit}
+                                            onFocus={handleNumberFocus}
+                                            onChange={e => setData('credit_limit', cleanNumber(e.target.value))}
+                                            style={{ paddingLeft: '2.5rem' }}
+                                            className="block w-full rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500 text-xs bg-gray-50/50 py-2.5 transition-colors font-bold"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    {errors.credit_limit && <p className="mt-1 text-xs text-rose-600">{errors.credit_limit}</p>}
                                 </div>
 
                                 {/* Address */}
                                 <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Address <span className="text-red-500">*</span>
+                                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                                        {isBn ? 'পূর্ণ ঠিকানা' : 'Address'} <span className="text-rose-500">*</span>
                                     </label>
                                     <textarea
                                         value={data.address}
                                         onChange={e => setData('address', e.target.value)}
                                         rows="2"
-                                        className={`block w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white transition-colors ${errors.address ? 'border-red-500' : ''}`}
-                                        placeholder="Full address"
+                                        className={`block w-full rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-amber-500 text-xs bg-gray-50/50 p-3 transition-colors ${errors.address ? 'border-rose-500' : ''}`}
+                                        placeholder={isBn ? 'গ্রাহকের পূর্ণ ঠিকানা লিখুন' : 'Full address'}
                                         required
                                     />
-                                    {errors.address && <p className="mt-1 text-sm text-red-600">{errors.address}</p>}
+                                    {errors.address && <p className="mt-1 text-xs text-rose-600">{errors.address}</p>}
                                 </div>
                             </div>
 
-                            <hr className="my-8 border-gray-200" />
+                            <hr className="my-6 border-gray-100" />
 
                             {/* Documents & Status */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {/* File Uploads */}
-                                <div className="space-y-5">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                                            <ImageIcon className="w-4 h-4 mr-2 text-indigo-500"/>
-                                            Customer Photo
+                                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5 flex items-center">
+                                            <ImageIcon className="w-3.5 h-3.5 mr-1.5 text-amber-600"/>
+                                            {isBn ? 'গ্রাহকের ছবি' : 'Customer Photo'}
                                         </label>
-                                        <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-3">
                                             {photoPreview && (
-                                                <div className="h-10 w-10 rounded-full overflow-hidden border border-gray-300 shrink-0">
+                                                <div className="h-10 w-10 rounded-full overflow-hidden border border-gray-200 shrink-0">
                                                     <img src={photoPreview} alt="Preview" className="h-full w-full object-cover" />
                                                 </div>
                                             )}
@@ -243,64 +244,65 @@ export default function Edit({ customer }) {
                                                 type="file" 
                                                 accept="image/*" 
                                                 onChange={handlePhotoChange}
-                                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-colors cursor-pointer"
+                                                className="block w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 transition-colors cursor-pointer"
                                             />
                                         </div>
-                                        {errors.photo && <p className="mt-1 text-sm text-red-600">{errors.photo}</p>}
+                                        {errors.photo && <p className="mt-1 text-xs text-rose-600">{errors.photo}</p>}
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                                            <Paperclip className="w-4 h-4 mr-2 text-indigo-500"/>
-                                            Attachment Document
+                                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5 flex items-center">
+                                            <Paperclip className="w-3.5 h-3.5 mr-1.5 text-amber-600"/>
+                                            {isBn ? 'সংযুক্তি ডকুমেন্ট' : 'Attachment Document'}
                                         </label>
                                         <input 
                                             type="file" 
                                             onChange={handleAttachmentChange}
-                                            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 transition-colors cursor-pointer"
+                                            className="block w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 transition-colors cursor-pointer"
                                         />
-                                        {errors.attachment && <p className="mt-1 text-sm text-red-600">{errors.attachment}</p>}
+                                        {errors.attachment && <p className="mt-1 text-xs text-rose-600">{errors.attachment}</p>}
                                     </div>
                                 </div>
 
                                 {/* Status Toggle */}
-                                <div className="flex items-start bg-gray-50 p-4 rounded-xl border border-gray-200">
-                                    <div className="flex items-center h-5 mt-1">
+                                <div className="flex items-start bg-gray-50/70 p-4 rounded-xl border border-gray-100">
+                                    <div className="flex items-center h-5 mt-0.5">
                                         <input
                                             id="status"
                                             type="checkbox"
                                             checked={data.status === 'active'}
                                             onChange={e => setData('status', e.target.checked ? 'active' : 'inactive')}
-                                            className="w-5 h-5 text-indigo-600 bg-white border-gray-300 rounded focus:ring-indigo-500 transition-colors cursor-pointer"
+                                            className="w-4 h-4 text-amber-600 bg-white border-gray-300 rounded focus:ring-amber-500 cursor-pointer"
                                         />
                                     </div>
-                                    <div className="ml-3 text-sm">
-                                        <label htmlFor="status" className="font-semibold text-gray-900 cursor-pointer select-none">
-                                            Active Customer
+                                    <div className="ml-3 text-xs">
+                                        <label htmlFor="status" className="font-bold text-gray-900 cursor-pointer select-none">
+                                            {isBn ? 'সক্রিয় গ্রাহক' : 'Active Customer'}
                                         </label>
-                                        <p className="text-gray-500 mt-1">Enable this to allow transactions and operations for this customer. If unchecked, they will be hidden from selections.</p>
+                                        <p className="text-gray-500 mt-0.5">
+                                            {isBn ? 'এই গ্রাহকের মাধ্যমে বিক্রয় ও লেনদেন চালু রাখতে এটি সক্রিয় রাখুন।' : 'Enable this to allow sales and transactions for this customer.'}
+                                        </p>
                                     </div>
-                                    {errors.status && <p className="mt-1 text-sm text-red-600">{errors.status}</p>}
+                                    {errors.status && <p className="mt-1 text-xs text-rose-600">{errors.status}</p>}
                                 </div>
                             </div>
                         </div>
 
                         {/* Submit Footer */}
-                        <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end">
+                        <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 flex justify-end">
                             <button
                                 type="submit"
                                 disabled={processing}
-                                className="flex items-center justify-center px-6 py-2.5 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                style={{ backgroundColor: 'rgb(177,118,51)' }}
+                                className="flex items-center justify-center px-6 py-2.5 text-xs font-bold text-white rounded-xl hover:opacity-90 shadow-sm transition-all focus:outline-none disabled:opacity-50 cursor-pointer"
                             >
                                 <Save className="w-4 h-4 mr-2" />
-                                {processing ? 'Saving...' : 'Save Customer'}
+                                {processing ? (isBn ? 'আপডেট হচ্ছে…' : 'Updating...') : (isBn ? 'আপডেট করুন' : 'Update Customer')}
                             </button>
                         </div>
                     </div>
-
                 </form>
             </div>
         </AuthenticatedLayout>
     );
 }
-

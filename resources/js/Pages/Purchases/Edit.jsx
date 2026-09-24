@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, Link } from '@inertiajs/react';
+import { useLanguage } from '@/Context/LanguageContext';
 import { 
     ShoppingBag, Plus, Trash2, Save, ArrowLeft, Building2, User,
     Calendar, FileText, Scale, CreditCard
@@ -28,6 +29,15 @@ export default function Edit({
     branches = [], 
     metalPrices = []
 }) {
+    const { t, lang, toBn } = useLanguage();
+    const isBn = lang === 'bn';
+
+    const handleNumberFocus = (e) => {
+        if (e.target.value === '0' || e.target.value === '0.00' || e.target.value === '০') {
+            e.target.value = '';
+        }
+    };
+
     const initialItems = purchase.items && purchase.items.length > 0 
         ? purchase.items.map(item => ({
             id: item.id,
@@ -146,17 +156,17 @@ export default function Edit({
             purity_id: purities[0]?.id || '',
             hallmark_no: '',
             weight_unit: 'gram',
-            gross_weight: 11.664,
+            gross_weight: 0,
             stone_weight: 0,
-            net_weight: 11.664,
+            net_weight: 0,
             rate_mode: 'per_gram',
-            rate_per_gram: 10000,
-            rate_per_vori: 116640,
+            rate_per_gram: 0,
+            rate_per_vori: 0,
             making_charge: 0,
             stone_charge: 0,
             wastage_percentage: 0,
             quantity: 1,
-            total_amount: 116640,
+            total_amount: 0,
         };
 
         const updated = [...data.items, newItem];
@@ -176,31 +186,33 @@ export default function Edit({
 
     return (
         <AuthenticatedLayout>
-            <Head title={`Edit Purchase #${purchase.invoice_no}`} />
+            <Head title={`${t('Edit Purchase')} #${isBn ? toBn(purchase.invoice_no) : purchase.invoice_no}`} />
 
             <div className="py-6 font-sans">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 pb-16">
                     
                     {/* Header */}
-                    <div className="flex items-center justify-between bg-white p-5 rounded-2xl border border-gray-100 shadow-xs">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-gray-100 shadow-xs">
                         <div className="flex items-center gap-3.5">
                             <Link
                                 href={route('purchases.index')}
-                                className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+                                className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors cursor-pointer"
                             >
                                 <ArrowLeft className="w-5 h-5" />
                             </Link>
                             <div>
-                                <h1 className="text-xl font-bold text-gray-900">Edit Purchase Invoice #{purchase.invoice_no}</h1>
-                                <p className="text-xs text-gray-500 mt-0.5">Modify purchase details, items and financial settlement</p>
+                                <h1 className="text-xl font-bold text-gray-900">
+                                    {t('Edit Purchase')} #{isBn ? toBn(purchase.invoice_no) : purchase.invoice_no}
+                                </h1>
+                                <p className="text-xs text-gray-500 mt-0.5">{t('Modify purchase details, items and financial settlement')}</p>
                             </div>
                         </div>
 
                         <Link
                             href={route('purchases.index')}
-                            className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+                            className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors cursor-pointer"
                         >
-                            Back to Purchases
+                            {t('Back to List')}
                         </Link>
                     </div>
 
@@ -209,14 +221,14 @@ export default function Edit({
                         <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-xs space-y-4">
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Supplier *</label>
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">{t('Supplier')} *</label>
                                     <select
                                         value={data.supplier_id}
                                         onChange={(e) => setData('supplier_id', e.target.value)}
                                         className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-900 focus:bg-white"
                                         required
                                     >
-                                        <option value="">— Select Supplier —</option>
+                                        <option value="">— {t('Select Supplier')} —</option>
                                         {suppliers.map(s => (
                                             <option key={s.id} value={s.id}>{s.name} {s.company_name ? `(${s.company_name})` : ''}</option>
                                         ))}
@@ -224,7 +236,7 @@ export default function Edit({
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Branch *</label>
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">{t('Branch')} *</label>
                                     <select
                                         value={data.branch_id}
                                         onChange={(e) => setData('branch_id', e.target.value)}
@@ -238,17 +250,17 @@ export default function Edit({
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Invoice No</label>
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">{t('Invoice #')}</label>
                                     <input
                                         type="text"
-                                        value={data.invoice_no}
+                                        value={isBn ? toBn(data.invoice_no) : data.invoice_no}
                                         disabled
                                         className="w-full bg-gray-100 border border-gray-200 rounded-xl px-3 py-2 text-xs font-mono font-bold text-gray-500 cursor-not-allowed"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Purchase Date *</label>
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">{t('Purchase Date')} *</label>
                                     <input
                                         type="date"
                                         value={data.purchase_date}
@@ -265,15 +277,15 @@ export default function Edit({
                             <div className="flex items-center justify-between border-b pb-3">
                                 <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                                     <Scale className="w-4 h-4 text-amber-600" />
-                                    Purchase Items ({data.items.length})
+                                    {t('Purchase Items')} ({isBn ? toBn(data.items.length) : data.items.length})
                                 </h2>
                                 <button
                                     type="button"
                                     onClick={addItemRow}
-                                    className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white shadow-xs hover:opacity-90 transition-opacity"
+                                    className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white shadow-xs hover:opacity-90 transition-opacity cursor-pointer"
                                     style={{ backgroundColor: 'rgb(177,118,51)' }}
                                 >
-                                    <Plus className="w-3.5 h-3.5 inline mr-1" /> Add Item
+                                    <Plus className="w-3.5 h-3.5 inline mr-1" /> {t('Add Item')}
                                 </button>
                             </div>
 
@@ -281,21 +293,21 @@ export default function Edit({
                                 {data.items.map((item, index) => (
                                     <div key={index} className="p-4 rounded-xl border border-gray-200 bg-gray-50/50 space-y-3">
                                         <div className="flex items-center justify-between">
-                                            <span className="text-xs font-bold text-amber-900">Item #{index + 1}</span>
+                                            <span className="text-xs font-bold text-amber-900">{t('Item')} #{isBn ? toBn(index + 1) : index + 1}</span>
                                             {data.items.length > 1 && (
                                                 <button
                                                     type="button"
                                                     onClick={() => removeItemRow(index)}
-                                                    className="text-xs font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1"
+                                                    className="text-xs font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1 cursor-pointer"
                                                 >
-                                                    <Trash2 className="w-3.5 h-3.5" /> Remove
+                                                    <Trash2 className="w-3.5 h-3.5" /> {t('Remove')}
                                                 </button>
                                             )}
                                         </div>
 
                                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3">
                                             <div className="md:col-span-2">
-                                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Product Name</label>
+                                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">{t('Product Name')}</label>
                                                 <input
                                                     type="text"
                                                     value={item.item_name}
@@ -306,21 +318,21 @@ export default function Edit({
                                             </div>
 
                                             <div>
-                                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Metal</label>
+                                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">{t('Metal')}</label>
                                                 <select
                                                     value={item.metal_type}
                                                     onChange={(e) => updateItem(index, 'metal_type', e.target.value)}
                                                     className="w-full bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs font-bold"
                                                 >
-                                                    <option value="gold">Gold</option>
-                                                    <option value="silver">Silver</option>
-                                                    <option value="platinum">Platinum</option>
-                                                    <option value="diamond">Diamond</option>
+                                                    <option value="gold">{t('Gold')}</option>
+                                                    <option value="silver">{t('Silver')}</option>
+                                                    <option value="platinum">{t('Platinum')}</option>
+                                                    <option value="diamond">{t('Diamond')}</option>
                                                 </select>
                                             </div>
 
                                             <div>
-                                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Purity</label>
+                                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">{t('Purity')}</label>
                                                 <select
                                                     value={item.purity_id}
                                                     onChange={(e) => updateItem(index, 'purity_id', e.target.value)}
@@ -333,24 +345,28 @@ export default function Edit({
                                             </div>
 
                                             <div>
-                                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Gross Wt (g)</label>
+                                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">{t('Gross Wt (g)')}</label>
                                                 <input
                                                     type="number"
-                                                    step="0.001"
+                                                    step="any"
                                                     value={item.gross_weight}
+                                                    onFocus={handleNumberFocus}
                                                     onChange={(e) => updateItem(index, 'gross_weight', e.target.value)}
+                                                    placeholder="0"
                                                     className="w-full bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs font-bold"
                                                     required
                                                 />
                                             </div>
 
                                             <div>
-                                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Net Wt (g)</label>
+                                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">{t('Net Wt (g)')}</label>
                                                 <input
                                                     type="number"
-                                                    step="0.001"
+                                                    step="any"
                                                     value={item.net_weight}
+                                                    onFocus={handleNumberFocus}
                                                     onChange={(e) => updateItem(index, 'net_weight', e.target.value)}
+                                                    placeholder="0"
                                                     className="w-full bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs font-bold"
                                                     required
                                                 />
@@ -359,34 +375,40 @@ export default function Edit({
 
                                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-1">
                                             <div>
-                                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Rate / Gram (৳)</label>
+                                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">{t('Rate/Gram')} ({isBn ? '৳' : 'BDT'})</label>
                                                 <input
                                                     type="number"
-                                                    step="0.01"
+                                                    step="any"
                                                     value={item.rate_per_gram}
+                                                    onFocus={handleNumberFocus}
                                                     onChange={(e) => updateItem(index, 'rate_per_gram', e.target.value)}
+                                                    placeholder="0"
                                                     className="w-full bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-right"
                                                     required
                                                 />
                                             </div>
 
                                             <div>
-                                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Making Charge (৳)</label>
+                                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">{t('Making Charge')} ({isBn ? '৳' : 'BDT'})</label>
                                                 <input
                                                     type="number"
-                                                    step="0.01"
+                                                    step="any"
                                                     value={item.making_charge}
+                                                    onFocus={handleNumberFocus}
                                                     onChange={(e) => updateItem(index, 'making_charge', e.target.value)}
+                                                    placeholder="0"
                                                     className="w-full bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-right"
                                                 />
                                             </div>
 
                                             <div>
-                                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Qty (Pcs)</label>
+                                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">{t('Quantity')}</label>
                                                 <input
                                                     type="number"
+                                                    step="1"
                                                     min="1"
                                                     value={item.quantity}
+                                                    onFocus={handleNumberFocus}
                                                     onChange={(e) => updateItem(index, 'quantity', e.target.value)}
                                                     className="w-full bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-center"
                                                     required
@@ -394,9 +416,9 @@ export default function Edit({
                                             </div>
 
                                             <div>
-                                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1 text-right">Item Total</label>
+                                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1 text-right">{t('Total')}</label>
                                                 <div className="h-8 px-3 bg-gray-900 text-white rounded-lg flex items-center justify-end font-bold text-xs">
-                                                    ৳ {fmtBDT(item.total_amount)}
+                                                    {isBn ? '৳ ' : 'BDT '} {isBn ? toBn(fmtBDT(item.total_amount)) : fmtBDT(item.total_amount)}
                                                 </div>
                                             </div>
                                         </div>
@@ -409,54 +431,62 @@ export default function Edit({
                         <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-xs space-y-4">
                             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                                 <div className="lg:col-span-6 space-y-2">
-                                    <label className="block text-xs font-bold text-gray-600 uppercase">Notes / Remarks</label>
+                                    <label className="block text-xs font-bold text-gray-600 uppercase">{t('Notes')}</label>
                                     <textarea
                                         value={data.notes}
                                         onChange={(e) => setData('notes', e.target.value)}
                                         rows="3"
                                         className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:bg-white"
-                                        placeholder="Purchase notes..."
+                                        placeholder={t('Purchase notes...')}
                                     />
                                 </div>
 
                                 <div className="lg:col-span-6 space-y-3">
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-gray-50 p-3 rounded-xl">
                                         <div>
-                                            <span className="text-[10px] font-bold text-gray-400 uppercase">Subtotal</span>
-                                            <p className="text-xs font-bold text-gray-900">৳ {fmtBDT(data.subtotal)}</p>
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase">{t('Subtotal')}</span>
+                                            <p className="text-xs font-bold text-gray-900">
+                                                {isBn ? '৳ ' : 'BDT '} {isBn ? toBn(fmtBDT(data.subtotal)) : fmtBDT(data.subtotal)}
+                                            </p>
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-0.5">Discount</label>
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-0.5">{t('Discount')}</label>
                                             <input
                                                 type="number"
-                                                step="0.01"
+                                                step="any"
                                                 value={data.discount}
+                                                onFocus={handleNumberFocus}
                                                 onChange={(e) => setData('discount', e.target.value)}
+                                                placeholder="0"
                                                 className="w-full h-7 text-xs font-bold text-right rounded border-gray-200"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-0.5">Tax</label>
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-0.5">{t('Tax')}</label>
                                             <input
                                                 type="number"
-                                                step="0.01"
+                                                step="any"
                                                 value={data.tax}
+                                                onFocus={handleNumberFocus}
                                                 onChange={(e) => setData('tax', e.target.value)}
+                                                placeholder="0"
                                                 className="w-full h-7 text-xs font-bold text-right rounded border-gray-200"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-0.5">Grand Total</label>
-                                            <p className="text-xs font-extrabold text-amber-900">৳ {fmtBDT(data.grand_total)}</p>
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-0.5">{t('Grand Total')}</label>
+                                            <p className="text-xs font-extrabold text-amber-900">
+                                                {isBn ? '৳ ' : 'BDT '} {isBn ? toBn(fmtBDT(data.grand_total)) : fmtBDT(data.grand_total)}
+                                            </p>
                                         </div>
                                     </div>
 
                                     <div className="flex items-center justify-between pt-2">
                                         <Link
                                             href={route('purchases.index')}
-                                            className="px-6 py-2.5 rounded-xl font-bold text-xs text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+                                            className="px-6 py-2.5 rounded-xl font-bold text-xs text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors cursor-pointer"
                                         >
-                                            Cancel
+                                            {t('Cancel')}
                                         </Link>
 
                                         <button
@@ -466,7 +496,7 @@ export default function Edit({
                                             style={{ backgroundColor: 'rgb(177,118,51)' }}
                                         >
                                             <Save className="w-4 h-4" />
-                                            {processing ? 'Saving...' : 'Update Purchase'}
+                                            {processing ? t('Saving...') : t('Save Changes')}
                                         </button>
                                     </div>
                                 </div>

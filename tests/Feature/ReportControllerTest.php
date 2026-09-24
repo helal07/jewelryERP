@@ -41,4 +41,34 @@ class ReportControllerTest extends TestCase
         $response = $this->actingAs($this->user)->get(route('reports.accounts'));
         $response->assertStatus(200);
     }
+
+    public function test_day_book_report_page_loads()
+    {
+        $response = $this->actingAs($this->user)->get(route('reports.day-book'));
+        $response->assertStatus(200);
+    }
+
+    public function test_cash_book_report_page_loads()
+    {
+        $response = $this->actingAs($this->user)->get(route('reports.cash-book'));
+        $response->assertStatus(200);
+    }
+
+    public function test_consol_bank_book_report_page_loads()
+    {
+        $response = $this->actingAs($this->user)->get(route('reports.consol-bank-book'));
+        $response->assertStatus(200);
+    }
+
+    public function test_mobile_bank_book_report_page_loads()
+    {
+        $response = $this->actingAs($this->user)->get(route('reports.mobile-bank-book'));
+        $response->assertStatus(200);
+    }
+
+    public function test_profit_loss_report_page_loads()
+    {
+        $response = $this->actingAs($this->user)->get(route('reports.profit-loss'));
+        $response->assertStatus(200);
+    }
 }

@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, router, usePage } from '@inertiajs/react';
 import { 
-    Landmark, Save, CheckCircle2, Banknote, Building2, PiggyBank, 
-    TrendingUp, ShoppingCart, Home, Plus, Calendar, 
-    FileText, Trash2, ListPlus, Sliders, Wallet, ShieldAlert, ArrowUpRight, ArrowDownLeft
+    Landmark, Save, CheckCircle2, 
+    Trash2, ListPlus, Sliders, Wallet, ShieldAlert, ArrowUpRight, ArrowDownLeft
 } from 'lucide-react';
 import { useLanguage } from '@/Context/LanguageContext';
 
@@ -29,9 +28,6 @@ function AccountSelectRow({ label, description, value, onChange, options, placeh
     );
 }
 
-const fmtBDT = (val) =>
-    Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
 const accountTypeBadge = (type) => {
     switch (type) {
         case 'asset':
@@ -49,18 +45,24 @@ const accountTypeBadge = (type) => {
     }
 };
 
-const ACCOUNT_TYPES = [
-    { key: 'asset', label: 'Asset', icon: Wallet },
-    { key: 'liability', label: 'Liability', icon: ShieldAlert },
-    { key: 'equity', label: 'Equity', icon: Landmark },
-    { key: 'income', label: 'Income', icon: ArrowUpRight },
-    { key: 'expense', label: 'Expense', icon: ArrowDownLeft },
-];
-
 export default function Index({ accounts = [], openingAccounts = {}, openingBalances = [] }) {
-    const { t } = useLanguage();
+    const { t, lang, toBn } = useLanguage();
+    const isBn = lang === 'bn';
     const { flash } = usePage().props;
     const [activeTab, setActiveTab] = useState('balances'); // 'balances' | 'mappings'
+
+    const fmtMoney = (val) => {
+        const formatted = Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return isBn ? `৳ ${toBn(formatted)}` : `BDT ${formatted}`;
+    };
+
+    const ACCOUNT_TYPES = [
+        { key: 'asset', label: isBn ? 'সম্পদ (Asset)' : 'Asset', icon: Wallet },
+        { key: 'liability', label: isBn ? 'দায় (Liability)' : 'Liability', icon: ShieldAlert },
+        { key: 'equity', label: isBn ? 'মূলধন (Equity)' : 'Equity', icon: Landmark },
+        { key: 'income', label: isBn ? 'আয় (Income)' : 'Income', icon: ArrowUpRight },
+        { key: 'expense', label: isBn ? 'ব্যয় (Expense)' : 'Expense', icon: ArrowDownLeft },
+    ];
 
     // Form for System Account Mapping
     const mappingForm = useForm({
@@ -81,6 +83,12 @@ export default function Index({ accounts = [], openingAccounts = {}, openingBala
         note: '',
     });
 
+    const handleNumberFocus = (e) => {
+        if (e.target.value === '0' || e.target.value === '0.00') {
+            e.target.select();
+        }
+    };
+
     const handleMappingSubmit = (e) => {
         e.preventDefault();
         mappingForm.post(route('settings.opening-accounts.update'));
@@ -96,7 +104,7 @@ export default function Index({ accounts = [], openingAccounts = {}, openingBala
     };
 
     const handleDeleteBalance = (id) => {
-        if (confirm('Are you sure you want to delete this opening balance record?')) {
+        if (confirm(isBn ? 'আপনি কি নিশ্চিত যে এই প্রারম্ভিক ব্যালেন্সটি মুছে ফেলতে চান?' : 'Are you sure you want to delete this opening balance record?')) {
             router.delete(route('settings.opening-accounts.destroy-balance', id));
         }
     };
@@ -118,7 +126,7 @@ export default function Index({ accounts = [], openingAccounts = {}, openingBala
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <h2 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
                         <Landmark className="w-7 h-7" style={{ color: 'rgb(177, 118, 51)' }} />
-                        {t('openingAccounts') || 'Opening Accounts'}
+                        {t('openingAccounts')}
                     </h2>
 
                     {/* Navigation Tabs */}
@@ -134,7 +142,7 @@ export default function Index({ accounts = [], openingAccounts = {}, openingBala
                             style={activeTab === 'balances' ? { backgroundColor: 'rgb(177, 118, 51)' } : {}}
                         >
                             <ListPlus className="w-3.5 h-3.5" />
-                            Balances ({openingBalances.length})
+                            {isBn ? `প্রারম্ভিক ব্যালেন্স (${toBn(openingBalances.length)})` : `Balances (${openingBalances.length})`}
                         </button>
                         <button
                             type="button"
@@ -147,13 +155,13 @@ export default function Index({ accounts = [], openingAccounts = {}, openingBala
                             style={activeTab === 'mappings' ? { backgroundColor: 'rgb(177, 118, 51)' } : {}}
                         >
                             <Sliders className="w-3.5 h-3.5" />
-                            Mappings
+                            {isBn ? 'সিস্টেম অ্যাকাউন্ট ম্যাপিং' : 'Mappings'}
                         </button>
                     </div>
                 </div>
             }
         >
-            <Head title="Opening Accounts" />
+            <Head title={t('openingAccounts')} />
 
             <div className="max-w-4xl space-y-6">
                 {flash?.success && (
@@ -169,15 +177,15 @@ export default function Index({ accounts = [], openingAccounts = {}, openingBala
                         {/* Entry Form Card */}
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                             <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between bg-gray-50/70">
-                                <h3 className="text-xs font-bold text-gray-700 uppercase">Set Opening Balance</h3>
-                                <span className="text-xs font-bold text-amber-900">Total: ৳ {fmtBDT(totalOpeningAmount)}</span>
+                                <h3 className="text-xs font-bold text-gray-700 uppercase">{isBn ? 'প্রারম্ভিক ব্যালেন্স যুক্ত করুন' : 'Set Opening Balance'}</h3>
+                                <span className="text-xs font-bold text-amber-900">{t('total')}: {fmtMoney(totalOpeningAmount)}</span>
                             </div>
 
                             <form onSubmit={handleBalanceSubmit} className="p-5 space-y-4">
                                 {/* Account Type Pills */}
                                 <div>
                                     <label className="block text-xs font-bold text-gray-700 uppercase mb-2">
-                                        Account Type *
+                                        {isBn ? 'অ্যাকাউন্টের ধরন *' : 'Account Type *'}
                                     </label>
                                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                                         {ACCOUNT_TYPES.map((type) => {
@@ -211,7 +219,7 @@ export default function Index({ accounts = [], openingAccounts = {}, openingBala
 
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <div>
-                                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Date *</label>
+                                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1">{t('date')} *</label>
                                         <input
                                             type="date"
                                             value={balanceForm.data.date}
@@ -223,14 +231,14 @@ export default function Index({ accounts = [], openingAccounts = {}, openingBala
                                     </div>
 
                                     <div>
-                                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Account *</label>
+                                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1">{t('account') || 'Account'} *</label>
                                         <select
                                             value={balanceForm.data.chart_of_account_id}
                                             onChange={(e) => balanceForm.setData('chart_of_account_id', e.target.value)}
                                             className="w-full text-sm rounded-xl border-gray-300 focus:ring-amber-500 focus:border-amber-500"
                                             required
                                         >
-                                            <option value="">Select Account</option>
+                                            <option value="">{t('select') || 'Select Account'}</option>
                                             {filteredAccounts.map(acc => (
                                                 <option key={acc.id} value={acc.id}>
                                                     {acc.code} — {acc.name}
@@ -241,15 +249,16 @@ export default function Index({ accounts = [], openingAccounts = {}, openingBala
                                     </div>
 
                                     <div>
-                                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Amount (BDT) *</label>
+                                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1">{t('amount')} *</label>
                                         <input
                                             type="number"
-                                            step="0.01"
+                                            step="any"
                                             min="0"
                                             value={balanceForm.data.amount}
+                                            onFocus={handleNumberFocus}
                                             onChange={(e) => balanceForm.setData('amount', e.target.value)}
                                             className="w-full text-sm font-bold text-amber-900 rounded-xl border-gray-300 focus:ring-amber-500 focus:border-amber-500"
-                                            placeholder="0.00"
+                                            placeholder="0"
                                             required
                                         />
                                         {balanceForm.errors.amount && <p className="text-xs text-rose-500 mt-1">{balanceForm.errors.amount}</p>}
@@ -257,13 +266,13 @@ export default function Index({ accounts = [], openingAccounts = {}, openingBala
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Note</label>
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">{t('notes') || 'Note'}</label>
                                     <input
                                         type="text"
                                         value={balanceForm.data.note}
                                         onChange={(e) => balanceForm.setData('note', e.target.value)}
                                         className="w-full text-sm rounded-xl border-gray-300 focus:ring-amber-500 focus:border-amber-500"
-                                        placeholder="Optional remark"
+                                        placeholder={isBn ? 'ঐচ্ছিক মন্তব্য' : 'Optional remark'}
                                     />
                                 </div>
 
@@ -274,33 +283,33 @@ export default function Index({ accounts = [], openingAccounts = {}, openingBala
                                         className="px-5 py-2 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer hover:opacity-90 active:opacity-100"
                                         style={{ backgroundColor: 'rgb(177, 118, 51)' }}
                                     >
-                                        <Save className="w-4 h-4" /> Save Balance
+                                        <Save className="w-4 h-4" /> {isBn ? 'ব্যালেন্স সংরক্ষণ করুন' : 'Save Balance'}
                                     </button>
                                 </div>
                             </form>
                         </div>
 
                         {/* Recorded Balances Table */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                            <div className="overflow-x-auto">
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 pb-12">
+                            <div className="overflow-x-auto rounded-xl border border-gray-100">
                                 <table className="w-full text-xs text-left border-collapse">
                                     <thead>
-                                        <tr className="bg-gray-50/80 text-gray-500 font-bold uppercase border-b border-gray-100">
-                                            <th className="py-3 px-4">Date</th>
-                                            <th className="py-3 px-4">Account</th>
-                                            <th className="py-3 px-4">Type</th>
-                                            <th className="py-3 px-4 text-right">Amount</th>
-                                            <th className="py-3 px-4">Note</th>
-                                            <th className="py-3 px-4 text-right">Action</th>
+                                        <tr className="bg-[#e68a1d] text-white">
+                                            <th className="py-2.5 px-3.5 text-[11px] font-bold uppercase whitespace-nowrap">{t('date')}</th>
+                                            <th className="py-2.5 px-3.5 text-[11px] font-bold uppercase whitespace-nowrap">{t('account') || 'Account'}</th>
+                                            <th className="py-2.5 px-3.5 text-[11px] font-bold uppercase whitespace-nowrap">{t('type') || 'Type'}</th>
+                                            <th className="py-2.5 px-3.5 text-[11px] font-bold uppercase whitespace-nowrap text-right">{t('amount')}</th>
+                                            <th className="py-2.5 px-3.5 text-[11px] font-bold uppercase whitespace-nowrap">{t('notes') || 'Note'}</th>
+                                            <th className="py-2.5 px-3.5 text-[11px] font-bold uppercase whitespace-nowrap text-right">{t('actions')}</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
                                         {openingBalances.map((item) => (
                                             <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                                                <td className="py-3 px-4 font-medium text-gray-700 whitespace-nowrap">
-                                                    {item.date}
+                                                <td className="py-2.5 px-3.5 font-medium text-gray-700 whitespace-nowrap">
+                                                    {isBn ? toBn(item.date) : item.date}
                                                 </td>
-                                                <td className="py-3 px-4">
+                                                <td className="py-2.5 px-3.5">
                                                     <div className="font-bold text-gray-900">
                                                         {item.chart_of_account?.name || '-'}
                                                     </div>
@@ -308,23 +317,23 @@ export default function Index({ accounts = [], openingAccounts = {}, openingBala
                                                         {item.chart_of_account?.code || '-'}
                                                     </div>
                                                 </td>
-                                                <td className="py-3 px-4">
+                                                <td className="py-2.5 px-3.5 whitespace-nowrap">
                                                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${accountTypeBadge(item.account_type)}`}>
-                                                        {item.account_type}
+                                                        {t(item.account_type) || item.account_type}
                                                     </span>
                                                 </td>
-                                                <td className="py-3 px-4 text-right font-black text-amber-900">
-                                                    ৳ {fmtBDT(item.amount)}
+                                                <td className="py-2.5 px-3.5 text-right font-black text-amber-900 whitespace-nowrap">
+                                                    {fmtMoney(item.amount)}
                                                 </td>
-                                                <td className="py-3 px-4 text-gray-600 text-xs truncate max-w-xs">
+                                                <td className="py-2.5 px-3.5 text-gray-600 text-xs truncate max-w-xs">
                                                     {item.note || '—'}
                                                 </td>
-                                                <td className="py-3 px-4 text-right">
+                                                <td className="py-2.5 px-3.5 text-right whitespace-nowrap">
                                                     <button
                                                         type="button"
                                                         onClick={() => handleDeleteBalance(item.id)}
                                                         className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition cursor-pointer"
-                                                        title="Delete"
+                                                        title={t('delete')}
                                                     >
                                                         <Trash2 className="w-4 h-4" />
                                                     </button>
@@ -334,7 +343,7 @@ export default function Index({ accounts = [], openingAccounts = {}, openingBala
                                         {openingBalances.length === 0 && (
                                             <tr>
                                                 <td colSpan="6" className="py-10 text-center text-gray-400">
-                                                    No opening balances recorded yet
+                                                    {isBn ? 'কোনো প্রারম্ভিক ব্যালেন্স রেকর্ড করা হয়নি' : 'No opening balances recorded yet'}
                                                 </td>
                                             </tr>
                                         )}
@@ -350,64 +359,64 @@ export default function Index({ accounts = [], openingAccounts = {}, openingBala
                     <form onSubmit={handleMappingSubmit} className="space-y-5">
                         {/* Cash & Bank */}
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-4">
-                            <h3 className="text-xs font-bold text-gray-700 uppercase">Cash & Bank Accounts</h3>
+                            <h3 className="text-xs font-bold text-gray-700 uppercase">{isBn ? 'নগদ ও ব্যাংক অ্যাকাউন্ট' : 'Cash & Bank Accounts'}</h3>
                             <AccountSelectRow
-                                label="Default Cash Account"
-                                description="Used for cash sales and cash receipts"
+                                label={isBn ? 'ডিফল্ট নগদ একাউন্ট' : 'Default Cash Account'}
+                                description={isBn ? 'নগদ বিক্রয় এবং নগদ অর্থ গ্রহণের জন্য ব্যবহৃত' : 'Used for cash sales and cash receipts'}
                                 value={mappingForm.data.default_cash_account_id}
                                 onChange={(e) => mappingForm.setData('default_cash_account_id', e.target.value)}
                                 options={assetAccounts}
-                                placeholder="Select Cash Account"
+                                placeholder={isBn ? 'নগদ একাউন্ট নির্বাচন করুন' : 'Select Cash Account'}
                             />
                             <AccountSelectRow
-                                label="Default Bank Account"
-                                description="Used for cheque payments and bank transfers"
+                                label={isBn ? 'ডিফল্ট ব্যাংক একাউন্ট' : 'Default Bank Account'}
+                                description={isBn ? 'চেক পেমেন্ট এবং ব্যাংক স্থানান্তরের জন্য ব্যবহৃত' : 'Used for cheque payments and bank transfers'}
                                 value={mappingForm.data.default_bank_account_id}
                                 onChange={(e) => mappingForm.setData('default_bank_account_id', e.target.value)}
                                 options={assetAccounts}
-                                placeholder="Select Bank Account"
+                                placeholder={isBn ? 'ব্যাংক একাউন্ট নির্বাচন করুন' : 'Select Bank Account'}
                             />
                         </div>
 
                         {/* Capital & Revenue */}
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-4">
-                            <h3 className="text-xs font-bold text-gray-700 uppercase">Capital & Revenue Accounts</h3>
+                            <h3 className="text-xs font-bold text-gray-700 uppercase">{isBn ? 'মূলধন ও আয় একাউন্ট' : 'Capital & Revenue Accounts'}</h3>
                             <AccountSelectRow
-                                label="Owner Capital Account"
-                                description="Equity account representing owner capital"
+                                label={isBn ? 'মালিকের মূলধন একাউন্ট' : 'Owner Capital Account'}
+                                description={isBn ? 'মালিকের মূলধন প্রতিনিধিত্বকারী ইক্যুইটি একাউন্ট' : 'Equity account representing owner capital'}
                                 value={mappingForm.data.default_capital_account_id}
                                 onChange={(e) => mappingForm.setData('default_capital_account_id', e.target.value)}
                                 options={equityAccounts}
-                                placeholder="Select Equity Account"
+                                placeholder={isBn ? 'ইক্যুইটি একাউন্ট নির্বাচন করুন' : 'Select Equity Account'}
                             />
                             <AccountSelectRow
-                                label="Sales Revenue Account"
-                                description="Income account credited for sales"
+                                label={isBn ? 'বিক্রয় আয় একাউন্ট' : 'Sales Revenue Account'}
+                                description={isBn ? 'বিক্রয় আয়ের জন্য ক্রেডিট হওয়া ইনকাম একাউন্ট' : 'Income account credited for sales'}
                                 value={mappingForm.data.default_sales_income_account_id}
                                 onChange={(e) => mappingForm.setData('default_sales_income_account_id', e.target.value)}
                                 options={incomeAccounts}
-                                placeholder="Select Income Account"
+                                placeholder={isBn ? 'আয় একাউন্ট নির্বাচন করুন' : 'Select Income Account'}
                             />
                         </div>
 
                         {/* Expense & Liabilities */}
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-4">
-                            <h3 className="text-xs font-bold text-gray-700 uppercase">Expense & Liabilities</h3>
+                            <h3 className="text-xs font-bold text-gray-700 uppercase">{isBn ? 'ব্যয় ও দায় একাউন্ট' : 'Expense & Liabilities'}</h3>
                             <AccountSelectRow
-                                label="Purchase Expense Account"
-                                description="Expense account debited when purchasing stock"
+                                label={isBn ? 'ক্রয় ব্যয় একাউন্ট' : 'Purchase Expense Account'}
+                                description={isBn ? 'স্টক/মালামাল ক্রয়ের সময় ডেবিট হওয়া ব্যয় একাউন্ট' : 'Expense account debited when purchasing stock'}
                                 value={mappingForm.data.default_purchase_expense_account_id}
                                 onChange={(e) => mappingForm.setData('default_purchase_expense_account_id', e.target.value)}
                                 options={expenseAccounts}
-                                placeholder="Select Expense Account"
+                                placeholder={isBn ? 'ব্যয় একাউন্ট নির্বাচন করুন' : 'Select Expense Account'}
                             />
                             <AccountSelectRow
-                                label="Mortgage Account"
-                                description="Account used for mortgage loans"
+                                label={isBn ? 'বন্ধকী একাউন্ট' : 'Mortgage Account'}
+                                description={isBn ? 'বন্ধকী ঋণের লেনদেনে ব্যবহৃত হিসাব' : 'Account used for mortgage loans'}
                                 value={mappingForm.data.default_mortgage_account_id}
                                 onChange={(e) => mappingForm.setData('default_mortgage_account_id', e.target.value)}
                                 options={accounts}
-                                placeholder="Select Account"
+                                placeholder={isBn ? 'হিসাব নির্বাচন করুন' : 'Select Account'}
                             />
                         </div>
 
@@ -418,12 +427,12 @@ export default function Index({ accounts = [], openingAccounts = {}, openingBala
                                 className="px-6 py-2.5 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-1.5 cursor-pointer hover:opacity-90 active:opacity-100"
                                 style={{ backgroundColor: 'rgb(177, 118, 51)' }}
                             >
-                                <Save className="w-4 h-4" /> Save Mappings
+                                <Save className="w-4 h-4" /> {isBn ? 'ম্যাপিং সংরক্ষণ করুন' : 'Save Mappings'}
                             </button>
 
                             {mappingForm.recentlySuccessful && (
                                 <span className="text-xs font-bold text-emerald-700 flex items-center gap-1 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
-                                    <CheckCircle2 className="w-4 h-4" /> Mappings Saved!
+                                    <CheckCircle2 className="w-4 h-4" /> {isBn ? 'ম্যাপিং সংরক্ষিত হয়েছে!' : 'Mappings Saved!'}
                                 </span>
                             )}
                         </div>

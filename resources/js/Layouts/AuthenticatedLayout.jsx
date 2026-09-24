@@ -6,6 +6,7 @@ import { Menu, X, Search, Globe, User, Building2 } from 'lucide-react';
 import { LanguageProvider, useLanguage } from '@/Context/LanguageContext';
 
 function MetalPriceTicker({ metalPrices }) {
+    const { t } = useLanguage();
     if (!metalPrices || metalPrices.length === 0) return null;
 
     return (
@@ -32,8 +33,8 @@ function MetalPriceTicker({ metalPrices }) {
                         {metalPrices.map((mp, idx) => (
                             <div key={`orig-${idx}`} className="flex items-center gap-1.5 whitespace-nowrap">
                                 <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_5px_rgba(251,191,36,0.6)] animate-pulse"></div>
-                                <span className="capitalize">{mp.metal_type} {mp.purity?.name} / Per gm</span>
-                                <span className="text-gray-900 ml-0.5">tk.{Number(mp.price_per_gram).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                <span className="capitalize">{t(mp.metal_type)} {mp.purity?.name} / {t('perGram')}</span>
+                                <span className="text-gray-900 ml-0.5">৳ {Number(mp.price_per_gram).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                             </div>
                         ))}
                     </div>
@@ -42,8 +43,8 @@ function MetalPriceTicker({ metalPrices }) {
                         {metalPrices.map((mp, idx) => (
                             <div key={`dup-${idx}`} className="flex items-center gap-1.5 whitespace-nowrap">
                                 <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_5px_rgba(251,191,36,0.6)] animate-pulse"></div>
-                                <span className="capitalize">{mp.metal_type} {mp.purity?.name} / Per gm</span>
-                                <span className="text-gray-900 ml-0.5">tk.{Number(mp.price_per_gram).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                <span className="capitalize">{t(mp.metal_type)} {mp.purity?.name} / {t('perGram')}</span>
+                                <span className="text-gray-900 ml-0.5">৳ {Number(mp.price_per_gram).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                             </div>
                         ))}
                     </div>
@@ -54,7 +55,7 @@ function MetalPriceTicker({ metalPrices }) {
 }
 
 function HeaderContent({ sidebarOpen, setSidebarOpen, user }) {
-    const { lang, setLang, t } = useLanguage();
+    const { lang, setLang, t, toBn } = useLanguage();
     const { active_branch } = usePage().props.auth || {};
     const branch = active_branch || user?.branch;
 
@@ -84,10 +85,10 @@ function HeaderContent({ sidebarOpen, setSidebarOpen, user }) {
                 {branch && (
                     <div className="hidden md:flex items-center gap-1.5 bg-amber-50/90 border border-amber-200/90 px-3 py-1 rounded-full text-xs font-bold text-amber-900 shadow-xs">
                         <Building2 className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
-                        <span className="truncate max-w-[150px]">{branch.name}</span>
+                        <span className="truncate max-w-[150px]">{t(branch.name)}</span>
                         {branch.code && (
                             <span className="text-[10px] bg-amber-200/70 text-amber-900 px-1.5 py-0.5 rounded font-bold">
-                                {branch.code}
+                                {lang === 'bn' ? toBn(branch.code) : branch.code}
                             </span>
                         )}
                     </div>
@@ -123,12 +124,12 @@ function HeaderContent({ sidebarOpen, setSidebarOpen, user }) {
 
                 {/* Profile dropdown */}
                 <div className="relative">
-                    <Dropdown>
+                    <Dropdown key={lang}>
                         <Dropdown.Trigger>
                             <span className="inline-flex rounded-full">
                                 <button
                                     type="button"
-                                    className="inline-flex items-center justify-center rounded-full border border-gray-200 bg-white p-1.5 text-sm font-medium text-gray-700 transition duration-200 ease-in-out hover:border-indigo-300 hover:shadow-md focus:outline-none"
+                                    className="inline-flex items-center justify-center rounded-full border border-gray-200 bg-white p-1.5 text-sm font-medium text-gray-700 transition duration-200 ease-in-out hover:border-indigo-300 hover:shadow-md focus:outline-none cursor-pointer"
                                     title={user.name}
                                 >
                                     <div className="w-7 h-7 rounded-full text-white flex items-center justify-center font-bold text-xs shadow-sm" style={{ backgroundColor: 'rgb(177,118,51)' }}>
@@ -138,15 +139,18 @@ function HeaderContent({ sidebarOpen, setSidebarOpen, user }) {
                             </span>
                         </Dropdown.Trigger>
 
-                        <Dropdown.Content align="right" className="glassmorphism mt-2 w-48 rounded-xl border border-gray-100 shadow-xl">
+                        <Dropdown.Content align="right" className="glassmorphism mt-2 w-52 rounded-xl border border-gray-100 shadow-xl">
                             <div className="block px-4 py-3 text-xs text-gray-500 border-b border-gray-100/50 bg-gray-50/50 rounded-t-xl">
-                                {t('signedInAs')}<br />
-                                <span className="font-semibold text-gray-900">{user.email}</span>
+                                <span className="text-[11px] text-gray-400 font-medium">{t('signedInAs')}</span>
+                                <div className="font-bold text-gray-900 truncate text-sm mt-0.5">{user.name || user.email}</div>
+                                <div className="text-[11px] text-gray-500 truncate">{user.email}</div>
                             </div>
-                            <Dropdown.Link href={route('profile.edit')} className="hover:bg-brand-50 hover:text-brand-700 transition-colors">
+                            <Dropdown.Link href={route('profile.edit')} className="hover:bg-brand-50 hover:text-brand-700 transition-colors flex items-center gap-2">
+                                <User className="w-4 h-4 text-gray-400" />
                                 {t('profile')}
                             </Dropdown.Link>
-                            <Dropdown.Link href={route('logout')} method="post" as="button" className="hover:bg-red-50 hover:text-red-700 transition-colors">
+                            <Dropdown.Link href={route('logout')} method="post" as="button" className="hover:bg-red-50 hover:text-red-700 transition-colors flex items-center gap-2 w-full text-left">
+                                <X className="w-4 h-4 text-rose-500" />
                                 {t('logout')}
                             </Dropdown.Link>
                         </Dropdown.Content>
@@ -161,6 +165,7 @@ export default function AuthenticatedLayout({ header, children }) {
     const { user } = usePage().props.auth;
     const { metal_prices } = usePage().props;
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const { lang } = useLanguage();
 
     return (
         <div className="flex h-screen bg-[#FEF9E7] overflow-hidden font-sans">
@@ -177,7 +182,7 @@ export default function AuthenticatedLayout({ header, children }) {
                 fixed inset-y-0 left-0 z-50 w-56 transform transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 print:hidden
                 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
             `}>
-                <Sidebar />
+                <Sidebar key={lang} />
                 {/* Mobile close button inside sidebar */}
                 <button
                     onClick={() => setSidebarOpen(false)}
@@ -195,13 +200,14 @@ export default function AuthenticatedLayout({ header, children }) {
 
                 {/* Header Component */}
                 <HeaderContent
+                    key={`header-${lang}`}
                     sidebarOpen={sidebarOpen}
                     setSidebarOpen={setSidebarOpen}
                     user={user}
                 />
 
                 {/* Metal Price Ticker */}
-                <MetalPriceTicker metalPrices={metal_prices} />
+                <MetalPriceTicker key={`ticker-${lang}`} metalPrices={metal_prices} />
 
                 {/* Page header (if provided) */}
                 {header && (

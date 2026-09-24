@@ -1,20 +1,18 @@
 import React, { useState } from 'react';
-import ReactDOM from 'react-dom';
+import { createPortal } from 'react-dom';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, router, usePage } from '@inertiajs/react';
 import Pagination from '@/Components/Pagination';
 import Dropdown from '@/Components/Dropdown';
 import useFilter from '@/Hooks/useFilter';
-import { Scale, Plus, Trash2, Filter, RotateCcw } from 'lucide-react';
+import { Scale, Plus, Trash2, RotateCcw } from 'lucide-react';
 import { useLanguage } from '@/Context/LanguageContext';
 
 const VORI = 11.664; // 1 Vori = 11.664 grams (Bangladesh standard)
 
-const fmtBDT = (val) =>
-    Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-export default function Index({ metalPrices, purities = [], branches = [], filters = {} }) {
-    const { t } = useLanguage();
+export default function Index({ metalPrices = { data: [] }, purities = [], branches = [], filters = {} }) {
+    const { t, lang, toBn } = useLanguage();
+    const isBn = lang === 'bn';
     const { flash } = usePage().props;
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [pricePerVori, setPricePerVori] = useState('');
@@ -39,6 +37,12 @@ export default function Index({ metalPrices, purities = [], branches = [], filte
         effective_date: new Date().toISOString().split('T')[0],
         branch_id: '',
     });
+
+    const handleNumberFocus = (e) => {
+        if (e.target.value === '0' || e.target.value === '0.00' || e.target.value === '0.0000') {
+            e.target.select();
+        }
+    };
 
     const openCreateModal = () => {
         reset();
@@ -82,18 +86,23 @@ export default function Index({ metalPrices, purities = [], branches = [], filte
     };
 
     const handleDelete = (id) => {
-        if (confirm('Are you sure you want to delete this price record?')) {
+        if (confirm(isBn ? 'আপনি কি নিশ্চিত যে এই দরটি মুছে ফেলতে চান?' : 'Are you sure you want to delete this price record?')) {
             router.delete(route('settings.metal-prices.destroy', id));
         }
     };
 
+    const fmtMoney = (val) => {
+        const formatted = Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return isBn ? `৳ ${toBn(formatted)}` : `BDT ${formatted}`;
+    };
+
     const metalBadge = (type) => {
         const map = {
-            gold: 'bg-amber-100/80 text-amber-900',
-            silver: 'bg-slate-100 text-slate-700',
-            platinum: 'bg-indigo-100 text-indigo-800',
+            gold: 'bg-amber-100/80 text-amber-900 border border-amber-200',
+            silver: 'bg-slate-100 text-slate-700 border border-slate-200',
+            platinum: 'bg-indigo-100 text-indigo-800 border border-indigo-200',
         };
-        return map[type] || 'bg-gray-100 text-gray-700';
+        return map[type] || 'bg-gray-100 text-gray-700 border border-gray-200';
     };
 
     return (
@@ -102,21 +111,21 @@ export default function Index({ metalPrices, purities = [], branches = [], filte
                 <div className="flex items-center justify-between">
                     <h2 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
                         <Scale className="w-7 h-7" style={{ color: 'rgb(177, 118, 51)' }} />
-                        {t('metalPrice') || 'Metal Price'}
+                        {t('metalPrice')}
                     </h2>
 
                     <button
                         onClick={openCreateModal}
-                        className="px-4 py-2 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                        className="px-4 py-2 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer hover:opacity-90 active:opacity-100"
                         style={{ backgroundColor: 'rgb(177, 118, 51)' }}
                     >
                         <Plus className="w-4 h-4" />
-                        Add Price
+                        {isBn ? 'নতুন দর যোগ করুন' : 'Add Price'}
                     </button>
                 </div>
             }
         >
-            <Head title="Metal Price" />
+            <Head title={t('metalPrice')} />
 
             {flash?.success && (
                 <div className="mb-4 font-semibold text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl">
@@ -133,10 +142,10 @@ export default function Index({ metalPrices, purities = [], branches = [], filte
                             onChange={(e) => setMetalType(e.target.value)}
                             className="w-full text-sm rounded-xl border-gray-300 focus:ring-amber-500 focus:border-amber-500 capitalize"
                         >
-                            <option value="">All Metal Types</option>
-                            <option value="gold">Gold</option>
-                            <option value="silver">Silver</option>
-                            <option value="platinum">Platinum</option>
+                            <option value="">{t('allMetals')}</option>
+                            <option value="gold">{t('gold') || 'Gold'}</option>
+                            <option value="silver">{t('silver') || 'Silver'}</option>
+                            <option value="platinum">{t('platinum') || 'Platinum'}</option>
                         </select>
                     </div>
 
@@ -146,7 +155,7 @@ export default function Index({ metalPrices, purities = [], branches = [], filte
                             onChange={(e) => setPurityId(e.target.value)}
                             className="w-full text-sm rounded-xl border-gray-300 focus:ring-amber-500 focus:border-amber-500"
                         >
-                            <option value="">All Purities</option>
+                            <option value="">{t('allPurities')}</option>
                             {purities.map(p => (
                                 <option key={p.id} value={p.id}>{p.name} ({p.metal_type})</option>
                             ))}
@@ -159,79 +168,76 @@ export default function Index({ metalPrices, purities = [], branches = [], filte
                             onClick={handleReset}
                             className="px-4 py-2 text-rose-600 bg-rose-50 rounded-xl text-xs font-bold transition flex items-center gap-1.5 hover:bg-rose-100 cursor-pointer"
                         >
-                            <RotateCcw className="w-4 h-4" /> Reset
+                            <RotateCcw className="w-4 h-4" /> {t('reset')}
                         </button>
                     )}
                 </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 pb-16">
-                <div className="overflow-visible min-h-[350px]">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 pb-24 min-h-[350px]">
+                <div className="overflow-x-visible min-h-[300px]">
                     <table className="w-full text-xs text-left border-collapse">
                         <thead>
-                            <tr className="bg-gray-50/80 text-gray-500 font-bold uppercase border-b border-gray-100">
-                                <th className="py-3.5 px-4">SL</th>
-                                <th className="py-3.5 px-4">Updated By</th>
-                                <th className="py-3.5 px-4">Type</th>
-                                <th className="py-3.5 px-4">Purity</th>
-                                <th className="py-3.5 px-4 text-right">Price / Vori</th>
-                                <th className="py-3.5 px-4 text-right">Price / Gm</th>
-                                <th className="py-3.5 px-4 text-right">Action</th>
+                            <tr className="bg-[#e68a1d] text-white">
+                                <th className="py-2.5 px-3.5 text-[11px] font-bold uppercase whitespace-nowrap">{t('sl') || 'SL'}</th>
+                                <th className="py-2.5 px-3.5 text-[11px] font-bold uppercase whitespace-nowrap">{t('updatedBy') || 'Updated By'}</th>
+                                <th className="py-2.5 px-3.5 text-[11px] font-bold uppercase whitespace-nowrap">{t('metal') || 'Type'}</th>
+                                <th className="py-2.5 px-3.5 text-[11px] font-bold uppercase whitespace-nowrap">{t('purity')}</th>
+                                <th className="py-2.5 px-3.5 text-[11px] font-bold uppercase whitespace-nowrap text-right">{t('ratePerVori') || 'Price / Vori'}</th>
+                                <th className="py-2.5 px-3.5 text-[11px] font-bold uppercase whitespace-nowrap text-right">{t('ratePerGram') || 'Price / Gm'}</th>
+                                <th className="py-2.5 px-3.5 text-[11px] font-bold uppercase whitespace-nowrap text-right">{t('actions')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {metalPrices.data && metalPrices.data.length > 0 ? (
+                            {metalPrices?.data && metalPrices.data.length > 0 ? (
                                 metalPrices.data.map((mp, index) => {
                                     const pricePerGm = Number(mp.price_per_gram);
-                                    const pricePerVori = pricePerGm * VORI;
+                                    const pricePerVoriVal = pricePerGm * VORI;
                                     const sl = (metalPrices.current_page - 1) * metalPrices.per_page + index + 1;
                                     return (
                                         <tr key={mp.id} className="hover:bg-gray-50/50 transition-colors">
-                                            <td className="py-3.5 px-4 font-bold text-gray-500">#{sl}</td>
+                                            <td className="py-2.5 px-3.5 font-bold text-gray-500 whitespace-nowrap">#{isBn ? toBn(sl) : sl}</td>
 
-                                            <td className="py-3.5 px-4">
+                                            <td className="py-2.5 px-3.5 whitespace-nowrap">
                                                 <div className="font-bold text-gray-900">
-                                                    {mp.creator?.name || 'System'}
+                                                    {mp.creator?.name || (isBn ? 'সিস্টেম' : 'System')}
                                                 </div>
                                                 <div className="text-[11px] text-gray-400">
-                                                    {new Date(mp.effective_date).toLocaleDateString('en-GB', {
-                                                        day: '2-digit', month: 'short', year: 'numeric'
-                                                    })}
+                                                    {isBn ? toBn(new Date(mp.effective_date).toLocaleDateString()) : new Date(mp.effective_date).toLocaleDateString()}
                                                 </div>
                                             </td>
 
-                                            <td className="py-3.5 px-4">
+                                            <td className="py-2.5 px-3.5 whitespace-nowrap">
                                                 <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold capitalize ${metalBadge(mp.metal_type)}`}>
-                                                    {mp.metal_type}
+                                                    {t(mp.metal_type) || mp.metal_type}
                                                 </span>
                                             </td>
 
-                                            <td className="py-3.5 px-4">
+                                            <td className="py-2.5 px-3.5 whitespace-nowrap">
                                                 <span className="font-bold text-gray-900">
                                                     {mp.purity?.name || '-'}
                                                 </span>
                                                 {mp.purity?.percentage && (
-                                                    <span className="ml-1 text-[11px] text-gray-400">({mp.purity.percentage}%)</span>
+                                                    <span className="ml-1 text-[11px] text-gray-400">({isBn ? toBn(mp.purity.percentage) : mp.purity.percentage}%)</span>
                                                 )}
                                             </td>
 
-                                            <td className="py-3.5 px-4 text-right font-black text-amber-900">
-                                                ৳ {fmtBDT(pricePerVori)}
+                                            <td className="py-2.5 px-3.5 text-right font-black text-amber-900 whitespace-nowrap">
+                                                {fmtMoney(pricePerVoriVal)}
                                             </td>
 
-                                            <td className="py-3.5 px-4 text-right font-bold text-gray-700">
-                                                ৳ {fmtBDT(pricePerGm)}
+                                            <td className="py-2.5 px-3.5 text-right font-bold text-gray-700 whitespace-nowrap">
+                                                {fmtMoney(pricePerGm)}
                                             </td>
 
-                                            <td className="py-3.5 px-4 text-right">
+                                            <td className="py-2.5 px-3.5 text-right whitespace-nowrap">
                                                 <Dropdown>
                                                     <Dropdown.Trigger>
                                                         <button
                                                             type="button"
-                                                            className="inline-flex items-center px-3 py-1 border rounded-xl text-xs font-bold bg-white hover:bg-amber-50 transition cursor-pointer shadow-2xs"
-                                                            style={{ color: 'rgb(177,118,51)', borderColor: 'rgba(177,118,51,0.4)' }}
+                                                            className="inline-flex items-center px-3 py-1 border border-[#00b4d8] rounded-full text-[13px] font-medium text-[#00b4d8] bg-white hover:bg-[#00b4d8]/10 focus:outline-none transition ease-in-out duration-150 cursor-pointer"
                                                         >
-                                                            Actions
+                                                            {t('actions')}
                                                             <svg className="ml-1.5 -mr-0.5 h-3.5 w-3.5 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                                                                 <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                                                             </svg>
@@ -241,10 +247,13 @@ export default function Index({ metalPrices, purities = [], branches = [], filte
                                                     <Dropdown.Content align="right" width="48" className="py-1 bg-white shadow-xl rounded-xl border border-gray-100">
                                                         <button
                                                             type="button"
-                                                            onClick={() => handleDelete(mp.id)}
-                                                            className="w-full text-left px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2 font-bold cursor-pointer transition"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleDelete(mp.id);
+                                                            }}
+                                                            className="block w-full px-4 py-2 text-start text-xs font-bold text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer transition"
                                                         >
-                                                            <Trash2 className="w-4 h-4 text-rose-600" /> Delete
+                                                            <Trash2 className="w-3.5 h-3.5 text-rose-600" /> {t('delete')}
                                                         </button>
                                                     </Dropdown.Content>
                                                 </Dropdown>
@@ -255,7 +264,7 @@ export default function Index({ metalPrices, purities = [], branches = [], filte
                             ) : (
                                 <tr>
                                     <td colSpan="7" className="py-12 text-center text-gray-400">
-                                        No metal prices found
+                                        {isBn ? 'কোনো ধাতুর দর পাওয়া যায়নি' : 'No metal prices found'}
                                     </td>
                                 </tr>
                             )}
@@ -263,27 +272,26 @@ export default function Index({ metalPrices, purities = [], branches = [], filte
                     </table>
                 </div>
 
-                {metalPrices.links && metalPrices.links.length > 3 && (
-                    <div className="p-4 border-t border-gray-100 flex justify-end">
+                {metalPrices?.links && metalPrices.links.length > 3 && (
+                    <div className="mt-4 border-t border-gray-100 pt-3 flex justify-end">
                         <Pagination links={metalPrices.links} />
                     </div>
                 )}
             </div>
 
             {/* Create Modal */}
-            {isCreateOpen && typeof document !== 'undefined' && ReactDOM.createPortal(
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-xs" onClick={closeModal}></div>
-                    <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden z-10 border border-gray-100">
+            {isCreateOpen && typeof document !== 'undefined' && createPortal(
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.55)' }}>
+                    <div className="relative bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden z-10 border border-gray-100">
                         <div className="px-6 py-4 flex items-center justify-between border-b border-gray-100" style={{ backgroundColor: 'rgb(177, 118, 51)' }}>
                             <div className="flex items-center gap-2 text-white">
                                 <Scale className="w-5 h-5" />
-                                <h3 className="text-sm font-bold">Add Metal Price</h3>
+                                <h3 className="text-sm font-bold">{isBn ? 'নতুন ধাতুর দর যোগ' : 'Add Metal Price'}</h3>
                             </div>
                             <button
                                 type="button"
                                 onClick={closeModal}
-                                className="text-white/80 hover:text-white rounded-lg p-1 transition"
+                                className="text-white/80 hover:text-white rounded-lg p-1 transition cursor-pointer"
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -296,7 +304,7 @@ export default function Index({ metalPrices, purities = [], branches = [], filte
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                                            Metal Type *
+                                            {t('metal') || 'Metal Type'} *
                                         </label>
                                         <select
                                             value={data.metal_type}
@@ -304,15 +312,15 @@ export default function Index({ metalPrices, purities = [], branches = [], filte
                                             className="w-full text-sm rounded-xl border-gray-300 focus:ring-amber-500 focus:border-amber-500"
                                             required
                                         >
-                                            <option value="gold">Gold</option>
-                                            <option value="silver">Silver</option>
-                                            <option value="platinum">Platinum</option>
+                                            <option value="gold">{t('gold') || 'Gold'}</option>
+                                            <option value="silver">{t('silver') || 'Silver'}</option>
+                                            <option value="platinum">{t('platinum') || 'Platinum'}</option>
                                         </select>
                                     </div>
 
                                     <div>
                                         <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                                            Purity *
+                                            {t('purity')} *
                                         </label>
                                         <select
                                             value={data.purity_id}
@@ -320,9 +328,9 @@ export default function Index({ metalPrices, purities = [], branches = [], filte
                                             className="w-full text-sm rounded-xl border-gray-300 focus:ring-amber-500 focus:border-amber-500"
                                             required
                                         >
-                                            <option value="">Select Purity</option>
+                                            <option value="">{t('select')}</option>
                                             {purities.filter(p => p.metal_type === data.metal_type).map(p => (
-                                                <option key={p.id} value={p.id}>{p.name} ({p.percentage}%)</option>
+                                                <option key={p.id} value={p.id}>{p.name} ({isBn ? toBn(p.percentage) : p.percentage}%)</option>
                                             ))}
                                         </select>
                                         {errors.purity_id && <p className="text-xs text-rose-500 mt-1">{errors.purity_id}</p>}
@@ -332,31 +340,33 @@ export default function Index({ metalPrices, purities = [], branches = [], filte
                                 <div className="rounded-xl border border-amber-200 p-4 bg-amber-50/40 space-y-3">
                                     <div>
                                         <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                                            Price / Vori (BDT) *
+                                            {t('ratePerVori') || 'Price / Vori (BDT)'} *
                                         </label>
                                         <input
                                             type="number"
-                                            step="0.01"
+                                            step="any"
                                             min="0"
                                             value={pricePerVori}
+                                            onFocus={handleNumberFocus}
                                             onChange={(e) => handleVoriChange(e.target.value)}
                                             className="w-full text-sm font-bold text-amber-900 rounded-xl border-gray-300 focus:ring-amber-500 focus:border-amber-500"
-                                            placeholder="e.g. 134000.00"
+                                            placeholder="0"
                                         />
                                     </div>
 
                                     <div>
                                         <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                                            Price / Gram (BDT) *
+                                            {t('ratePerGram') || 'Price / Gram (BDT)'} *
                                         </label>
                                         <input
                                             type="number"
-                                            step="0.0001"
+                                            step="any"
                                             min="0"
                                             value={data.price_per_gram}
+                                            onFocus={handleNumberFocus}
                                             onChange={(e) => handleGramChange(e.target.value)}
                                             className="w-full text-sm font-bold text-gray-900 rounded-xl border-gray-300 focus:ring-amber-500 focus:border-amber-500"
-                                            placeholder="e.g. 11500.00"
+                                            placeholder="0"
                                             required
                                         />
                                     </div>
@@ -366,7 +376,7 @@ export default function Index({ metalPrices, purities = [], branches = [], filte
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                                            Effective Date *
+                                            {t('date')} *
                                         </label>
                                         <input
                                             type="date"
@@ -374,19 +384,20 @@ export default function Index({ metalPrices, purities = [], branches = [], filte
                                             onChange={(e) => setData('effective_date', e.target.value)}
                                             className="w-full text-sm rounded-xl border-gray-300 focus:ring-amber-500 focus:border-amber-500"
                                             required
-                                        />
+                                        >
+                                        </input>
                                     </div>
 
                                     <div>
                                         <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                                            Branch
+                                            {t('branch')}
                                         </label>
                                         <select
                                             value={data.branch_id}
                                             onChange={(e) => setData('branch_id', e.target.value)}
                                             className="w-full text-sm rounded-xl border-gray-300 focus:ring-amber-500 focus:border-amber-500"
                                         >
-                                            <option value="">All Branches</option>
+                                            <option value="">{t('allBranches')}</option>
                                             {branches.map(b => (
                                                 <option key={b.id} value={b.id}>{b.name}</option>
                                             ))}
@@ -401,7 +412,7 @@ export default function Index({ metalPrices, purities = [], branches = [], filte
                                     onClick={closeModal}
                                     className="px-4 py-2 text-xs font-bold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl transition cursor-pointer"
                                 >
-                                    Cancel
+                                    {t('cancel')}
                                 </button>
                                 <button
                                     type="submit"
@@ -409,7 +420,7 @@ export default function Index({ metalPrices, purities = [], branches = [], filte
                                     className="px-5 py-2 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer hover:opacity-90 active:opacity-100"
                                     style={{ backgroundColor: 'rgb(177, 118, 51)' }}
                                 >
-                                    Save Price
+                                    {t('save')}
                                 </button>
                             </div>
                         </form>

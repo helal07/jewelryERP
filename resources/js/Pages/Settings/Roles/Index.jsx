@@ -7,9 +7,10 @@ import {
 import { useLanguage } from '@/Context/LanguageContext';
 
 export default function Index({ roles = [], permissions = [], users = [], groupedPermissions = [] }) {
-    const { t } = useLanguage();
-    const [selectedUserId, setSelectedUserId] = useState(users.length > 0 ? users[0].id : null);
+    const { t, lang, toBn } = useLanguage();
+    const isBn = lang === 'bn';
 
+    const [selectedUserId, setSelectedUserId] = useState(users.length > 0 ? users[0].id : null);
     const selectedUser = users.find(u => u.id === selectedUserId) || users[0];
 
     // Form for User Permissions
@@ -46,7 +47,8 @@ export default function Index({ roles = [], permissions = [], users = [], groupe
 
     const formatRoleName = (name) => {
         if (!name) return '';
-        return name.replace(/_/g, ' ').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        const formatted = name.replace(/_/g, ' ').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        return t(name) || formatted;
     };
 
     // Calculate effective role permissions for selected user
@@ -61,32 +63,32 @@ export default function Index({ roles = [], permissions = [], users = [], groupe
                 <div className="flex items-center justify-between">
                     <h2 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
                         <ShieldCheck className="w-7 h-7" style={{ color: 'rgb(177, 118, 51)' }} />
-                        {t('userPermissions') || 'User Permissions'}
+                        {t('userPermissions')}
                     </h2>
                 </div>
             }
         >
-            <Head title="User Permissions" />
+            <Head title={t('userPermissions')} />
 
             <div className="space-y-6 pb-36">
                 {/* 1. USER LIST TABLE */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/80">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden p-4">
+                    <div className="flex items-center justify-between mb-3">
                         <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                             <Users className="w-4 h-4" style={{ color: 'rgb(177, 118, 51)' }} />
-                            System Users ({users.length})
+                            {isBn ? `সিস্টেম ব্যবহারকারীগণ (${toBn(users.length)})` : `System Users (${users.length})`}
                         </h3>
                     </div>
 
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto rounded-xl border border-gray-100">
                         <table className="w-full text-left border-collapse text-xs">
                             <thead>
-                                <tr className="bg-gray-50/50 text-gray-500 font-bold uppercase border-b border-gray-100">
-                                    <th className="py-3 px-4">SL</th>
-                                    <th className="py-3 px-4">User</th>
-                                    <th className="py-3 px-4">Branch</th>
-                                    <th className="py-3 px-4">Role</th>
-                                    <th className="py-3 px-4 text-right">Action</th>
+                                <tr className="bg-[#e68a1d] text-white">
+                                    <th className="py-2.5 px-3.5 text-[11px] font-bold uppercase whitespace-nowrap">{t('sl') || 'SL'}</th>
+                                    <th className="py-2.5 px-3.5 text-[11px] font-bold uppercase whitespace-nowrap">{t('user') || 'User'}</th>
+                                    <th className="py-2.5 px-3.5 text-[11px] font-bold uppercase whitespace-nowrap">{t('branch')}</th>
+                                    <th className="py-2.5 px-3.5 text-[11px] font-bold uppercase whitespace-nowrap">{t('role') || 'Role'}</th>
+                                    <th className="py-2.5 px-3.5 text-[11px] font-bold uppercase whitespace-nowrap text-right">{t('actions')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
@@ -101,24 +103,24 @@ export default function Index({ roles = [], permissions = [], users = [], groupe
                                             onClick={() => setSelectedUserId(user.id)}
                                             className={`cursor-pointer transition-colors ${
                                                 isSelected 
-                                                    ? 'bg-amber-50/60 font-semibold text-amber-950' 
+                                                    ? 'bg-amber-50/70 font-semibold text-amber-950' 
                                                     : 'hover:bg-gray-50/50 text-gray-700'
                                             }`}
                                         >
-                                            <td className="py-3 px-4 font-bold text-gray-500">#{serialNo}</td>
-                                            <td className="py-3 px-4">
+                                            <td className="py-2.5 px-3.5 font-bold text-gray-500 whitespace-nowrap">#{isBn ? toBn(serialNo) : serialNo}</td>
+                                            <td className="py-2.5 px-3.5">
                                                 <div className="font-bold text-gray-900">{user.name}</div>
                                                 <div className="text-[11px] text-gray-500">{user.email}</div>
                                             </td>
-                                            <td className="py-3 px-4 text-gray-600">
-                                                {user.branch ? user.branch.name : 'Head Office'}
+                                            <td className="py-2.5 px-3.5 text-gray-600 whitespace-nowrap">
+                                                {user.branch ? user.branch.name : (isBn ? 'প্রধান কার্যালয়' : 'Head Office')}
                                             </td>
-                                            <td className="py-3 px-4">
+                                            <td className="py-2.5 px-3.5 whitespace-nowrap">
                                                 <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100/70 text-amber-900 border border-amber-200/60">
                                                     {formatRoleName(userRoleName)}
                                                 </span>
                                             </td>
-                                            <td className="py-3 px-4 text-right">
+                                            <td className="py-2.5 px-3.5 text-right whitespace-nowrap">
                                                 <button
                                                     type="button"
                                                     onClick={() => setSelectedUserId(user.id)}
@@ -129,7 +131,7 @@ export default function Index({ roles = [], permissions = [], users = [], groupe
                                                     }`}
                                                     style={isSelected ? { backgroundColor: 'rgb(177, 118, 51)' } : {}}
                                                 >
-                                                    Select <ChevronRight className="w-3 h-3" />
+                                                    {isBn ? 'বাছাই করুন' : 'Select'} <ChevronRight className="w-3 h-3" />
                                                 </button>
                                             </td>
                                         </tr>
@@ -146,11 +148,11 @@ export default function Index({ roles = [], permissions = [], users = [], groupe
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
                             <div>
                                 <h3 className="text-base font-bold text-gray-900">{selectedUser.name}</h3>
-                                <p className="text-xs text-gray-500">{selectedUser.email} • {selectedUser.branch ? selectedUser.branch.name : 'Head Office'}</p>
+                                <p className="text-xs text-gray-500">{selectedUser.email} • {selectedUser.branch ? selectedUser.branch.name : (isBn ? 'প্রধান কার্যালয়' : 'Head Office')}</p>
                             </div>
 
                             <div className="flex items-center gap-2">
-                                <label className="text-xs font-bold text-gray-700 uppercase">Role:</label>
+                                <label className="text-xs font-bold text-gray-700 uppercase">{t('role') || 'Role'}:</label>
                                 <select
                                     value={userData.role_id}
                                     onChange={(e) => setUserData('role_id', e.target.value)}
@@ -170,14 +172,14 @@ export default function Index({ roles = [], permissions = [], users = [], groupe
                             <div className="flex items-center justify-between">
                                 <h4 className="text-xs font-bold text-gray-700 uppercase flex items-center gap-1.5">
                                     <Shield className="w-4 h-4" style={{ color: 'rgb(177, 118, 51)' }} />
-                                    Permissions
+                                    {t('rolesPermissions') || 'Permissions'}
                                 </h4>
                                 <div className="flex items-center gap-3 text-xs font-medium">
                                     <span className="flex items-center gap-1 text-emerald-700">
-                                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Role Inherited
+                                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span> {isBn ? 'রোল থেকে প্রাপ্ত' : 'Role Inherited'}
                                     </span>
                                     <span className="flex items-center gap-1 text-amber-800">
-                                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'rgb(177, 118, 51)' }}></span> Direct Override
+                                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'rgb(177, 118, 51)' }}></span> {isBn ? 'সরাসরি অনুমতি' : 'Direct Override'}
                                     </span>
                                 </div>
                             </div>
@@ -188,9 +190,9 @@ export default function Index({ roles = [], permissions = [], users = [], groupe
                                     <div key={group.sl} className="bg-gray-50/70 rounded-xl p-3.5 border border-gray-100 space-y-2.5">
                                         <div className="flex items-center gap-2">
                                             <span className="px-2 py-0.5 text-white font-mono font-bold text-[10px] rounded-md" style={{ backgroundColor: 'rgb(177, 118, 51)' }}>
-                                                #{group.sl}
+                                                #{isBn ? toBn(group.sl) : group.sl}
                                             </span>
-                                            <h5 className="font-bold text-xs text-gray-800">{group.name}</h5>
+                                            <h5 className="font-bold text-xs text-gray-800">{t(group.name) || group.name}</h5>
                                         </div>
 
                                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
@@ -212,7 +214,7 @@ export default function Index({ roles = [], permissions = [], users = [], groupe
                                                                     : 'bg-white border-gray-200 text-gray-600 hover:border-amber-300'
                                                         }`}
                                                     >
-                                                        <span className="truncate mr-2 font-medium">{perm.label}</span>
+                                                        <span className="truncate mr-2 font-medium">{t(perm.label) || perm.label}</span>
                                                         <div className={`w-4 h-4 rounded-md flex items-center justify-center transition-colors flex-shrink-0 ${
                                                             isRoleInherited 
                                                                 ? 'bg-emerald-600 text-white'
@@ -241,7 +243,7 @@ export default function Index({ roles = [], permissions = [], users = [], groupe
                         <div className="flex items-center gap-3">
                             <User className="w-5 h-5 text-amber-400" />
                             <div>
-                                <span className="text-xs text-gray-400">Selected User:</span>
+                                <span className="text-xs text-gray-400">{isBn ? 'নির্বাচিত ব্যবহারকারী:' : 'Selected User:'}</span>
                                 <h4 className="text-sm font-bold text-white leading-none mt-0.5">{selectedUser.name}</h4>
                             </div>
                         </div>
@@ -249,7 +251,7 @@ export default function Index({ roles = [], permissions = [], users = [], groupe
                         <div className="flex items-center gap-3">
                             {userRecentlySuccessful && (
                                 <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
-                                    <CheckCircle2 className="w-4 h-4" /> Updated!
+                                    <CheckCircle2 className="w-4 h-4" /> {isBn ? 'আপডেট হয়েছে!' : 'Updated!'}
                                 </span>
                             )}
                             <button
@@ -258,7 +260,7 @@ export default function Index({ roles = [], permissions = [], users = [], groupe
                                 className="text-white px-5 py-2 rounded-xl font-bold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer hover:opacity-90 active:opacity-100"
                                 style={{ backgroundColor: 'rgb(177, 118, 51)' }}
                             >
-                                <Save className="w-4 h-4" /> Save
+                                <Save className="w-4 h-4" /> {t('save') || 'Save'}
                             </button>
                         </div>
                     </div>

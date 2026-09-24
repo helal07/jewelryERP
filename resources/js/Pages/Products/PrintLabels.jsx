@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { useLanguage } from '@/Context/LanguageContext';
 import { Printer, X, Plus, ArrowLeft, Gem } from 'lucide-react';
 import axios from 'axios';
 import Barcode from 'react-barcode';
@@ -31,6 +32,9 @@ function SafeBarcode({ value }) {
 }
 
 export default function PrintLabels({ categories = [], initialProducts = [] }) {
+    const { t, lang, toBn } = useLanguage();
+    const isBn = lang === 'bn';
+
     const [searchForm, setSearchForm] = useState({
         category_id: '',
         name: '',
@@ -85,7 +89,7 @@ export default function PrintLabels({ categories = [], initialProducts = [] }) {
 
     const handleOpenPreview = () => {
         if (selectedProducts.length === 0) {
-            alert('Please add at least one product first.');
+            alert(t('Please select at least one product first.'));
             return;
         }
         setShowPreviewModal(true);
@@ -102,7 +106,7 @@ export default function PrintLabels({ categories = [], initialProducts = [] }) {
 
     return (
         <AuthenticatedLayout>
-            <Head title="Print Label" />
+            <Head title={t('Print Labels')} />
 
             <div className="py-6 font-sans">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -113,13 +117,13 @@ export default function PrintLabels({ categories = [], initialProducts = [] }) {
                             <Printer className="w-6 h-6 text-amber-700" />
                         </div>
                         <div className="flex items-center gap-4">
-                            <h2 className="text-xl font-bold text-gray-900">Print Label</h2>
+                            <h2 className="text-xl font-bold text-gray-900">{t('Print Labels')}</h2>
                             <Link 
                                 href={route('products.create')} 
-                                className="px-4 py-1.5 rounded-full text-xs font-semibold text-white shadow-xs hover:opacity-90 transition-opacity"
+                                className="px-4 py-1.5 rounded-full text-xs font-semibold text-white shadow-xs hover:opacity-90 transition-opacity cursor-pointer"
                                 style={{ backgroundColor: 'rgb(177,118,51)' }}
                             >
-                                Add New Product
+                                {t('Add New Product')}
                             </Link>
                         </div>
                     </div>
@@ -130,20 +134,20 @@ export default function PrintLabels({ categories = [], initialProducts = [] }) {
                         <form onSubmit={handleSearch}>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Category</label>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">{t('Category')}</label>
                                     <select
                                         className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs font-medium focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
                                         value={searchForm.category_id}
                                         onChange={(e) => setSearchForm({ ...searchForm, category_id: e.target.value })}
                                     >
-                                        <option value="">— Select —</option>
+                                        <option value="">{t('— Select —')}</option>
                                         {categories.map(cat => (
-                                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                            <option key={cat.id} value={cat.id}>{t(cat.name)}</option>
                                         ))}
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Product Name</label>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">{t('Product Name')}</label>
                                     <input
                                         type="text"
                                         className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs font-medium focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
@@ -152,7 +156,7 @@ export default function PrintLabels({ categories = [], initialProducts = [] }) {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Product Code</label>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">{t('Product Code')}</label>
                                     <input
                                         type="text"
                                         className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs font-medium focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
@@ -169,14 +173,14 @@ export default function PrintLabels({ categories = [], initialProducts = [] }) {
                                     className="px-6 py-2 rounded-lg font-bold text-xs shadow-xs text-white transition-opacity hover:opacity-90 cursor-pointer disabled:opacity-50"
                                     style={{ backgroundColor: 'rgb(177,118,51)' }}
                                 >
-                                    {isSearching ? 'Searching...' : 'Search'}
+                                    {isSearching ? t('Searching...') : t('Search')}
                                 </button>
                                 <button
                                     type="button"
                                     onClick={handleReset}
                                     className="px-6 py-2 rounded-lg font-bold text-xs text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors cursor-pointer"
                                 >
-                                    Reset
+                                    {t('Reset')}
                                 </button>
                             </div>
                         </form>
@@ -185,8 +189,10 @@ export default function PrintLabels({ categories = [], initialProducts = [] }) {
                         {searchResults.length > 0 && (
                             <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
                                 <div className="bg-gray-50 px-4 py-2.5 font-bold text-xs text-gray-700 border-b border-gray-200 flex items-center justify-between">
-                                    <span>Products</span>
-                                    <span className="text-[11px] text-gray-500 font-normal">({searchResults.length} available)</span>
+                                    <span>{t('Products')}</span>
+                                    <span className="text-[11px] text-gray-500 font-normal">
+                                        ({isBn ? toBn(searchResults.length) : searchResults.length} {t('available')})
+                                    </span>
                                 </div>
                                 <div className="max-h-52 overflow-y-auto divide-y divide-gray-100">
                                     {searchResults.map(product => {
@@ -195,8 +201,8 @@ export default function PrintLabels({ categories = [], initialProducts = [] }) {
                                             <div key={product.id} className="px-4 py-2.5 hover:bg-amber-50/40 flex items-center justify-between gap-3 text-xs">
                                                 <div>
                                                     <span className="font-bold text-gray-900">{product.name}</span>
-                                                    <span className="ml-2 font-mono text-[11px] text-gray-500">{product.sku}</span>
-                                                    <span className="ml-2 text-gray-400">• {product.category?.name || 'Category'}</span>
+                                                    <span className="ml-2 font-mono text-[11px] text-gray-500">{isBn ? toBn(product.sku) : product.sku}</span>
+                                                    <span className="ml-2 text-gray-400">• {product.category?.name ? t(product.category.name) : t('Category')}</span>
                                                 </div>
                                                 <button
                                                     type="button"
@@ -208,7 +214,7 @@ export default function PrintLabels({ categories = [], initialProducts = [] }) {
                                                             : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
                                                     }`}
                                                 >
-                                                    {isSelected ? 'Added' : '+ Add'}
+                                                    {isSelected ? t('Added') : `+ ${t('Add')}`}
                                                 </button>
                                             </div>
                                         );
@@ -222,28 +228,28 @@ export default function PrintLabels({ categories = [], initialProducts = [] }) {
                             <table className="w-full text-xs text-left">
                                 <thead className="text-white" style={{ backgroundColor: 'rgb(177,118,51)' }}>
                                     <tr>
-                                        <th className="px-4 py-3 font-bold w-12 text-center">SL</th>
-                                        <th className="px-4 py-3 font-bold">Product</th>
-                                        <th className="px-4 py-3 font-bold text-center w-28">Quantity</th>
-                                        <th className="px-4 py-3 font-bold text-center w-20">Action</th>
+                                        <th className="px-4 py-3 font-bold w-12 text-center">{t('SL')}</th>
+                                        <th className="px-4 py-3 font-bold">{t('Product')}</th>
+                                        <th className="px-4 py-3 font-bold text-center w-28">{t('Quantity')}</th>
+                                        <th className="px-4 py-3 font-bold text-center w-20">{t('Action')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {selectedProducts.length === 0 ? (
                                         <tr>
                                             <td colSpan="4" className="px-4 py-8 text-center text-gray-500">
-                                                No products in the list. Search and click "+ Add" above.
+                                                {t('No products in the list. Search and click "+ Add" above.')}
                                             </td>
                                         </tr>
                                     ) : (
                                         selectedProducts.map((product, index) => (
                                             <tr key={product.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                                                 <td className="px-4 py-3 text-center text-gray-500 font-medium">
-                                                    {index + 1}
+                                                    {isBn ? toBn(index + 1) : index + 1}
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="font-bold text-gray-900">{product.name}</div>
-                                                    <div className="text-[11px] text-gray-500 font-mono">{product.sku}</div>
+                                                    <div className="text-[11px] text-gray-500 font-mono">{isBn ? toBn(product.sku) : product.sku}</div>
                                                 </td>
                                                 <td className="px-4 py-3 text-center">
                                                     <input
@@ -251,6 +257,7 @@ export default function PrintLabels({ categories = [], initialProducts = [] }) {
                                                         min="1"
                                                         max="50"
                                                         value={product.quantity || 1}
+                                                        onFocus={(e) => { if (e.target.value === '0' || e.target.value === '০') e.target.value = ''; }}
                                                         onChange={(e) => updateQuantity(product.id, e.target.value)}
                                                         className="w-14 py-1 px-2 text-center text-xs font-bold border border-gray-200 rounded-md focus:ring-1 focus:ring-amber-500"
                                                     />
@@ -260,7 +267,7 @@ export default function PrintLabels({ categories = [], initialProducts = [] }) {
                                                         type="button"
                                                         onClick={() => removeProductFromList(product.id)}
                                                         className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded transition-colors cursor-pointer"
-                                                        title="Remove"
+                                                        title={t('Remove')}
                                                     >
                                                         <X className="w-4 h-4" />
                                                     </button>
@@ -281,7 +288,7 @@ export default function PrintLabels({ categories = [], initialProducts = [] }) {
                                 className="px-8 py-2.5 rounded-lg font-bold text-xs text-white shadow-xs transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                 style={{ backgroundColor: 'rgb(177,118,51)' }}
                             >
-                                Preview
+                                {t('Preview')}
                             </button>
                             <button
                                 type="button"
@@ -289,7 +296,7 @@ export default function PrintLabels({ categories = [], initialProducts = [] }) {
                                 disabled={selectedProducts.length === 0}
                                 className="px-8 py-2.5 rounded-lg font-bold text-xs text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                             >
-                                Cancel
+                                {t('Cancel')}
                             </button>
                         </div>
                     </div>
@@ -297,7 +304,7 @@ export default function PrintLabels({ categories = [], initialProducts = [] }) {
                 </div>
             </div>
 
-            {/* In-Page Print Preview Modal (No New Tab Opened) */}
+            {/* In-Page Print Preview Modal */}
             {showPreviewModal && (
                 <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 print:p-0 print:static print:bg-white">
                     <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-gray-200 print:border-none print:shadow-none print:max-w-none print:max-h-none print:w-full">
@@ -310,10 +317,10 @@ export default function PrintLabels({ categories = [], initialProducts = [] }) {
                                     className="inline-flex items-center px-3 py-1.5 text-xs font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
                                 >
                                     <ArrowLeft className="w-4 h-4 mr-1.5" />
-                                    Back
+                                    {t('Back')}
                                 </button>
                                 <span className="text-xs font-bold text-gray-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-md">
-                                    {expandedProducts.length} {expandedProducts.length === 1 ? 'Label' : 'Labels'}
+                                    {isBn ? toBn(expandedProducts.length) : expandedProducts.length} {t('Labels')}
                                 </span>
                             </div>
 
@@ -325,7 +332,7 @@ export default function PrintLabels({ categories = [], initialProducts = [] }) {
                                         onChange={(e) => setShowWeight(e.target.checked)}
                                         className="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
                                     />
-                                    <span className="text-gray-700 font-medium">Weights</span>
+                                    <span className="text-gray-700 font-medium">{t('Weights')}</span>
                                 </label>
 
                                 <label className="flex items-center gap-1.5 cursor-pointer select-none">
@@ -335,7 +342,7 @@ export default function PrintLabels({ categories = [], initialProducts = [] }) {
                                         onChange={(e) => setShowPrice(e.target.checked)}
                                         className="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
                                     />
-                                    <span className="text-gray-700 font-medium">Price / Rate</span>
+                                    <span className="text-gray-700 font-medium">{t('Price / Rate')}</span>
                                 </label>
 
                                 <button
@@ -344,7 +351,7 @@ export default function PrintLabels({ categories = [], initialProducts = [] }) {
                                     style={{ backgroundColor: 'rgb(177,118,51)' }}
                                 >
                                     <Printer className="w-4 h-4 mr-1.5" />
-                                    Print
+                                    {t('Print')}
                                 </button>
 
                                 <button
@@ -373,7 +380,7 @@ export default function PrintLabels({ categories = [], initialProducts = [] }) {
                                             </div>
                                             {product.purity?.name && (
                                                 <span className="text-[10px] font-bold bg-amber-100 text-amber-900 print:bg-transparent print:border print:border-black px-1.5 py-0.2 rounded font-mono">
-                                                    {product.purity.name}
+                                                    {isBn ? toBn(product.purity.name) : product.purity.name}
                                                 </span>
                                             )}
                                         </div>
@@ -381,7 +388,7 @@ export default function PrintLabels({ categories = [], initialProducts = [] }) {
                                         {/* Product Name & SKU */}
                                         <div className="text-center my-1">
                                             <h4 className="text-xs font-bold text-gray-900 truncate">{product.name}</h4>
-                                            <p className="text-[10px] text-gray-500 font-mono tracking-wider">{product.sku}</p>
+                                            <p className="text-[10px] text-gray-500 font-mono tracking-wider">{isBn ? toBn(product.sku) : product.sku}</p>
                                         </div>
 
                                         {/* Barcode */}
@@ -393,23 +400,29 @@ export default function PrintLabels({ categories = [], initialProducts = [] }) {
                                         {showWeight && (
                                             <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[11px] border-t border-gray-100 pt-1.5 print:pt-1">
                                                 <div className="flex justify-between">
-                                                    <span className="text-gray-500">Gross:</span>
-                                                    <span className="font-semibold text-gray-900">{product.gross_weight || 0}g</span>
+                                                    <span className="text-gray-500">{t('Gross:')}</span>
+                                                    <span className="font-semibold text-gray-900">
+                                                        {isBn ? toBn(product.gross_weight || 0) : (product.gross_weight || 0)}{isBn ? ' গ্রাম' : 'g'}
+                                                    </span>
                                                 </div>
                                                 <div className="flex justify-between">
-                                                    <span className="text-gray-500">Net:</span>
-                                                    <span className="font-bold text-gray-900">{product.net_weight || product.gross_weight || 0}g</span>
+                                                    <span className="text-gray-500">{t('Net:')}</span>
+                                                    <span className="font-bold text-gray-900">
+                                                        {isBn ? toBn(product.net_weight || product.gross_weight || 0) : (product.net_weight || product.gross_weight || 0)}{isBn ? ' গ্রাম' : 'g'}
+                                                    </span>
                                                 </div>
                                                 {Number(product.stone_weight) > 0 && (
                                                     <div className="flex justify-between">
-                                                        <span className="text-gray-500">Stone:</span>
-                                                        <span className="font-medium text-gray-700">{product.stone_weight}g</span>
+                                                        <span className="text-gray-500">{t('Stone:')}</span>
+                                                        <span className="font-medium text-gray-700">
+                                                            {isBn ? toBn(product.stone_weight) : product.stone_weight}{isBn ? ' গ্রাম' : 'g'}
+                                                        </span>
                                                     </div>
                                                 )}
                                                 {product.metal_type && (
                                                     <div className="flex justify-between">
-                                                        <span className="text-gray-500">Metal:</span>
-                                                        <span className="font-medium capitalize text-gray-800">{product.metal_type}</span>
+                                                        <span className="text-gray-500">{t('Metal:')}</span>
+                                                        <span className="font-medium capitalize text-gray-800">{t(product.metal_type)}</span>
                                                     </div>
                                                 )}
                                             </div>
@@ -420,12 +433,12 @@ export default function PrintLabels({ categories = [], initialProducts = [] }) {
                                             <div className="mt-1.5 pt-1.5 border-t border-dashed border-gray-200 flex items-center justify-between text-[10px]">
                                                 {product.rate_per_vori ? (
                                                     <span className="font-bold text-amber-900 print:text-black">
-                                                        Rate: {Number(product.rate_per_vori).toLocaleString()}
+                                                        {t('Rate:')} {isBn ? toBn(Number(product.rate_per_vori).toLocaleString()) : Number(product.rate_per_vori).toLocaleString()}
                                                     </span>
                                                 ) : <span></span>}
                                                 {product.making_charge_value && (
                                                     <span className="text-gray-600 font-medium">
-                                                        MC: {product.making_charge_value}{product.making_charge_type === 'percentage' ? '%' : ''}
+                                                        {t('MC:')} {isBn ? toBn(product.making_charge_value) : product.making_charge_value}{product.making_charge_type === 'percentage' ? '%' : ''}
                                                     </span>
                                                 )}
                                             </div>

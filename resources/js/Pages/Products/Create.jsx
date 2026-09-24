@@ -10,9 +10,10 @@ import {
 import axios from 'axios';
 
 export default function Create({ categories, purities, suppliers: initialSuppliers, editProduct, latestMetalPrices }) {
-    const { t } = useLanguage();
+    const { t, lang, toBn } = useLanguage();
+    const isBn = lang === 'bn';
     const isEdit = !!editProduct;
-    const [suppliers, setSuppliers] = useState(initialSuppliers);
+    const [suppliers, setSuppliers] = useState(initialSuppliers || []);
     
     // Modal State
     const [showSupplierModal, setShowSupplierModal] = useState(false);
@@ -79,6 +80,12 @@ export default function Create({ categories, purities, suppliers: initialSupplie
         }
     };
 
+    const handleNumberFocus = (e) => {
+        if (e.target.value === '0' || e.target.value === '0.00' || e.target.value === '0.0' || e.target.value === '০') {
+            e.target.value = '';
+        }
+    };
+
     const updateProduct = (index, field, value) => {
         const newProducts = [...data.products];
         newProducts[index][field] = value;
@@ -86,7 +93,7 @@ export default function Create({ categories, purities, suppliers: initialSupplie
         if (field === 'purity_id' && latestMetalPrices) {
             const pricePerGram = latestMetalPrices[value];
             if (pricePerGram) {
-                newProducts[index].rate_per_vori = (pricePerGram * 11.664).toFixed(2);
+                newProducts[index].rate_per_vori = parseFloat((pricePerGram * 11.664).toFixed(2)).toString();
             }
         }
         
@@ -105,11 +112,10 @@ export default function Create({ categories, purities, suppliers: initialSupplie
         const point = parseFloat(newProducts[index].point || 0);
 
         const totalVori = vori + (ana / 16) + (roti / (16 * 6)) + (point / (16 * 6 * 10));
-        const totalGrams = (totalVori * 11.664).toFixed(3);
+        const totalGrams = totalVori * 11.664;
         
-        // Only update if it's > 0 to not wipe out manual gram entries unnecessarily
         if (totalGrams > 0) {
-            newProducts[index].gross_weight = totalGrams;
+            newProducts[index].gross_weight = parseFloat(totalGrams.toFixed(4)).toString();
         }
 
         setData('products', newProducts);
@@ -121,13 +127,9 @@ export default function Create({ categories, purities, suppliers: initialSupplie
         try {
             const response = await axios.post(route('suppliers.store'), supplierForm);
             if (response.data.success) {
-                // Add new supplier to list
                 setSuppliers([...suppliers, response.data.supplier]);
-                // Close modal and reset form
                 setShowSupplierModal(false);
                 setSupplierForm({ company_name: '', name: '', phone: '', email: '', address: '', nid_number: '', opening_balance: '', credit_limit: '', status: 'active' });
-                // Optional: Automatically select this supplier in the current row being edited
-                // (Would require tracking which row opened the modal)
             }
         } catch (error) {
             if (error.response?.data?.errors) {
@@ -162,19 +164,19 @@ export default function Create({ categories, purities, suppliers: initialSupplie
             header={
                 <div className="flex justify-between items-center">
                     <h2 className="font-bold text-2xl text-gray-800 tracking-tight">
-                        {isEdit ? 'Edit Product' : 'Add Product'}
+                        {isEdit ? t('Edit Product') : t('Add Product')}
                     </h2>
                     <Link
                         href={route('products.index')}
                         className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
                     >
                         <ArrowLeft className="w-4 h-4 mr-2" />
-                        Back to List
+                        {t('Back to List')}
                     </Link>
                 </div>
             }
         >
-            <Head title="Add Product" />
+            <Head title={isEdit ? t('Edit Product') : t('Add Product')} />
 
             {/* Golden-white mixed background */}
             <div className="min-h-screen bg-gradient-to-br from-[#FFFCF5] via-white to-[#FFF8E7] pt-8 pb-12 px-4 sm:px-6 lg:px-8">
@@ -188,12 +190,12 @@ export default function Create({ categories, purities, suppliers: initialSupplie
                                     
                                     {/* 1. Product Name */}
                                     <div className="md:col-span-2 lg:col-span-3">
-                                        <label className="block text-sm font-semibold text-gray-800 mb-1.5">Product Name <span className="text-red-500">*</span></label>
+                                        <label className="block text-sm font-semibold text-gray-800 mb-1.5">{t('Product Name')} <span className="text-red-500">*</span></label>
                                         <input
                                             type="text"
                                             value={product.name}
                                             onChange={e => updateProduct(index, 'name', e.target.value)}
-                                            placeholder="e.g. 22K Gold Bridal Necklace"
+                                            placeholder={t('e.g. 22K Gold Bridal Necklace')}
                                             className={`block w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 text-base font-medium shadow-sm py-2.5 ${errors[`products.${index}.name`] ? 'border-red-500' : ''}`}
                                             required
                                         />
@@ -201,14 +203,14 @@ export default function Create({ categories, purities, suppliers: initialSupplie
 
                                     {/* 2. Barcode / Pr. Code */}
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Barcode / Code</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('Barcode / Code')}</label>
                                         <div className="relative">
                                             <Hash className="w-4 h-4 absolute left-3 top-3.5 text-gray-400" />
                                             <input
                                                 type="text"
                                                 value={product.barcode}
                                                 onChange={e => updateProduct(index, 'barcode', e.target.value)}
-                                                placeholder="Scan or type..."
+                                                placeholder={t('Scan or type...')}
                                                 className="block w-full pl-9 py-2.5 rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 text-sm shadow-sm"
                                             />
                                         </div>
@@ -216,30 +218,30 @@ export default function Create({ categories, purities, suppliers: initialSupplie
 
                                     {/* 3. Category */}
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Category <span className="text-red-500">*</span></label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('Category')} <span className="text-red-500">*</span></label>
                                         <select
                                             value={product.category_id}
                                             onChange={e => updateProduct(index, 'category_id', e.target.value)}
                                             className={`block w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 text-sm shadow-sm ${errors[`products.${index}.category_id`] ? 'border-red-500' : ''}`}
                                             required
                                         >
-                                            <option value="">Select Category</option>
+                                            <option value="">{t('Select Category')}</option>
                                             {categories.map(cat => (
-                                                <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                                <option key={cat.id} value={cat.id}>{t(cat.name)}</option>
                                             ))}
                                         </select>
                                     </div>
 
                                     {/* 4. Brand / Supplier */}
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Supplier / Brand</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('Supplier / Brand')}</label>
                                         <div className="flex gap-2">
                                             <select
                                                 value={product.supplier_id}
                                                 onChange={e => updateProduct(index, 'supplier_id', e.target.value)}
                                                 className="block w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 text-sm shadow-sm"
                                             >
-                                                <option value="">Select Supplier</option>
+                                                <option value="">{t('Select Supplier')}</option>
                                                 {suppliers.map(sup => (
                                                     <option key={sup.id} value={sup.id}>{sup.name}</option>
                                                 ))}
@@ -247,8 +249,8 @@ export default function Create({ categories, purities, suppliers: initialSupplie
                                             <button
                                                 type="button"
                                                 onClick={() => setShowSupplierModal(true)}
-                                                className="px-3 py-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 border border-amber-200 transition-colors shadow-sm"
-                                                title="Add New Supplier"
+                                                className="px-3 py-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 border border-amber-200 transition-colors shadow-sm cursor-pointer"
+                                                title={t('Add New Supplier')}
                                             >
                                                 <UserPlus className="w-4 h-4" />
                                             </button>
@@ -257,38 +259,40 @@ export default function Create({ categories, purities, suppliers: initialSupplie
                                     
                                     {/* 5. Metal Type */}
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Metal Type <span className="text-red-500">*</span></label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('Metal Type')} <span className="text-red-500">*</span></label>
                                         <select
                                             value={product.metal_type}
                                             onChange={e => updateProduct(index, 'metal_type', e.target.value)}
                                             className={`block w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 text-sm shadow-sm ${errors[`products.${index}.metal_type`] ? 'border-red-500' : ''}`}
                                             required
                                         >
-                                            <option value="">Select Metal</option>
-                                            <option value="gold">Gold</option>
-                                            <option value="silver">Silver</option>
-                                            <option value="platinum">Platinum</option>
-                                            <option value="diamond">Diamond</option>
+                                            <option value="">{t('Select Metal')}</option>
+                                            <option value="gold">{t('Gold')}</option>
+                                            <option value="silver">{t('Silver')}</option>
+                                            <option value="platinum">{t('Platinum')}</option>
+                                            <option value="diamond">{t('Diamond')}</option>
                                         </select>
                                     </div>
+
                                     {/* 6. Purity */}
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Purity <span className="text-red-500">*</span></label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('Purity')} <span className="text-red-500">*</span></label>
                                         <select
                                             value={product.purity_id}
                                             onChange={e => updateProduct(index, 'purity_id', e.target.value)}
                                             className={`block w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 text-sm shadow-sm ${errors[`products.${index}.purity_id`] ? 'border-red-500' : ''}`}
                                             required
                                         >
-                                            <option value="">Select Purity</option>
+                                            <option value="">{t('Select Purity')}</option>
                                             {purities.filter(p => !product.metal_type || p.metal_type === product.metal_type).map(p => (
-                                                <option key={p.id} value={p.id}>{p.name}</option>
+                                                <option key={p.id} value={p.id}>{isBn ? toBn(p.name) : p.name}</option>
                                             ))}
                                         </select>
                                     </div>
+
                                     {/* 7. Date */}
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('Date')}</label>
                                         <div className="relative">
                                             <Calendar className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
                                             <input
@@ -302,28 +306,29 @@ export default function Create({ categories, purities, suppliers: initialSupplie
 
                                     {/* 8. Stock Type */}
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Stock Type</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('Stock Type')}</label>
                                         <select
                                             value={product.stock_type}
                                             onChange={e => updateProduct(index, 'stock_type', e.target.value)}
                                             className="block w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 text-sm shadow-sm"
                                         >
-                                            <option value="ready_stock">Ready Stock</option>
-                                            <option value="order_stock">Order Stock</option>
+                                            <option value="ready_stock">{t('Ready Stock')}</option>
+                                            <option value="order_stock">{t('Order Stock')}</option>
                                         </select>
                                     </div>
 
                                     {/* 9. Rate / Vori */}
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Rate / Vori</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('Rate / Vori')}</label>
                                         <div className="relative">
-                                            <span className="absolute left-3 top-2.5 text-gray-500 font-medium text-sm">BDT</span>
+                                            <span className="absolute left-3 top-2.5 text-gray-500 font-medium text-sm">{isBn ? '৳' : 'BDT'}</span>
                                             <input
                                                 type="number"
-                                                step="0.01"
+                                                step="any"
                                                 value={product.rate_per_vori}
+                                                onFocus={handleNumberFocus}
                                                 onChange={e => updateProduct(index, 'rate_per_vori', e.target.value)}
-                                                placeholder="0.00"
+                                                placeholder="0"
                                                 className="block w-full pl-12 rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 text-sm shadow-sm"
                                             />
                                         </div>
@@ -338,44 +343,48 @@ export default function Create({ categories, purities, suppliers: initialSupplie
                                     {/* Weight Calculator Panel */}
                                     <div className="lg:col-span-6 bg-amber-50/50 p-4 rounded-xl border border-amber-100">
                                         <h4 className="text-sm font-bold text-amber-900 mb-3 flex items-center">
-                                            <Calculator className="w-4 h-4 mr-1.5" /> Weight Calculator
+                                            <Calculator className="w-4 h-4 mr-1.5" /> {t('Weight Calculator')}
                                         </h4>
                                         <div className="grid grid-cols-4 gap-3">
                                             <div>
-                                                <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wider">Vori</label>
+                                                <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wider">{t('Vori')}</label>
                                                 <input
                                                     type="number" step="any"
                                                     value={product.vori}
+                                                    onFocus={handleNumberFocus}
                                                     onChange={e => handleVoriCalcChange(index, 'vori', e.target.value)}
                                                     className="block w-full rounded border-amber-200 focus:border-amber-500 focus:ring-amber-500 text-sm px-2 py-1.5"
                                                     placeholder="0"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wider">Ana</label>
+                                                <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wider">{t('Ana')}</label>
                                                 <input
                                                     type="number" step="any"
                                                     value={product.ana}
+                                                    onFocus={handleNumberFocus}
                                                     onChange={e => handleVoriCalcChange(index, 'ana', e.target.value)}
                                                     className="block w-full rounded border-amber-200 focus:border-amber-500 focus:ring-amber-500 text-sm px-2 py-1.5"
                                                     placeholder="0"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wider">Roti</label>
+                                                <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wider">{t('Roti')}</label>
                                                 <input
                                                     type="number" step="any"
                                                     value={product.roti}
+                                                    onFocus={handleNumberFocus}
                                                     onChange={e => handleVoriCalcChange(index, 'roti', e.target.value)}
                                                     className="block w-full rounded border-amber-200 focus:border-amber-500 focus:ring-amber-500 text-sm px-2 py-1.5"
                                                     placeholder="0"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wider">Point</label>
+                                                <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wider">{t('Point')}</label>
                                                 <input
                                                     type="number" step="any"
                                                     value={product.point}
+                                                    onFocus={handleNumberFocus}
                                                     onChange={e => handleVoriCalcChange(index, 'point', e.target.value)}
                                                     className="block w-full rounded border-amber-200 focus:border-amber-500 focus:ring-amber-500 text-sm px-2 py-1.5"
                                                     placeholder="0"
@@ -387,58 +396,63 @@ export default function Create({ categories, purities, suppliers: initialSupplie
                                     {/* Core Weights & Charges */}
                                     <div className="lg:col-span-6 grid grid-cols-2 sm:grid-cols-3 gap-4">
                                         <div>
-                                            <label className="block text-xs font-bold text-gray-700 mb-1">Weight In Gm <span className="text-red-500">*</span></label>
+                                            <label className="block text-xs font-bold text-gray-700 mb-1">{t('Weight In Gm')} <span className="text-red-500">*</span></label>
                                             <input
-                                                type="number" step="0.001"
+                                                type="number" step="any"
                                                 value={product.gross_weight}
+                                                onFocus={handleNumberFocus}
                                                 onChange={e => updateProduct(index, 'gross_weight', e.target.value)}
+                                                placeholder="0"
                                                 className={`block w-full rounded-lg border-gray-300 focus:border-amber-500 text-sm bg-yellow-50 font-semibold ${errors[`products.${index}.gross_weight`] ? 'border-red-500' : ''}`}
                                                 required
                                             />
                                         </div>
 
                                         <div>
-                                            <label className="block text-xs font-bold text-gray-700 mb-1">VAT %</label>
+                                            <label className="block text-xs font-bold text-gray-700 mb-1">{t('VAT %')}</label>
                                             <div className="relative">
                                                 <Percent className="w-3 h-3 absolute right-3 top-3 text-gray-400" />
                                                 <input
-                                                    type="number" step="0.01"
+                                                    type="number" step="any"
                                                     value={product.vat_percentage}
+                                                    onFocus={handleNumberFocus}
                                                     onChange={e => updateProduct(index, 'vat_percentage', e.target.value)}
                                                     className="block w-full pr-8 rounded-lg border-gray-300 focus:border-amber-500 text-sm"
-                                                    placeholder="0.00"
+                                                    placeholder="0"
                                                 />
                                             </div>
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-bold text-gray-700 mb-1">M.C Type</label>
+                                            <label className="block text-xs font-bold text-gray-700 mb-1">{t('M.C Type')}</label>
                                             <select
                                                 value={product.making_charge_type}
                                                 onChange={e => updateProduct(index, 'making_charge_type', e.target.value)}
                                                 className="block w-full rounded-lg border-gray-300 focus:border-amber-500 text-sm py-1.5"
                                             >
-                                                <option value="per_gram">Per Gram</option>
-                                                <option value="fixed">Fixed</option>
-                                                <option value="percentage">% of Price</option>
+                                                <option value="per_gram">{t('Per Gram')}</option>
+                                                <option value="fixed">{t('Fixed')}</option>
+                                                <option value="percentage">{t('% of Price')}</option>
                                             </select>
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-bold text-gray-700 mb-1">Mk. Charge <span className="text-red-500">*</span></label>
+                                            <label className="block text-xs font-bold text-gray-700 mb-1">{t('Mk. Charge')} <span className="text-red-500">*</span></label>
                                             <input
-                                                type="number" step="0.01"
+                                                type="number" step="any"
                                                 value={product.making_charge_value}
+                                                onFocus={handleNumberFocus}
                                                 onChange={e => updateProduct(index, 'making_charge_value', e.target.value)}
+                                                placeholder="0"
                                                 className={`block w-full rounded-lg border-gray-300 focus:border-amber-500 text-sm ${errors[`products.${index}.making_charge_value`] ? 'border-red-500' : ''}`}
                                                 required
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-bold text-gray-700 mb-1">Photo</label>
+                                            <label className="block text-xs font-bold text-gray-700 mb-1">{t('Photo')}</label>
                                             <input
                                                 type="file"
                                                 accept="image/*"
                                                 onChange={e => updateProduct(index, 'image', e.target.files[0])}
-                                                className="block w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100"
+                                                className="block w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 cursor-pointer"
                                             />
                                         </div>
                                     </div>
@@ -447,7 +461,7 @@ export default function Create({ categories, purities, suppliers: initialSupplie
                                 {/* Error display for this row */}
                                 {Object.keys(errors).some(key => key.startsWith(`products.${index}.`)) && (
                                     <div className="mt-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">
-                                        There are validation errors in this row. Please check required fields.
+                                        {t('There are validation errors in this row. Please check required fields.')}
                                     </div>
                                 )}
                             </div>
@@ -458,10 +472,11 @@ export default function Create({ categories, purities, suppliers: initialSupplie
                         <button
                             type="submit"
                             disabled={processing}
-                            className="w-full sm:w-auto flex items-center justify-center px-10 py-3.5 text-base font-bold text-white bg-gradient-to-r from-amber-500 to-yellow-600 rounded-2xl hover:from-amber-600 hover:to-yellow-700 transition-all shadow-lg shadow-amber-500/30 focus:ring-4 focus:ring-amber-500/30 disabled:opacity-50 transform hover:-translate-y-0.5"
+                            style={{ backgroundColor: 'rgb(177, 118, 51)' }}
+                            className="w-full sm:w-auto flex items-center justify-center px-10 py-3.5 text-base font-bold text-white rounded-2xl hover:opacity-90 transition-all shadow-lg focus:ring-4 focus:ring-amber-500/30 disabled:opacity-50 transform hover:-translate-y-0.5 cursor-pointer"
                         >
                             <Save className="w-5 h-5 mr-2" />
-                            {processing ? 'Saving...' : (isEdit ? 'Update Product' : 'Add Product')}
+                            {processing ? t('Saving...') : (isEdit ? t('Update Product') : t('Add Product'))}
                         </button>
                     </div>
                 </form>
@@ -472,12 +487,12 @@ export default function Create({ categories, purities, suppliers: initialSupplie
             <Modal show={showSupplierModal} onClose={() => setShowSupplierModal(false)} maxWidth="2xl">
                 <div className="p-6">
                     <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                        <UserPlus className="w-5 h-5 mr-2 text-amber-500" /> Add New Supplier
+                        <UserPlus className="w-5 h-5 mr-2 text-[#b17633]" /> {t('Add New Supplier')}
                     </h2>
                     <form onSubmit={handleSupplierSubmit} className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Company Name <span className="text-red-500">*</span></label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('Company Name')} <span className="text-red-500">*</span></label>
                                 <input
                                     type="text"
                                     value={supplierForm.company_name}
@@ -487,7 +502,7 @@ export default function Create({ categories, purities, suppliers: initialSupplie
                                 {supplierErrors.company_name && <p className="mt-1 text-xs text-red-600">{supplierErrors.company_name[0]}</p>}
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Contact Person Name <span className="text-red-500">*</span></label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('Contact Person Name')} <span className="text-red-500">*</span></label>
                                 <input
                                     type="text"
                                     value={supplierForm.name}
@@ -497,7 +512,7 @@ export default function Create({ categories, purities, suppliers: initialSupplie
                                 {supplierErrors.name && <p className="mt-1 text-xs text-red-600">{supplierErrors.name[0]}</p>}
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number <span className="text-red-500">*</span></label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('Phone Number')} <span className="text-red-500">*</span></label>
                                 <input
                                     type="text"
                                     value={supplierForm.phone}
@@ -507,7 +522,7 @@ export default function Create({ categories, purities, suppliers: initialSupplie
                                 {supplierErrors.phone && <p className="mt-1 text-xs text-red-600">{supplierErrors.phone[0]}</p>}
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('Email Address')}</label>
                                 <input
                                     type="email"
                                     value={supplierForm.email}
@@ -517,7 +532,7 @@ export default function Create({ categories, purities, suppliers: initialSupplie
                                 {supplierErrors.email && <p className="mt-1 text-xs text-red-600">{supplierErrors.email[0]}</p>}
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">NID Number</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('NID Number')}</label>
                                 <input
                                     type="text"
                                     value={supplierForm.nid_number}
@@ -527,27 +542,31 @@ export default function Create({ categories, purities, suppliers: initialSupplie
                                 {supplierErrors.nid_number && <p className="mt-1 text-xs text-red-600">{supplierErrors.nid_number[0]}</p>}
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Opening Balance</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('Opening Balance')}</label>
                                 <input
-                                    type="number" step="0.01"
+                                    type="number" step="any"
                                     value={supplierForm.opening_balance}
+                                    onFocus={handleNumberFocus}
                                     onChange={e => setSupplierForm({...supplierForm, opening_balance: e.target.value})}
+                                    placeholder="0"
                                     className={`block w-full rounded-lg border-gray-300 focus:border-amber-500 text-sm ${supplierErrors.opening_balance ? 'border-red-500' : ''}`}
                                 />
                                 {supplierErrors.opening_balance && <p className="mt-1 text-xs text-red-600">{supplierErrors.opening_balance[0]}</p>}
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Credit Limit</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('Credit Limit')}</label>
                                 <input
-                                    type="number" step="0.01"
+                                    type="number" step="any"
                                     value={supplierForm.credit_limit}
+                                    onFocus={handleNumberFocus}
                                     onChange={e => setSupplierForm({...supplierForm, credit_limit: e.target.value})}
+                                    placeholder="0"
                                     className={`block w-full rounded-lg border-gray-300 focus:border-amber-500 text-sm ${supplierErrors.credit_limit ? 'border-red-500' : ''}`}
                                 />
                                 {supplierErrors.credit_limit && <p className="mt-1 text-xs text-red-600">{supplierErrors.credit_limit[0]}</p>}
                             </div>
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('Address')}</label>
                                 <textarea
                                     value={supplierForm.address}
                                     onChange={e => setSupplierForm({...supplierForm, address: e.target.value})}
@@ -561,15 +580,16 @@ export default function Create({ categories, purities, suppliers: initialSupplie
                             <button
                                 type="button"
                                 onClick={() => setShowSupplierModal(false)}
-                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer"
                             >
-                                Cancel
+                                {t('Cancel')}
                             </button>
                             <button
                                 type="submit"
-                                className="px-4 py-2 text-sm font-medium text-white bg-amber-600 border border-transparent rounded-lg hover:bg-amber-700"
+                                style={{ backgroundColor: 'rgb(177, 118, 51)' }}
+                                className="px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 shadow-sm cursor-pointer"
                             >
-                                Save Supplier
+                                {t('Save Supplier')}
                             </button>
                         </div>
                     </form>
@@ -579,4 +599,3 @@ export default function Create({ categories, purities, suppliers: initialSupplie
         </AuthenticatedLayout>
     );
 }
-

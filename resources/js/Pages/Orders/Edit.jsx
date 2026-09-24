@@ -14,8 +14,24 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '@/Context/LanguageContext';
 
-export default function Edit({ order, customers, purities, branches }) {
-    const { t } = useLanguage();
+export default function Edit({ order, customers = [], purities = [], branches = [] }) {
+    const { t, lang, toBn } = useLanguage();
+    const isBn = lang === 'bn';
+
+    const handleNumberFocus = (e) => {
+        if (e.target.value === '0' || e.target.value === '0.00' || e.target.value === '০') {
+            e.target.value = '';
+        }
+    };
+
+    const cleanNumber = (val) => {
+        if (val === null || val === undefined) return '';
+        let str = String(val);
+        if (/^0+[0-9]/.test(str)) {
+            str = str.replace(/^0+/, '');
+        }
+        return str;
+    };
 
     const { data, setData, post, processing, errors } = useForm({
         _method: 'PUT',
@@ -62,98 +78,115 @@ export default function Edit({ order, customers, purities, branches }) {
                     <div className="flex items-center gap-3">
                         <Link
                             href={route('orders.index')}
-                            className="p-2 text-gray-500 hover:text-gray-700 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 transition-all"
+                            className="p-2 text-gray-500 hover:text-gray-700 bg-white border border-gray-200 rounded-xl shadow-xs hover:bg-gray-50 transition-all"
                         >
                             <ArrowLeft className="w-5 h-5" />
                         </Link>
                         <div>
                             <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
-                                Edit Order #{order.order_no}
+                                {isBn ? `অর্ডার সংশোধন #${toBn(order.order_no)}` : `Edit Order #${order.order_no}`}
                             </h2>
                         </div>
                     </div>
                 </div>
             }
         >
-            <Head title={`Edit Order ${order.order_no}`} />
+            <Head title={isBn ? `অর্ডার সংশোধন ${toBn(order.order_no)}` : `Edit Order ${order.order_no}`} />
 
             <form onSubmit={handleSubmit} className="max-w-5xl mx-auto space-y-6">
                 
                 {/* Main Order Information Card */}
                 <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-6">
                     <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 flex items-center gap-2">
-                        <User className="w-5 h-5 text-amber-600" />
-                        1. Customer & Order Status
+                        <User className="w-5 h-5" style={{ color: 'rgb(177,118,51)' }} />
+                        {isBn ? '১. কাস্টমার ও অর্ডারের স্ট্যাটাস' : '1. Customer & Order Status'}
                     </h3>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {/* Branch */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Branch</label>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                {t('branch') || 'Branch'}
+                            </label>
                             <select
                                 value={data.branch_id}
                                 onChange={(e) => setData('branch_id', e.target.value)}
                                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
                             >
-                                <option value="">Select Branch</option>
+                                <option value="">{isBn ? 'শাখা নির্বাচন করুন' : 'Select Branch'}</option>
                                 {branches.map((b) => (
                                     <option key={b.id} value={b.id}>{b.name}</option>
                                 ))}
                             </select>
+                            {errors.branch_id && <p className="text-xs text-rose-500 mt-1">{errors.branch_id}</p>}
                         </div>
 
                         {/* Customer */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Customer</label>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                {t('customer') || 'Customer'}
+                            </label>
                             <select
                                 value={data.customer_id}
                                 onChange={(e) => setData('customer_id', e.target.value)}
                                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
                             >
-                                <option value="">Select Customer</option>
+                                <option value="">{isBn ? 'কাস্টমার নির্বাচন করুন' : 'Select Customer'}</option>
                                 {customers.map((c) => (
-                                    <option key={c.id} value={c.id}>{c.name} ({c.phone})</option>
+                                    <option key={c.id} value={c.id}>
+                                        {c.name} ({isBn ? toBn(c.phone) : c.phone})
+                                    </option>
                                 ))}
                             </select>
+                            {errors.customer_id && <p className="text-xs text-rose-500 mt-1">{errors.customer_id}</p>}
                         </div>
 
                         {/* Order Status */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Order Status</label>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                {isBn ? 'অর্ডার স্ট্যাটাস' : 'Order Status'}
+                            </label>
                             <select
                                 value={data.status}
                                 onChange={(e) => setData('status', e.target.value)}
                                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-bold text-amber-700 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
                             >
-                                <option value="new">New Order</option>
-                                <option value="assigned">Assigned</option>
-                                <option value="in_production">In Production</option>
-                                <option value="ready">Ready for Delivery</option>
-                                <option value="delivered">Delivered</option>
-                                <option value="cancelled">Cancelled</option>
+                                <option value="new">{isBn ? 'নতুন অর্ডার' : 'New Order'}</option>
+                                <option value="assigned">{isBn ? 'বরাদ্দকৃত (Assigned)' : 'Assigned'}</option>
+                                <option value="in_production">{isBn ? 'প্রস্তুত হচ্ছে (In Production)' : 'In Production'}</option>
+                                <option value="ready">{isBn ? 'ডেলিভারির জন্য প্রস্তুত' : 'Ready for Delivery'}</option>
+                                <option value="delivered">{isBn ? 'ডেলিভারি সম্পন্ন' : 'Delivered'}</option>
+                                <option value="cancelled">{isBn ? 'বাতিল' : 'Cancelled'}</option>
                             </select>
+                            {errors.status && <p className="text-xs text-rose-500 mt-1">{errors.status}</p>}
                         </div>
 
                         {/* Order Date */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Order Date</label>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                {isBn ? 'অর্ডারের তারিখ' : 'Order Date'}
+                            </label>
                             <input
                                 type="date"
                                 value={data.order_date}
                                 onChange={(e) => setData('order_date', e.target.value)}
                                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
                             />
+                            {errors.order_date && <p className="text-xs text-rose-500 mt-1">{errors.order_date}</p>}
                         </div>
 
                         {/* Delivery Date */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Delivery Date</label>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                {isBn ? 'ডেলিভারির তারিখ' : 'Delivery Date'}
+                            </label>
                             <input
                                 type="date"
                                 value={data.delivery_date}
                                 onChange={(e) => setData('delivery_date', e.target.value)}
                                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
                             />
+                            {errors.delivery_date && <p className="text-xs text-rose-500 mt-1">{errors.delivery_date}</p>}
                         </div>
                     </div>
                 </div>
@@ -161,57 +194,70 @@ export default function Edit({ order, customers, purities, branches }) {
                 {/* Specs Card */}
                 <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-6">
                     <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 flex items-center gap-2">
-                        <Scale className="w-5 h-5 text-amber-600" />
-                        2. Jewelry Specifications
+                        <Scale className="w-5 h-5" style={{ color: 'rgb(177,118,51)' }} />
+                        {isBn ? '২. গহনার বিবরণ ও ওজন' : '2. Jewelry Specifications'}
                     </h3>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Metal Type</label>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                {isBn ? 'ধাতুর ধরণ' : 'Metal Type'}
+                            </label>
                             <select
                                 value={data.metal_type}
                                 onChange={(e) => setData('metal_type', e.target.value)}
                                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
                             >
-                                <option value="Gold">Gold</option>
-                                <option value="Silver">Silver</option>
-                                <option value="Platinum">Platinum</option>
-                                <option value="Diamond">Diamond</option>
+                                <option value="Gold">{isBn ? 'স্বর্ণ (Gold)' : 'Gold'}</option>
+                                <option value="Silver">{isBn ? 'রূপা (Silver)' : 'Silver'}</option>
+                                <option value="Platinum">{isBn ? 'প্লাটিনাম (Platinum)' : 'Platinum'}</option>
+                                <option value="Diamond">{isBn ? 'ডায়মন্ড (Diamond)' : 'Diamond'}</option>
                             </select>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Purity</label>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                {isBn ? 'ক্যারেট / বিশুদ্ধতা' : 'Purity / Karat'}
+                            </label>
                             <select
                                 value={data.purity_id}
                                 onChange={(e) => setData('purity_id', e.target.value)}
                                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
                             >
-                                <option value="">Select Purity</option>
+                                <option value="">{isBn ? 'ক্যারেট নির্বাচন করুন' : 'Select Purity'}</option>
                                 {purities.map((p) => (
-                                    <option key={p.id} value={p.id}>{p.name} ({p.percentage}%)</option>
+                                    <option key={p.id} value={p.id}>
+                                        {p.name} ({isBn ? toBn(p.percentage) : p.percentage}%)
+                                    </option>
                                 ))}
                             </select>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Estimated Weight (g)</label>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                {isBn ? 'আনুমানিক ওজন (গ্রাম)' : 'Estimated Weight (g)'}
+                            </label>
                             <input
                                 type="number"
-                                step="0.001"
-                                value={data.estimated_weight}
-                                onChange={(e) => setData('estimated_weight', e.target.value)}
+                                step="any"
+                                placeholder="0"
+                                onFocus={handleNumberFocus}
+                                value={data.estimated_weight ?? ''}
+                                onChange={(e) => setData('estimated_weight', cleanNumber(e.target.value))}
                                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
                             />
                         </div>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Product Description</label>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            {isBn ? 'পণ্যের ডিজাইন ও নির্দেশিকা' : 'Product Description & Notes'}
+                        </label>
                         <textarea
                             rows="3"
                             value={data.product_description}
                             onChange={(e) => setData('product_description', e.target.value)}
+                            placeholder={isBn ? 'ডিজাইন বা বিশেষ কোনো নির্দেশিকা লিখুন...' : 'Write design instructions...'}
                             className="w-full p-4 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
                         />
                     </div>
@@ -220,37 +266,47 @@ export default function Edit({ order, customers, purities, branches }) {
                 {/* Financial Estimates Card */}
                 <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-6">
                     <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 flex items-center gap-2">
-                        <DollarSign className="w-5 h-5 text-amber-600" />
-                        3. Pricing & Advance Payment
+                        <DollarSign className="w-5 h-5" style={{ color: 'rgb(177,118,51)' }} />
+                        {isBn ? '৩. মূল্য ও অগ্রিম জমা' : '3. Pricing & Advance Payment'}
                     </h3>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Estimated Amount (৳)</label>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                {isBn ? 'আনুমানিক মূল্য (৳)' : 'Estimated Amount (BDT)'}
+                            </label>
                             <input
                                 type="number"
-                                step="0.01"
-                                value={data.estimated_amount}
-                                onChange={(e) => setData('estimated_amount', e.target.value)}
+                                step="any"
+                                placeholder="0"
+                                onFocus={handleNumberFocus}
+                                value={data.estimated_amount ?? ''}
+                                onChange={(e) => setData('estimated_amount', cleanNumber(e.target.value))}
                                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Advance Received (৳)</label>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                {isBn ? 'অগ্রিম গ্রহণ (৳)' : 'Advance Received (BDT)'}
+                            </label>
                             <input
                                 type="number"
-                                step="0.01"
-                                value={data.advance_amount}
-                                onChange={(e) => setData('advance_amount', e.target.value)}
+                                step="any"
+                                placeholder="0"
+                                onFocus={handleNumberFocus}
+                                value={data.advance_amount ?? ''}
+                                onChange={(e) => setData('advance_amount', cleanNumber(e.target.value))}
                                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-emerald-600 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Calculated Remaining Due (৳)</label>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                {isBn ? 'অবশিষ্ট বকেয়া (৳)' : 'Calculated Remaining Due (BDT)'}
+                            </label>
                             <div className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-rose-600">
-                                ৳{calculatedDue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                {isBn ? `৳ ${toBn(calculatedDue.toLocaleString('en-US', { minimumFractionDigits: 2 }))}` : `BDT ${calculatedDue.toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
                             </div>
                         </div>
                     </div>
@@ -262,7 +318,7 @@ export default function Edit({ order, customers, purities, branches }) {
                         href={route('orders.index')}
                         className="px-6 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all"
                     >
-                        Cancel
+                        {t('cancel') || 'Cancel'}
                     </Link>
                     <button
                         type="submit"
@@ -271,7 +327,7 @@ export default function Edit({ order, customers, purities, branches }) {
                         style={{ backgroundColor: 'rgb(177,118,51)' }}
                     >
                         <Save className="w-4 h-4" />
-                        {processing ? 'Updating...' : 'Update Order'}
+                        {processing ? (isBn ? 'আপডেট হচ্ছে...' : 'Updating...') : (isBn ? 'অর্ডার আপডেট করুন' : 'Update Order')}
                     </button>
                 </div>
             </form>

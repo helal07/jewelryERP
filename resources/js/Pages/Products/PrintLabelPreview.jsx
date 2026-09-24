@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
+import { useLanguage } from '@/Context/LanguageContext';
 import { ArrowLeft, Printer, Gem } from 'lucide-react';
 import Barcode from 'react-barcode';
 
@@ -29,6 +30,9 @@ function SafeBarcode({ value }) {
 }
 
 export default function PrintLabelPreview({ products = [] }) {
+    const { t, lang, toBn } = useLanguage();
+    const isBn = lang === 'bn';
+
     const [showPrice, setShowPrice] = useState(true);
     const [showWeight, setShowWeight] = useState(true);
 
@@ -38,7 +42,7 @@ export default function PrintLabelPreview({ products = [] }) {
 
     return (
         <div className="min-h-screen bg-gray-100 print:bg-white">
-            <Head title="Print Labels" />
+            <Head title={t('Print Labels Preview')} />
 
             {/* Screen Controls Header (Hidden in Print) */}
             <div className="print:hidden bg-white border-b border-gray-200 shadow-xs sticky top-0 z-50">
@@ -49,10 +53,10 @@ export default function PrintLabelPreview({ products = [] }) {
                             className="inline-flex items-center px-3.5 py-1.5 text-xs font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                         >
                             <ArrowLeft className="w-4 h-4 mr-1.5" />
-                            Back
+                            {t('Back')}
                         </Link>
                         <span className="text-xs font-bold text-gray-700 bg-gray-100 px-2.5 py-1 rounded-md">
-                            {products.length} {products.length === 1 ? 'Label' : 'Labels'}
+                            {isBn ? toBn(products.length) : products.length} {t('Labels')}
                         </span>
                     </div>
 
@@ -64,7 +68,7 @@ export default function PrintLabelPreview({ products = [] }) {
                                 onChange={(e) => setShowWeight(e.target.checked)}
                                 className="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
                             />
-                            <span className="text-gray-700 font-medium">Weights</span>
+                            <span className="text-gray-700 font-medium">{t('Weights')}</span>
                         </label>
 
                         <label className="flex items-center gap-1.5 cursor-pointer select-none">
@@ -74,7 +78,7 @@ export default function PrintLabelPreview({ products = [] }) {
                                 onChange={(e) => setShowPrice(e.target.checked)}
                                 className="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
                             />
-                            <span className="text-gray-700 font-medium">Price / Rate</span>
+                            <span className="text-gray-700 font-medium">{t('Price / Rate')}</span>
                         </label>
 
                         <button
@@ -83,7 +87,7 @@ export default function PrintLabelPreview({ products = [] }) {
                             style={{ backgroundColor: 'rgb(177,118,51)' }}
                         >
                             <Printer className="w-4 h-4 mr-1.5" />
-                            Print
+                            {t('Print')}
                         </button>
                     </div>
                 </div>
@@ -94,13 +98,13 @@ export default function PrintLabelPreview({ products = [] }) {
                 {products.length === 0 ? (
                     <div className="bg-white rounded-xl border border-gray-200 p-12 text-center shadow-xs">
                         <Gem className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                        <h3 className="text-base font-bold text-gray-800">No Products Selected</h3>
+                        <h3 className="text-base font-bold text-gray-800">{t('No Products Selected')}</h3>
                         <Link
                             href={route('products.print-labels')}
-                            className="inline-flex items-center mt-4 px-4 py-2 text-xs font-semibold text-white rounded-lg shadow-xs hover:opacity-90 transition-opacity"
+                            className="inline-flex items-center mt-4 px-4 py-2 text-xs font-semibold text-white rounded-lg shadow-xs hover:opacity-90 transition-opacity cursor-pointer"
                             style={{ backgroundColor: 'rgb(177,118,51)' }}
                         >
-                            <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Back
+                            <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> {t('Back')}
                         </Link>
                     </div>
                 ) : (
@@ -119,7 +123,7 @@ export default function PrintLabelPreview({ products = [] }) {
                                     </div>
                                     {product.purity?.name && (
                                         <span className="text-[10px] font-bold bg-amber-100 text-amber-900 print:bg-transparent print:border print:border-black px-1.5 py-0.2 rounded font-mono">
-                                            {product.purity.name}
+                                            {isBn ? toBn(product.purity.name) : product.purity.name}
                                         </span>
                                     )}
                                 </div>
@@ -127,7 +131,7 @@ export default function PrintLabelPreview({ products = [] }) {
                                 {/* Product Name & SKU */}
                                 <div className="text-center my-1">
                                     <h4 className="text-xs font-bold text-gray-900 truncate">{product.name}</h4>
-                                    <p className="text-[10px] text-gray-500 font-mono tracking-wider">{product.sku}</p>
+                                    <p className="text-[10px] text-gray-500 font-mono tracking-wider">{isBn ? toBn(product.sku) : product.sku}</p>
                                 </div>
 
                                 {/* Barcode */}
@@ -139,23 +143,29 @@ export default function PrintLabelPreview({ products = [] }) {
                                 {showWeight && (
                                     <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[11px] border-t border-gray-100 pt-1.5 print:pt-1">
                                         <div className="flex justify-between">
-                                            <span className="text-gray-500">Gross:</span>
-                                            <span className="font-semibold text-gray-900">{product.gross_weight || 0}g</span>
+                                            <span className="text-gray-500">{t('Gross:')}</span>
+                                            <span className="font-semibold text-gray-900">
+                                                {isBn ? toBn(product.gross_weight || 0) : (product.gross_weight || 0)}{isBn ? ' গ্রাম' : 'g'}
+                                            </span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span className="text-gray-500">Net:</span>
-                                            <span className="font-bold text-gray-900">{product.net_weight || product.gross_weight || 0}g</span>
+                                            <span className="text-gray-500">{t('Net:')}</span>
+                                            <span className="font-bold text-gray-900">
+                                                {isBn ? toBn(product.net_weight || product.gross_weight || 0) : (product.net_weight || product.gross_weight || 0)}{isBn ? ' গ্রাম' : 'g'}
+                                            </span>
                                         </div>
                                         {Number(product.stone_weight) > 0 && (
                                             <div className="flex justify-between">
-                                                <span className="text-gray-500">Stone:</span>
-                                                <span className="font-medium text-gray-700">{product.stone_weight}g</span>
+                                                <span className="text-gray-500">{t('Stone:')}</span>
+                                                <span className="font-medium text-gray-700">
+                                                    {isBn ? toBn(product.stone_weight) : product.stone_weight}{isBn ? ' গ্রাম' : 'g'}
+                                                </span>
                                             </div>
                                         )}
                                         {product.metal_type && (
                                             <div className="flex justify-between">
-                                                <span className="text-gray-500">Metal:</span>
-                                                <span className="font-medium capitalize text-gray-800">{product.metal_type}</span>
+                                                <span className="text-gray-500">{t('Metal:')}</span>
+                                                <span className="font-medium capitalize text-gray-800">{t(product.metal_type)}</span>
                                             </div>
                                         )}
                                     </div>
@@ -166,12 +176,12 @@ export default function PrintLabelPreview({ products = [] }) {
                                     <div className="mt-1.5 pt-1.5 border-t border-dashed border-gray-200 flex items-center justify-between text-[10px]">
                                         {product.rate_per_vori ? (
                                             <span className="font-bold text-amber-900 print:text-black">
-                                                Rate: {Number(product.rate_per_vori).toLocaleString()}
+                                                {t('Rate:')} {isBn ? toBn(Number(product.rate_per_vori).toLocaleString()) : Number(product.rate_per_vori).toLocaleString()}
                                             </span>
                                         ) : <span></span>}
                                         {product.making_charge_value && (
                                             <span className="text-gray-600 font-medium">
-                                                MC: {product.making_charge_value}{product.making_charge_type === 'percentage' ? '%' : ''}
+                                                {t('MC:')} {isBn ? toBn(product.making_charge_value) : product.making_charge_value}{product.making_charge_type === 'percentage' ? '%' : ''}
                                             </span>
                                         )}
                                     </div>

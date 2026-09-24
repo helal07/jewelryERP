@@ -9,9 +9,10 @@ use Inertia\Inertia;
 
 class AccountConfigurationController extends Controller
 {
-    public function index(Request $request)
+    public function index(?Request $request = null)
     {
-        $isMainBranch = $request->user()->isMainBranch();
+        $request = $request ?? request();
+        $isMainBranch = $request->user() ? $request->user()->isMainBranch() : true;
 
         $config = [
             // Company Information
